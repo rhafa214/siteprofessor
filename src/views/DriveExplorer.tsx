@@ -17,6 +17,10 @@ export default function DriveExplorer() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '946685977475-3irk02ul9n29jgm1atm7fteebu9dith0.apps.googleusercontent.com';
 
   const handleConnect = () => {
+    if (typeof google === 'undefined') {
+      setAuthError('O script do Google ainda não carregou. Tente novamente em alguns segundos ou recarregue a página.');
+      return;
+    }
     if (!clientId) {
       setAuthError('Variável VITE_GOOGLE_CLIENT_ID não configurada. Configure no .env para testar o Google Drive!');
       return;

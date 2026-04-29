@@ -86,7 +86,10 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       </nav>
 
       <div className="mt-auto pt-4">
-        <button className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors">
+        <button 
+          onClick={() => setCurrentView('agenda')}
+          className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"
+        >
           Sincronizar Google
         </button>
       </div>

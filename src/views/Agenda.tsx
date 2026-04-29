@@ -19,6 +19,10 @@ export default function Agenda() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '946685977475-3irk02ul9n29jgm1atm7fteebu9dith0.apps.googleusercontent.com';
 
   const handleConnect = () => {
+    if (typeof google === 'undefined') {
+      setAuthError('O script do Google ainda não carregou. Tente novamente em alguns segundos ou recarregue a página.');
+      return;
+    }
     if (!clientId) {
       setAuthError('Variável VITE_GOOGLE_CLIENT_ID não configurada. Crie em console.cloud.google.com e adicione no .env para testar a sincronização real!');
       return;
@@ -272,7 +276,7 @@ export default function Agenda() {
                     onClick={handleConnect}
                     className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0"
                   >
-                    Simular Conexão
+                    Conectar Google Calendar
                   </button>
                   <button className="bg-white text-slate-700 font-bold py-3 px-8 rounded-xl hover:bg-slate-50 transition-all border border-slate-200 shadow-sm">
                     Saiba mais
