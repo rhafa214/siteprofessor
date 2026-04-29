@@ -1,19 +1,78 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Folder, FileText, File, ArrowLeft, Star, UploadCloud, ChevronRight } from 'lucide-react';
+import { Folder, FileText, File, ArrowLeft, Star, UploadCloud, Chrome } from 'lucide-react';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+
+declare const google: any;
 
 export default function DriveExplorer() {
   const [activeTab, setActiveTab] = useState<'root' | 'starred'>('root');
   
-  // Mock data to replace actual Google Drive request temporarily
-  const mockFiles = [
-    { id: '1', name: 'Planejamentos 2026', type: 'folder' },
-    { id: '2', name: 'Avaliações Bimestrais', type: 'folder' },
-    { id: '3', name: 'Relatórios de Alunos', type: 'folder' },
-    { id: '4', name: 'Plano Ensino Médio.pdf', type: 'pdf' },
-    { id: '5', name: 'Reunião de Pais.docx', type: 'doc' },
-    { id: '6', name: 'Planilha de Notas.xlsx', type: 'sheet' },
-  ];
+  const [isConnected, setIsConnected] = useLocalStorage('googleDriveConnected', false);
+  const [accessToken, setAccessToken] = useLocalStorage<string | null>('googleDriveToken', null);
+  const [files, setFiles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '946685977475-3irk02ul9n29jgm1atm7fteebu9dith0.apps.googleusercontent.com';
+
+  const handleConnect = () => {
+    if (!clientId) {
+      setAuthError('Variável VITE_GOOGLE_CLIENT_ID não configurada. Configure no .env para testar o Google Drive!');
+      return;
+    }
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/drive.readonly',
+        callback: (response: any) => {
+          if (response.error !== undefined) {
+             setAuthError('Erro na autenticação: ' + response.error);
+             return;
+          }
+          setAccessToken(response.access_token);
+          setIsConnected(true);
+          setAuthError(null);
+        },
+      });
+      client.requestAccessToken();
+    } catch (err: any) {
+      setAuthError('Erro inexperado: ' + err.message);
+    }
+  };
+
+  const fetchFiles = async (token: string) => {
+    setIsLoading(true);
+    try {
+      // Fetch user's Google Drive files (files and folders only for simplicity)
+      const q = activeTab === 'starred' ? 'starred = true and trashed = false' : 'trashed = false and "root" in parents';
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,starred,iconLink)&orderBy=folder,name`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.status === 401) {
+        setIsConnected(false);
+        setAccessToken(null);
+        setAuthError('Sessão expirada. Por favor, conecte novamente.');
+        return;
+      }
+      
+      const data = await res.json();
+      if (data.files) {
+        setFiles(data.files);
+      }
+    } catch (error) {
+       console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected && accessToken) {
+      fetchFiles(accessToken);
+    }
+  }, [isConnected, accessToken, activeTab]);
 
   return (
     <motion.div 
@@ -41,46 +100,84 @@ export default function DriveExplorer() {
           </button>
         </div>
         
-        <button className="bg-slate-900 text-white px-5 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-md">
-          <UploadCloud size={18} /> Upload de Arquivo
-        </button>
+        {isConnected ? (
+          <button onClick={() => { setIsConnected(false); setAccessToken(null); }} className="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100 transition-colors shadow-sm">
+            Desconectar
+          </button>
+        ) : (
+          <button onClick={handleConnect} className="bg-slate-900 text-white px-5 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-md">
+            Conectar Google Drive
+          </button>
+        )}
       </div>
 
-      <div className="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden">
-        {/* Breadcrumbs / Nav */}
+      {authError && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
+          {authError}
+        </div>
+      )}
+
+      <div className="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden relative">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
           <button className="text-slate-400 hover:text-indigo-600 transition-colors hidden p-1">
             <ArrowLeft size={18} />
           </button>
           <div className="flex items-center text-sm font-bold text-slate-800">
-             <span>{activeTab === 'root' ? 'Meu Drive' : 'Favoritos'}</span>
+             <span>{activeTab === 'root' ? 'Espaço de Trabalho' : 'Favoritos'}</span>
           </div>
         </div>
 
-        {/* Grid/List */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {mockFiles.map(f => (
-              <div 
-                key={f.id} 
-                className="bg-slate-50 border border-slate-100 hover:border-indigo-300 hover:shadow-md transition-all group rounded-2xl p-6 flex flex-col items-center text-center cursor-pointer relative"
-              >
-                <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  {f.type === 'folder' && <Folder size={28} className="text-blue-500 fill-blue-100" />}
-                  {f.type === 'pdf' && <FileText size={28} className="text-red-500" />}
-                  {f.type === 'doc' && <File size={28} className="text-sky-600" />}
-                  {f.type === 'sheet' && <File size={28} className="text-emerald-500" />}
-                </div>
-                <span className="text-sm font-medium text-slate-700 line-clamp-2 leading-tight">
-                  {f.name}
-                </span>
-                
-                <button className="absolute top-3 right-3 text-slate-300 hover:text-amber-400 opacity-0 group-hover:opacity-100 transition-all">
-                   <Star size={18} />
-                </button>
+        <div className="flex-1 overflow-y-auto p-6 relative">
+          {!isConnected ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
+              <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
+                 <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Google Drive" className="w-10 h-10" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Conecte seu Google Drive</h3>
+              <p className="text-slate-500 font-medium max-w-sm">
+                 Para testar de verdade, configure o VITE_GOOGLE_CLIENT_ID e faça login para ver seus próprios arquivos!
+              </p>
+            </div>
+          ) : isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center text-slate-500 font-medium">
+              Carregando arquivos...
+            </div>
+          ) : files.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {files.map(f => {
+                const isFolder = f.mimeType === 'application/vnd.google-apps.folder';
+                const isPdf = f.mimeType === 'application/pdf';
+                const isDoc = f.mimeType.includes('document');
+                const isSheet = f.mimeType.includes('spreadsheet');
+                const isSlides = f.mimeType.includes('presentation');
+                return (
+                  <div 
+                    key={f.id} 
+                    className="bg-white border border-slate-200 hover:border-indigo-400 hover:shadow-lg transition-all group rounded-2xl p-6 flex flex-col items-center text-center cursor-pointer relative"
+                  >
+                    <div className="w-14 h-14 rounded-full bg-slate-50 shadow-sm flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      {isFolder ? <Folder size={28} className="text-blue-500 fill-blue-100" /> :
+                       isPdf ? <FileText size={28} className="text-red-500" /> :
+                       isDoc ? <File size={28} className="text-sky-600" /> :
+                       isSheet ? <File size={28} className="text-emerald-500" /> :
+                       isSlides ? <Chrome size={28} className="text-amber-500" /> :
+                       <File size={28} className="text-slate-400" />}
+                    </div>
+                    <span className="text-sm font-medium text-slate-700 line-clamp-2 leading-tight break-all">
+                      {f.name}
+                    </span>
+                    <button className="absolute top-3 right-3 text-slate-200 opacity-0 group-hover:opacity-100 transition-all">
+                       <Star size={18} className={f.starred ? "fill-amber-400 text-amber-400 opacity-100" : "hover:text-amber-400"} />
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center p-8 text-slate-400 font-medium mt-10">
+              Nenhum arquivo encontrado nesta pasta.
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

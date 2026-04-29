@@ -1,22 +1,87 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 
+declare const google: any;
+
 export default function Agenda() {
   const [isConnected, setIsConnected] = useLocalStorage('googleCalendarConnected', false);
+  const [accessToken, setAccessToken] = useLocalStorage<string | null>('googleAccessToken', null);
   const [tasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
   const [reminders] = useLocalStorage<string[]>('eduReminders', []);
+  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const pendingTasks = tasks.filter(t => !t.done);
   
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '946685977475-3irk02ul9n29jgm1atm7fteebu9dith0.apps.googleusercontent.com';
+
   const handleConnect = () => {
-    // In a real app, this would initiate the OAuth flow according to the oauth-integration skill
-    setIsConnected(true);
+    if (!clientId) {
+      setAuthError('Variável VITE_GOOGLE_CLIENT_ID não configurada. Crie em console.cloud.google.com e adicione no .env para testar a sincronização real!');
+      return;
+    }
+    try {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/calendar.readonly',
+        callback: (response: any) => {
+          if (response.error !== undefined) {
+             setAuthError('Erro na autenticação: ' + response.error);
+             return;
+          }
+          setAccessToken(response.access_token);
+          setIsConnected(true);
+          setAuthError(null);
+        },
+      });
+      client.requestAccessToken();
+    } catch (err: any) {
+      setAuthError('Erro inexperado: ' + err.message);
+    }
   };
+
+  const fetchEvents = async (token: string) => {
+    setIsLoading(true);
+    try {
+      const start = new Date();
+      start.setHours(0,0,0,0);
+      const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&orderBy=startTime&singleEvents=true`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.status === 401) {
+        handleDisconnect();
+        setAuthError('Sessão expirada. Por favor, conecte novamente.');
+        return;
+      }
+      
+      const data = await res.json();
+      if (data.items) {
+        setCalendarEvents(data.items);
+      }
+    } catch (error) {
+       console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected && accessToken) {
+      fetchEvents(accessToken);
+    }
+  }, [isConnected, accessToken]);
 
   const handleDisconnect = () => {
     setIsConnected(false);
+    setAccessToken(null);
+    setCalendarEvents([]);
+    setAuthError(null);
   };
 
   return (
@@ -81,26 +146,39 @@ export default function Agenda() {
           </div>
           
           <div className="space-y-4 flex-1">
+            {authError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
+                {authError}
+              </div>
+            )}
             {isConnected ? (
               <>
-                {[
-                  { time: '08:00', title: 'Aula 2º B - Matemática', type: 'class', current: false },
-                  { time: '10:15', title: 'Reunião de Coordenação', type: 'meeting', current: true },
-                  { time: '14:30', title: 'Atendimento aos Pais', type: 'event', current: false }
-                ].map((ev, i) => (
-                  <div key={i} className={`flex gap-4 p-4 rounded-2xl border transition-all ${ev.current ? 'border-indigo-200 bg-indigo-50/50 shadow-sm' : 'border-slate-100 bg-slate-50'}`}>
-                    <div className={`font-mono font-bold text-sm shrink-0 pt-1 ${ev.current ? 'text-indigo-700' : 'text-slate-400'}`}>
-                      {ev.time}
-                    </div>
-                    <div>
-                      <h4 className={`font-bold text-sm ${ev.current ? 'text-indigo-900' : 'text-slate-700'}`}>{ev.title}</h4>
-                      <div className="flex items-center gap-3 mt-1.5 text-xs font-semibold text-slate-500">
-                        <span className="flex items-center gap-1"><Clock size={12}/> 45 min</span>
-                        {ev.type === 'meeting' && <span className="bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md">Importante</span>}
+                {isLoading ? (
+                  <div className="text-center p-4">Carregando eventos...</div>
+                ) : calendarEvents.length > 0 ? (
+                  calendarEvents.slice(0, 5).map((ev, i) => {
+                    const startInfo = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+                    const endInfo = ev.end?.dateTime ? new Date(ev.end.dateTime) : ev.end?.date ? new Date(ev.end.date) : new Date();
+                    const isCurrent = startInfo <= new Date() && endInfo >= new Date();
+                    const timeStr = ev.start?.dateTime ? startInfo.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Dia todo';
+                    
+                    return (
+                      <div key={ev.id || i} className={`flex gap-4 p-4 rounded-2xl border transition-all ${isCurrent ? 'border-indigo-200 bg-indigo-50/50 shadow-sm' : 'border-slate-100 bg-slate-50'}`}>
+                        <div className={`font-mono font-bold text-sm shrink-0 pt-1 ${isCurrent ? 'text-indigo-700' : 'text-slate-400'}`}>
+                          {timeStr}
+                        </div>
+                        <div>
+                          <h4 className={`font-bold text-sm ${isCurrent ? 'text-indigo-900' : 'text-slate-700'}`}>{ev.summary || 'Evento sem título'}</h4>
+                          <div className="flex items-center gap-3 mt-1.5 text-xs font-semibold text-slate-500">
+                            <span className="flex items-center gap-1"><Clock size={12}/> {ev.start?.dateTime ? Math.round((endInfo.getTime() - startInfo.getTime()) / 60000) + ' min' : '1 dia'}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })
+                ) : (
+                  <div className="text-center p-4 text-slate-500">Nenhum evento futuro encontrado nesta semana.</div>
+                )}
               </>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-4 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">

@@ -54,7 +54,7 @@ function normalizeImageUrl(url: string) {
   return url;
 }
 
-function CategorySlider({ category, newsItems, loading }: { category: any, newsItems: NewsItem[], loading: boolean }) {
+const CategorySlider: React.FC<{ category: any, newsItems: NewsItem[], loading: boolean }> = ({ category, newsItems, loading }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {

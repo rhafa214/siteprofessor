@@ -19,7 +19,17 @@ import { cn } from '../lib/utils';
 import NewsCarousel from '../components/dashboard/NewsCarousel';
 import { GoogleGenAI } from '@google/genai';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let aiClient: GoogleGenAI | null = null;
+function getAI() {
+  if (!aiClient) {
+    const key = process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
+    if (key) {
+      // @ts-ignore - catch any initialization errors
+      try { aiClient = new GoogleGenAI({ apiKey: key }); } catch (e) {}
+    }
+  }
+  return aiClient;
+}
 
 export default function Dashboard() {
   const [now, setNow] = useState(new Date());
@@ -90,6 +100,13 @@ export default function Dashboard() {
         parts: [{ text: msg.text }]
       }));
       contents.push({ role: 'user', parts: [{ text: userMessage }] });
+
+      const ai = getAI();
+      if (!ai) {
+        setChatMessages(prev => [...prev, { role: 'bot', text: 'O Gemini API Key não está configurado. Para testar no Vercel/GitHub, configure a variável de ambiente VITE_GEMINI_API_KEY ou GEMINI_API_KEY.' }]);
+        setIsTyping(false);
+        return;
+      }
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
