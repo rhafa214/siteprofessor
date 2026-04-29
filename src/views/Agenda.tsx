@@ -18,64 +18,69 @@ export default function Agenda() {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-full flex flex-col xl:flex-row gap-6 pb-10"
+      className="h-full flex flex-col gap-6 pb-10"
     >
-      <div className="xl:w-1/3 flex flex-col gap-6">
-        
-        {/* Resumo do Dia (Daily Summary) */}
-        <div className="bg-indigo-600 text-white p-6 rounded-3xl shadow-md border border-indigo-500 relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-10">
-            <CalendarCheck size={120} />
+      {/* Resumo do Dia (Daily Summary) Banner */}
+      <div className="bg-indigo-600 text-white p-6 rounded-3xl shadow-md border border-indigo-500 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
+        <div className="absolute top-0 right-0 -mr-4 -mt-4 opacity-10 pointer-events-none">
+          <CalendarCheck size={160} />
+        </div>
+        <div className="relative z-10 flex-1 w-full">
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="text-2xl font-bold">Resumo do Dia</h2>
+            <span className="bg-indigo-500/50 px-3 py-1 rounded-full text-xs font-bold border border-indigo-400">Hoje</span>
           </div>
-          <div className="relative z-10">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold">Resumo do Dia</h2>
-              <span className="bg-indigo-500/50 px-3 py-1 rounded-full text-xs font-bold border border-indigo-400">
-                Hoje
-              </span>
+          <p className="text-indigo-100 text-sm leading-relaxed max-w-xl">
+            {isConnected 
+              ? "Você tem 3 aulas programadas e 1 reunião. Seu período de maior foco livre é das 11:00 às 14:00." 
+              : "Sincronize sua agenda para receber insights sobre sua rotina diária."}
+          </p>
+        </div>
+        
+        <div className="relative z-10 flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          <div className="flex items-center gap-3 bg-indigo-700/50 p-3 rounded-2xl border border-indigo-500/50 flex-1 md:w-48">
+            <div className="bg-indigo-500 p-2 rounded-xl text-white">
+              <CheckSquare size={18} />
             </div>
-            
-            <p className="text-indigo-100 text-sm mb-6 leading-relaxed">
-              {isConnected 
-                ? "Você tem 3 aulas programadas e 1 reunião. Seu período de maior foco livre é das 11:00 às 14:00." 
-                : "Sincronize sua agenda para receber insights sobre sua rotina diária."}
-            </p>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 bg-indigo-700/50 p-3 rounded-2xl border border-indigo-500/50">
-                <div className="bg-indigo-500 p-2 rounded-xl text-white">
-                  <CheckSquare size={18} />
-                </div>
-                <div>
-                  <div className="text-xs text-indigo-200 font-bold uppercase tracking-wider mb-0.5">Tarefas Pendentes</div>
-                  <div className="font-medium text-sm leading-tight">
-                    {pendingTasks.length > 0 ? `${pendingTasks.length} tarefa(s) na sua checklist.` : "Tudo concluído!"}
-                  </div>
-                </div>
+            <div>
+              <div className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider mb-0.5">Pendentes</div>
+              <div className="font-bold text-sm leading-tight">
+                {pendingTasks.length > 0 ? `${pendingTasks.length} tarefas` : "Tudo pronto!"}
               </div>
+            </div>
+          </div>
 
-              <div className="flex items-center gap-3 bg-indigo-700/50 p-3 rounded-2xl border border-indigo-500/50">
-                <div className="bg-indigo-500 p-2 rounded-xl text-white">
-                  <ListTodo size={18} />
-                </div>
-                <div>
-                  <div className="text-xs text-indigo-200 font-bold uppercase tracking-wider mb-0.5">Lembretes da EduIA</div>
-                  <div className="font-medium text-sm leading-tight">
-                    {reminders.length > 0 ? `${reminders.length} lembrete(s) ativo(s).` : "Nenhum lembrete."}
-                  </div>
-                </div>
+          <div className="flex items-center gap-3 bg-indigo-700/50 p-3 rounded-2xl border border-indigo-500/50 flex-1 md:w-48">
+            <div className="bg-indigo-500 p-2 rounded-xl text-white">
+              <ListTodo size={18} />
+            </div>
+            <div>
+              <div className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider mb-0.5">EduIA</div>
+              <div className="font-bold text-sm leading-tight">
+                {reminders.length > 0 ? `${reminders.length} lembretes` : "Nenhum lembrete"}
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Hoje / Coisas Importantes */}
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-bold text-slate-800">Eventos de Hoje</h2>
-          </div>
-          
-          <div className="space-y-4 flex-1">
+      <div className="flex flex-col xl:flex-row gap-6 flex-1 min-h-0">
+        <div className="xl:w-1/3 flex flex-col gap-6 h-full">
+          {/* Hoje / Coisas Importantes */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col items-stretch overflow-hidden">
+            <div className="flex items-center justify-between mb-6 shrink-0">
+              <h2 className="text-lg font-bold text-slate-800">Eventos de Hoje</h2>
+              {isConnected && (
+                <button 
+                  onClick={logout}
+                  className="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
+                >
+                  <LogOut size={14} /> Desconectar
+                </button>
+              )}
+            </div>
+            
+            <div className="space-y-4 flex-1 overflow-y-auto pr-2 scrollbar-thin">
             {authError && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
                 {authError}
@@ -216,6 +221,7 @@ export default function Agenda() {
              </div>
            )}
         </div>
+      </div>
       </div>
     </motion.div>
   );

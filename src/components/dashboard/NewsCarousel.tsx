@@ -223,9 +223,11 @@ export default function NewsCarousel() {
         <h2 className="font-bold text-slate-800 tracking-tight">Painel de Notícias</h2>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4 h-full min-h-[260px] max-h-[300px]">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:min-h-[260px] lg:max-h-[300px]">
         {CATEGORIES.map(cat => (
-          <CategorySlider key={cat.id} category={cat} newsItems={news[cat.id] || []} loading={loading} />
+          <div key={cat.id} className="h-[280px] lg:h-auto">
+            <CategorySlider category={cat} newsItems={news[cat.id] || []} loading={loading} />
+          </div>
         ))}
       </div>
     </div>

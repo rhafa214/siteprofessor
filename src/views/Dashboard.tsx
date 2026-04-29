@@ -38,7 +38,6 @@ export default function Dashboard() {
   const { isConnected, login } = useGoogleAuth();
   const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
   const { messages: emails, isLoading: isEmailsLoading } = useGmail();
-  const [inboxProvider, setInboxProvider] = useState<'outlook' | 'gmail'>('outlook');
 
   const [now, setNow] = useState(new Date());
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
@@ -283,55 +282,15 @@ export default function Dashboard() {
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col h-auto lg:h-[340px]">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3 text-slate-800">
-              <div className="bg-blue-100 p-2 rounded-xl text-blue-600">
+              <div className="bg-red-100 p-2 rounded-xl text-red-600">
                 <Mail size={20} />
               </div>
-              <h2 className="font-bold tracking-tight">Caixa de Entrada</h2>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setInboxProvider('outlook')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${inboxProvider === 'outlook' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
-              >
-                Outlook (Fake)
-              </button>
-              <button 
-                onClick={() => setInboxProvider('gmail')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${inboxProvider === 'gmail' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
-              >
-                Gmail Edu
-              </button>
+              <h2 className="font-bold tracking-tight">Caixa de Entrada (Gmail Edu)</h2>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-            {inboxProvider === 'outlook' ? (
-              // Fake Outlook Inbox
-              <>
-                <div className="flex gap-4 p-3 rounded-2xl bg-blue-50/50 border border-blue-100 hover:bg-blue-50 cursor-pointer transition-colors group">
-                  <div className="w-10 h-10 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">DE</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <span className="font-bold text-sm text-slate-800 truncate">Diretoria de Ensino</span>
-                      <span className="text-[10px] text-blue-600 font-bold shrink-0">09:41</span>
-                    </div>
-                    <p className="text-sm font-bold text-slate-700 truncate">Convocação para Orientação Técnica</p>
-                    <p className="text-xs text-slate-500 truncate">Prezados professores, convocamos todos para a orientação técnica...</p>
-                  </div>
-                </div>
-                <div className="flex gap-4 p-3 rounded-2xl bg-white border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors group">
-                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0">CP</div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <span className="font-bold text-sm text-slate-700 truncate">Coordenação Pedagógica</span>
-                      <span className="text-[10px] text-slate-400 shrink-0">Ontem</span>
-                    </div>
-                    <p className="text-sm text-slate-700 truncate">Reunião de Pais - Pautas Iniciais</p>
-                    <p className="text-xs text-slate-500 truncate">Segue em anexo as pautas que discutiremos na próxima reunião...</p>
-                  </div>
-                </div>
-              </>
-            ) : !isConnected ? (
+            {!isConnected ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
                 <Mail size={32} className="text-slate-300 mb-2" />
                 <p className="text-sm font-medium text-slate-500">Conecte sua conta do Google para ler seus e-mails do Gmail Edu diretamente aqui.</p>
@@ -431,9 +390,9 @@ export default function Dashboard() {
             <BotMessageSquare size={16} className="text-indigo-500" /> Assistente EduIA
           </div>
           
-          <div className="flex flex-col md:flex-row gap-6 lg:h-64 h-auto">
+          <div className="flex flex-col md:flex-row gap-6 lg:h-96 h-auto">
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-64 md:h-full">
+            <div className="flex-1 flex flex-col bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-96 md:h-full">
               <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin">
                 {chatMessages.map((msg, i) => (
                   <div key={i} className={cn(
