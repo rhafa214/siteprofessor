@@ -17,7 +17,9 @@ export function useGoogleCalendar() {
       try {
         const start = new Date();
         start.setHours(0,0,0,0);
-        const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+        start.setDate(start.getDate() - 30);
+        const end = new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000); // 90 days total
+
         
         const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&orderBy=startTime&singleEvents=true`, {
           headers: { Authorization: `Bearer ${accessToken}` }

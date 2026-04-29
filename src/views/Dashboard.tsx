@@ -38,6 +38,7 @@ export default function Dashboard() {
   const { isConnected, login } = useGoogleAuth();
   const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
   const { messages: emails, isLoading: isEmailsLoading } = useGmail();
+  const [inboxProvider, setInboxProvider] = useState<'outlook' | 'gmail'>('outlook');
 
   const [now, setNow] = useState(new Date());
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
@@ -288,13 +289,49 @@ export default function Dashboard() {
               <h2 className="font-bold tracking-tight">Caixa de Entrada</h2>
             </div>
             <div className="flex gap-2">
-              <span className="hidden sm:inline-block bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200">Outlook</span>
-              <span className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold border border-red-100">Gmail Edu</span>
+              <button 
+                onClick={() => setInboxProvider('outlook')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${inboxProvider === 'outlook' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+              >
+                Outlook (Fake)
+              </button>
+              <button 
+                onClick={() => setInboxProvider('gmail')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${inboxProvider === 'gmail' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
+              >
+                Gmail Edu
+              </button>
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-            {!isConnected ? (
+            {inboxProvider === 'outlook' ? (
+              // Fake Outlook Inbox
+              <>
+                <div className="flex gap-4 p-3 rounded-2xl bg-blue-50/50 border border-blue-100 hover:bg-blue-50 cursor-pointer transition-colors group">
+                  <div className="w-10 h-10 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">DE</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <span className="font-bold text-sm text-slate-800 truncate">Diretoria de Ensino</span>
+                      <span className="text-[10px] text-blue-600 font-bold shrink-0">09:41</span>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700 truncate">Convocação para Orientação Técnica</p>
+                    <p className="text-xs text-slate-500 truncate">Prezados professores, convocamos todos para a orientação técnica...</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 p-3 rounded-2xl bg-white border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors group">
+                  <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0">CP</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <span className="font-bold text-sm text-slate-700 truncate">Coordenação Pedagógica</span>
+                      <span className="text-[10px] text-slate-400 shrink-0">Ontem</span>
+                    </div>
+                    <p className="text-sm text-slate-700 truncate">Reunião de Pais - Pautas Iniciais</p>
+                    <p className="text-xs text-slate-500 truncate">Segue em anexo as pautas que discutiremos na próxima reunião...</p>
+                  </div>
+                </div>
+              </>
+            ) : !isConnected ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
                 <Mail size={32} className="text-slate-300 mb-2" />
                 <p className="text-sm font-medium text-slate-500">Conecte sua conta do Google para ler seus e-mails do Gmail Edu diretamente aqui.</p>
@@ -306,14 +343,14 @@ export default function Dashboard() {
                </div>
             ) : emails.length > 0 ? (
               emails.map((msg, i) => (
-                <div key={msg.id || i} className={`flex gap-4 p-3 rounded-2xl border transition-colors group cursor-pointer ${i === 0 ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-50' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${i === 0 ? 'bg-blue-200 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
+                <div key={msg.id || i} className={`flex gap-4 p-3 rounded-2xl border transition-colors group cursor-pointer ${i === 0 ? 'bg-red-50/50 border-red-100 hover:bg-red-50' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${i === 0 ? 'bg-red-200 text-red-700' : 'bg-slate-200 text-slate-700'}`}>
                     {msg.from ? msg.from.charAt(0).toUpperCase() : 'M'}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-baseline mb-0.5">
                       <span className={`font-bold text-sm truncate ${i === 0 ? 'text-slate-800' : 'text-slate-700'}`}>{msg.from}</span>
-                      <span className={`text-[10px] font-bold shrink-0 ${i === 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                      <span className={`text-[10px] font-bold shrink-0 ${i === 0 ? 'text-red-600' : 'text-slate-400'}`}>
                         {msg.date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
                       </span>
                     </div>
@@ -323,7 +360,7 @@ export default function Dashboard() {
                 </div>
               ))
             ) : (
-               <div className="text-center p-4 text-slate-500 text-sm">Nenhum e-mail recente encontrado.</div>
+               <div className="text-center p-4 text-slate-500 text-sm">Nenhum e-mail recente encontrado. Verifique sua conexão ou se a sua conta tem a permissão de leitura de email ativa.</div>
             )}
           </div>
         </div>

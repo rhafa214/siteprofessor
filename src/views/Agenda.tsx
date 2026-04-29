@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
@@ -10,6 +10,7 @@ export default function Agenda() {
   const { events: calendarEvents, isLoading } = useGoogleCalendar();
   const [tasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
   const [reminders] = useLocalStorage<string[]>('eduReminders', []);
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const pendingTasks = tasks.filter(t => !t.done);
 
@@ -126,6 +127,17 @@ export default function Agenda() {
             <CalendarIcon size={18} className="text-indigo-500"/> Visão Semanal
           </h2>
           <div className="flex items-center gap-3">
+            <div className="flex items-center bg-white border border-slate-200 rounded-lg shadow-sm">
+              <button onClick={() => setWeekOffset(w => w - 1)} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors">
+                <ChevronLeft size={18} />
+              </button>
+              <button onClick={() => setWeekOffset(0)} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-indigo-600 border-x border-slate-200 transition-colors">
+                {weekOffset === 0 ? 'Esta Semana' : weekOffset < 0 ? 'Voltar para Hoje' : 'Hoje'}
+              </button>
+              <button onClick={() => setWeekOffset(w => w + 1)} className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors">
+                <ChevronRight size={18} />
+              </button>
+            </div>
             {isConnected && (
               <button 
                 onClick={logout}
@@ -134,11 +146,6 @@ export default function Agenda() {
                 <LogOut size={14} /> Desconectar
               </button>
             )}
-            <select className="bg-white border border-slate-200 text-sm font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:border-indigo-500 shadow-sm">
-              <option>Esta Semana</option>
-              <option>Semana Seguinte</option>
-              <option>Visão Mensal</option>
-            </select>
           </div>
         </div>
         
@@ -148,7 +155,7 @@ export default function Agenda() {
                {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, dIdx) => {
                  // Get day index relative to today (0 = Sun, 1 = Mon)
                  const todayDay = new Date().getDay();
-                 const diff = (dIdx + 1) - todayDay; // 1 is Monday
+                 const diff = (dIdx + 1) - todayDay + (weekOffset * 7); // 1 is Monday
                  const dayDate = new Date();
                  dayDate.setDate(dayDate.getDate() + diff);
                  dayDate.setHours(0, 0, 0, 0);
@@ -162,7 +169,7 @@ export default function Agenda() {
 
                  return (
                  <div key={day} className="flex-1 min-w-[200px] bg-white border border-slate-200 rounded-2xl flex flex-col snap-start overflow-hidden">
-                   <div className="p-3 border-b border-slate-100 text-center font-bold text-slate-600 shrink-0 bg-slate-50">
+                   <div className={`p-3 border-b text-center font-bold shrink-0 ${diff === 0 && weekOffset === 0 ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-slate-50 border-slate-100 text-slate-600'}`}>
                      {day} <span className="text-xs font-normal ml-1">({dayDate.getDate()}/{dayDate.getMonth()+1})</span>
                    </div>
                    <div className="flex-1 p-2 space-y-2 overflow-y-auto scrollbar-thin">

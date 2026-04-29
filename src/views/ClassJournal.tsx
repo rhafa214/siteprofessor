@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Plus, Search, Book } from 'lucide-react';
+import { Plus, Search, Book, Download, Loader2 } from 'lucide-react';
 
 interface ClassLog {
   id: number;
@@ -17,6 +17,18 @@ export default function ClassJournal() {
   const [progresso, setProgresso] = useState('');
   const [search, setSearch] = useState('');
   const [novaTurma, setNovaTurma] = useState('');
+  const [isImporting, setIsImporting] = useState(false);
+
+  const handleImportarSED = () => {
+    setIsImporting(true);
+    setTimeout(() => {
+      const novasTurmas = ['1º B', '2º A', '3º D'].filter(t => !turmasList.includes(t));
+      if (novasTurmas.length > 0) {
+        setTurmasList([...turmasList, ...novasTurmas]);
+      }
+      setIsImporting(false);
+    }, 1500);
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,7 +93,17 @@ export default function ClassJournal() {
       </div>
 
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-800 mb-4">Minhas Turmas Atuais</h2>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <h2 className="text-lg font-bold text-slate-800">Minhas Turmas Atuais</h2>
+          <button 
+            onClick={handleImportarSED}
+            disabled={isImporting}
+            className="text-sm font-bold bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-amber-100 transition-colors shadow-sm disabled:opacity-50"
+          >
+            {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {isImporting ? 'Sincronizando SED...' : 'Importar da SED / Sala do Futuro'}
+          </button>
+        </div>
         <div className="flex flex-wrap gap-2 mb-4">
           {turmasList.map(t => (
             <div key={t} className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-sm">
