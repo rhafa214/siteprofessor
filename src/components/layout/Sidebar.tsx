@@ -1,6 +1,7 @@
 import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X } from 'lucide-react';
 import type { ViewType } from '../../lib/constants';
 import { cn } from '../../lib/utils';
+import { useGoogleAuth } from '../../contexts/GoogleAuthContext';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -10,6 +11,8 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen }: SidebarProps) {
+  const { isConnected, login, logout } = useGoogleAuth();
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Principal' },
     { id: 'diario', label: 'Diário de Classe', icon: Book, group: 'Principal' },
@@ -86,12 +89,21 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       </nav>
 
       <div className="mt-auto pt-4">
-        <button 
-          onClick={() => setCurrentView('agenda')}
-          className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"
-        >
-          Sincronizar Google
-        </button>
+        {isConnected ? (
+          <button 
+            onClick={logout}
+            className="w-full py-3 bg-red-500 text-white font-bold rounded-xl text-sm hover:bg-red-600 transition-colors"
+          >
+            Desconectar Google
+          </button>
+        ) : (
+          <button 
+            onClick={login}
+            className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"
+          >
+            Sincronizar Google
+          </button>
+        )}
       </div>
     </aside>
   );

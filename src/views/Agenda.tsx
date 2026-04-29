@@ -1,92 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-
-declare const google: any;
+import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 
 export default function Agenda() {
-  const [isConnected, setIsConnected] = useLocalStorage('googleCalendarConnected', false);
-  const [accessToken, setAccessToken] = useLocalStorage<string | null>('googleAccessToken', null);
+  const { isConnected, login, logout, authError } = useGoogleAuth();
+  const { events: calendarEvents, isLoading } = useGoogleCalendar();
   const [tasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
   const [reminders] = useLocalStorage<string[]>('eduReminders', []);
-  const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
 
   const pendingTasks = tasks.filter(t => !t.done);
-  
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '946685977475-3irk02ul9n29jgm1atm7fteebu9dith0.apps.googleusercontent.com';
-
-  const handleConnect = () => {
-    if (typeof google === 'undefined') {
-      setAuthError('O script do Google ainda não carregou. Tente novamente em alguns segundos ou recarregue a página.');
-      return;
-    }
-    if (!clientId) {
-      setAuthError('Variável VITE_GOOGLE_CLIENT_ID não configurada. Crie em console.cloud.google.com e adicione no .env para testar a sincronização real!');
-      return;
-    }
-    try {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/calendar.readonly',
-        callback: (response: any) => {
-          if (response.error !== undefined) {
-             setAuthError('Erro na autenticação: ' + response.error);
-             return;
-          }
-          setAccessToken(response.access_token);
-          setIsConnected(true);
-          setAuthError(null);
-        },
-      });
-      client.requestAccessToken();
-    } catch (err: any) {
-      setAuthError('Erro inexperado: ' + err.message);
-    }
-  };
-
-  const fetchEvents = async (token: string) => {
-    setIsLoading(true);
-    try {
-      const start = new Date();
-      start.setHours(0,0,0,0);
-      const end = new Date(start.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
-      
-      const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${start.toISOString()}&timeMax=${end.toISOString()}&orderBy=startTime&singleEvents=true`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (res.status === 401) {
-        handleDisconnect();
-        setAuthError('Sessão expirada. Por favor, conecte novamente.');
-        return;
-      }
-      
-      const data = await res.json();
-      if (data.items) {
-        setCalendarEvents(data.items);
-      }
-    } catch (error) {
-       console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isConnected && accessToken) {
-      fetchEvents(accessToken);
-    }
-  }, [isConnected, accessToken]);
-
-  const handleDisconnect = () => {
-    setIsConnected(false);
-    setAccessToken(null);
-    setCalendarEvents([]);
-    setAuthError(null);
-  };
 
   return (
     <motion.div 
@@ -203,7 +128,7 @@ export default function Agenda() {
           <div className="flex items-center gap-3">
             {isConnected && (
               <button 
-                onClick={handleDisconnect}
+                onClick={logout}
                 className="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
               >
                 <LogOut size={14} /> Desconectar
@@ -273,7 +198,7 @@ export default function Agenda() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button 
-                    onClick={handleConnect}
+                    onClick={login}
                     className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0"
                   >
                     Conectar Google Calendar

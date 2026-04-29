@@ -18,6 +18,8 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { cn } from '../lib/utils';
 import NewsCarousel from '../components/dashboard/NewsCarousel';
 import { GoogleGenAI } from '@google/genai';
+import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 
 let aiClient: GoogleGenAI | null = null;
 function getAI() {
@@ -32,6 +34,9 @@ function getAI() {
 }
 
 export default function Dashboard() {
+  const { isConnected, login } = useGoogleAuth();
+  const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
+
   const [now, setNow] = useState(new Date());
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [chatInput, setChatInput] = useState('');
@@ -176,13 +181,46 @@ export default function Dashboard() {
           </div>
           <div className="relative z-10 flex flex-col h-full justify-center">
             <div className="flex items-center gap-2 text-indigo-100 text-xs font-bold uppercase tracking-wider mb-2">
-              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-              Status Agenda
+              <span className={cn("w-2 h-2 rounded-full", isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+              {isConnected ? 'Sincronizado' : 'Status Agenda'}
             </div>
-            <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-3">Sincronize sua agenda do Google</h2>
-            <div className="flex items-center gap-2 text-indigo-50 font-medium text-sm">
-              <ArrowRight size={16} /> <span>Integre sua conta para ver suas próximas aulas e eventos.</span>
-            </div>
+            
+            {!isConnected ? (
+              <>
+                <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-3">Sincronize sua agenda do Google</h2>
+                <div className="flex items-center gap-2 text-indigo-50 font-medium text-sm mb-4">
+                  <ArrowRight size={16} /> <span>Integre sua conta para ver suas próximas aulas e eventos.</span>
+                </div>
+                <button onClick={login} className="self-start bg-white text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-slate-50 transition-colors">
+                  Conectar Agora
+                </button>
+              </>
+            ) : isCalendarLoading ? (
+              <div className="text-indigo-100 font-medium flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin" /> Carregando seus próximos eventos...
+              </div>
+            ) : calendarEvents.length > 0 ? (
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight mb-3">Próximo Evento</h2>
+                <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-md inline-block max-w-full">
+                  <h3 className="font-bold text-lg mb-1 truncate">{calendarEvents[0].summary || 'Evento'}</h3>
+                  <p className="text-indigo-100 text-sm flex items-center gap-2">
+                    <CalendarClock size={14} /> 
+                    {calendarEvents[0].start?.dateTime 
+                      ? new Date(calendarEvents[0].start.dateTime).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute:'2-digit' }) 
+                      : 'O dia todo'}
+                  </p>
+                </div>
+                {calendarEvents.length > 1 && (
+                  <p className="text-indigo-200 text-xs mt-3">+ {calendarEvents.length - 1} eventos nos próximos dias.</p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <h2 className="text-2xl font-bold tracking-tight mb-3">Agenda Livre!</h2>
+                <p className="text-indigo-100 text-sm">Não há eventos marcados para os próximos dias no momento.</p>
+              </div>
+            )}
           </div>
         </div>
 

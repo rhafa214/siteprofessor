@@ -1,62 +1,25 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Folder, FileText, File, ArrowLeft, Star, UploadCloud, Chrome } from 'lucide-react';
-import { useLocalStorage } from '../hooks/useLocalStorage';
-
-declare const google: any;
+import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 
 export default function DriveExplorer() {
   const [activeTab, setActiveTab] = useState<'root' | 'starred'>('root');
   
-  const [isConnected, setIsConnected] = useLocalStorage('googleDriveConnected', false);
-  const [accessToken, setAccessToken] = useLocalStorage<string | null>('googleDriveToken', null);
+  const { isConnected, accessToken, login, logout, authError, setAuthError } = useGoogleAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '946685977475-3irk02ul9n29jgm1atm7fteebu9dith0.apps.googleusercontent.com';
-
-  const handleConnect = () => {
-    if (typeof google === 'undefined') {
-      setAuthError('O script do Google ainda não carregou. Tente novamente em alguns segundos ou recarregue a página.');
-      return;
-    }
-    if (!clientId) {
-      setAuthError('Variável VITE_GOOGLE_CLIENT_ID não configurada. Configure no .env para testar o Google Drive!');
-      return;
-    }
-    try {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/drive.readonly',
-        callback: (response: any) => {
-          if (response.error !== undefined) {
-             setAuthError('Erro na autenticação: ' + response.error);
-             return;
-          }
-          setAccessToken(response.access_token);
-          setIsConnected(true);
-          setAuthError(null);
-        },
-      });
-      client.requestAccessToken();
-    } catch (err: any) {
-      setAuthError('Erro inexperado: ' + err.message);
-    }
-  };
 
   const fetchFiles = async (token: string) => {
     setIsLoading(true);
     try {
-      // Fetch user's Google Drive files (files and folders only for simplicity)
       const q = activeTab === 'starred' ? 'starred = true and trashed = false' : 'trashed = false and "root" in parents';
       const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,starred,iconLink)&orderBy=folder,name`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       if (res.status === 401) {
-        setIsConnected(false);
-        setAccessToken(null);
+        logout();
         setAuthError('Sessão expirada. Por favor, conecte novamente.');
         return;
       }
@@ -105,11 +68,11 @@ export default function DriveExplorer() {
         </div>
         
         {isConnected ? (
-          <button onClick={() => { setIsConnected(false); setAccessToken(null); }} className="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100 transition-colors shadow-sm">
+          <button onClick={logout} className="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100 transition-colors shadow-sm">
             Desconectar
           </button>
         ) : (
-          <button onClick={handleConnect} className="bg-slate-900 text-white px-5 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-md">
+          <button onClick={login} className="bg-slate-900 text-white px-5 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-md">
             Conectar Google Drive
           </button>
         )}
