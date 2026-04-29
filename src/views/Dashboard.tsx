@@ -20,6 +20,7 @@ import NewsCarousel from '../components/dashboard/NewsCarousel';
 import { GoogleGenAI } from '@google/genai';
 import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
+import { useGmail } from '../hooks/useGmail';
 
 let aiClient: GoogleGenAI | null = null;
 function getAI() {
@@ -36,6 +37,7 @@ function getAI() {
 export default function Dashboard() {
   const { isConnected, login } = useGoogleAuth();
   const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
+  const { messages: emails, isLoading: isEmailsLoading } = useGmail();
 
   const [now, setNow] = useState(new Date());
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
@@ -199,28 +201,62 @@ export default function Dashboard() {
               <div className="text-indigo-100 font-medium flex items-center gap-2">
                 <Loader2 size={16} className="animate-spin" /> Carregando seus próximos eventos...
               </div>
-            ) : calendarEvents.length > 0 ? (
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-3">Próximo Evento</h2>
-                <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-md inline-block max-w-full">
-                  <h3 className="font-bold text-lg mb-1 truncate">{calendarEvents[0].summary || 'Evento'}</h3>
-                  <p className="text-indigo-100 text-sm flex items-center gap-2">
-                    <CalendarClock size={14} /> 
-                    {calendarEvents[0].start?.dateTime 
-                      ? new Date(calendarEvents[0].start.dateTime).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute:'2-digit' }) 
-                      : 'O dia todo'}
-                  </p>
+            ) : (() => {
+              const currentEvents = calendarEvents.filter(ev => {
+                const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+                const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : ev.end?.date ? new Date(ev.end.date) : new Date();
+                return now >= s && now <= e;
+              });
+              const futureEvents = calendarEvents.filter(ev => {
+                const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+                return s > now;
+              });
+              
+              const currentEvent = currentEvents[0];
+              const nextEvent = futureEvents[0];
+              
+              if (!currentEvent && !nextEvent) {
+                return (
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight mb-3">Agenda Livre!</h2>
+                    <p className="text-indigo-100 text-sm">Não há eventos marcados para os próximos dias no momento.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="flex flex-col md:flex-row gap-4 w-full">
+                  {currentEvent && (
+                    <div className="flex-1">
+                      <h2 className="text-lg lg:text-xl font-bold tracking-tight mb-2 text-emerald-100">Agora</h2>
+                      <div className="bg-white/10 rounded-xl p-4 border border-emerald-400/30 backdrop-blur-md">
+                        <h3 className="font-bold text-lg mb-1 truncate">{currentEvent.summary || 'Evento'}</h3>
+                        <p className="text-indigo-100 text-sm flex items-center gap-2">
+                          <CalendarClock size={14} /> 
+                          {currentEvent.end?.dateTime 
+                            ? `Até as ${new Date(currentEvent.end.dateTime).toLocaleTimeString('pt-BR', { hour: '2-digit', minute:'2-digit' })}` 
+                            : 'O dia todo'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  {nextEvent && (
+                    <div className="flex-1">
+                      <h2 className="text-lg lg:text-xl font-bold tracking-tight mb-2">A Seguir</h2>
+                      <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-md">
+                        <h3 className="font-bold text-lg mb-1 truncate">{nextEvent.summary || 'Evento'}</h3>
+                        <p className="text-indigo-100 text-sm flex items-center gap-2">
+                          <CalendarClock size={14} /> 
+                          {nextEvent.start?.dateTime 
+                            ? new Date(nextEvent.start.dateTime).toLocaleString('pt-BR', { weekday: 'short', hour: '2-digit', minute:'2-digit' }) 
+                            : 'O dia todo'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                {calendarEvents.length > 1 && (
-                  <p className="text-indigo-200 text-xs mt-3">+ {calendarEvents.length - 1} eventos nos próximos dias.</p>
-                )}
-              </div>
-            ) : (
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight mb-3">Agenda Livre!</h2>
-                <p className="text-indigo-100 text-sm">Não há eventos marcados para os próximos dias no momento.</p>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
 
@@ -258,43 +294,37 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-            <div className="flex gap-4 p-3 rounded-2xl bg-blue-50/50 border border-blue-100 hover:bg-blue-50 cursor-pointer transition-colors group">
-              <div className="w-10 h-10 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">DE</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-0.5">
-                  <span className="font-bold text-sm text-slate-800 truncate">Diretoria de Ensino</span>
-                  <span className="text-[10px] text-blue-600 font-bold shrink-0">09:41</span>
+            {!isConnected ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                <Mail size={32} className="text-slate-300 mb-2" />
+                <p className="text-sm font-medium text-slate-500">Conecte sua conta do Google para ler seus e-mails do Gmail Edu diretamente aqui.</p>
+                <button onClick={login} className="mt-3 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50">Conectar Contas</button>
+              </div>
+            ) : isEmailsLoading ? (
+               <div className="flex items-center justify-center h-full text-slate-500">
+                 <Loader2 size={24} className="animate-spin mb-2" />
+               </div>
+            ) : emails.length > 0 ? (
+              emails.map((msg, i) => (
+                <div key={msg.id || i} className={`flex gap-4 p-3 rounded-2xl border transition-colors group cursor-pointer ${i === 0 ? 'bg-blue-50/50 border-blue-100 hover:bg-blue-50' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${i === 0 ? 'bg-blue-200 text-blue-700' : 'bg-slate-200 text-slate-700'}`}>
+                    {msg.from ? msg.from.charAt(0).toUpperCase() : 'M'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-baseline mb-0.5">
+                      <span className={`font-bold text-sm truncate ${i === 0 ? 'text-slate-800' : 'text-slate-700'}`}>{msg.from}</span>
+                      <span className={`text-[10px] font-bold shrink-0 ${i === 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                        {msg.date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                    <p className={`text-sm truncate ${i === 0 ? 'font-bold text-slate-700' : 'text-slate-700'}`}>{msg.subject}</p>
+                    <p className="text-xs text-slate-500 truncate">{msg.snippet?.replace(/&#39;/g, "'").replace(/&quot;/g, '"') || ''}</p>
+                  </div>
                 </div>
-                <p className="text-sm font-bold text-slate-700 truncate">Convocação para Orientação Técnica</p>
-                <p className="text-xs text-slate-500 truncate">Prezados professores, convocamos todos para a orientação técnica...</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-4 p-3 rounded-2xl bg-white border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors group">
-              <div className="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm shrink-0">CP</div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-0.5">
-                  <span className="font-bold text-sm text-slate-700 truncate">Coordenação Pedagógica</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">Ontem</span>
-                </div>
-                <p className="text-sm text-slate-700 truncate">Reunião de Pais - Pautas Iniciais</p>
-                <p className="text-xs text-slate-500 truncate">Segue em anexo as pautas que discutiremos na próxima reunião...</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4 p-3 rounded-2xl bg-white border border-slate-100 hover:bg-slate-50 cursor-pointer transition-colors group">
-              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-sm shrink-0">
-                <Sparkles size={16} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-baseline mb-0.5">
-                  <span className="font-bold text-sm text-slate-700 truncate">Equipe Teachy</span>
-                  <span className="text-[10px] text-slate-400 shrink-0">Ontem</span>
-                </div>
-                <p className="text-sm text-slate-700 truncate">Plano de aula gerado com sucesso!</p>
-                <p className="text-xs text-slate-500 truncate">O plano de aula sobre Termodinâmica que você solicitou já está pronto...</p>
-              </div>
-            </div>
+              ))
+            ) : (
+               <div className="text-center p-4 text-slate-500 text-sm">Nenhum e-mail recente encontrado.</div>
+            )}
           </div>
         </div>
 

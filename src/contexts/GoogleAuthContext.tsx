@@ -34,7 +34,7 @@ export function GoogleAuthProvider({ children }: { children: ReactNode }) {
     try {
       const client = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly',
+        scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/gmail.readonly',
         callback: (response: any) => {
           if (response.error !== undefined) {
              setAuthError('Erro na autenticação: ' + response.error);

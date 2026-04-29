@@ -145,47 +145,46 @@ export default function Agenda() {
         <div className="flex-1 bg-slate-50 p-4 relative overflow-hidden">
            {isConnected ? (
              <div className="absolute inset-0 m-4 flex gap-4 overflow-x-auto snap-x scrollbar-thin">
-               {/* Simulated Weekly Calendar Grid */}
-               {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, dIdx) => (
+               {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, dIdx) => {
+                 // Get day index relative to today (0 = Sun, 1 = Mon)
+                 const todayDay = new Date().getDay();
+                 const diff = (dIdx + 1) - todayDay; // 1 is Monday
+                 const dayDate = new Date();
+                 dayDate.setDate(dayDate.getDate() + diff);
+                 dayDate.setHours(0, 0, 0, 0);
+                 const nextDayDate = new Date(dayDate);
+                 nextDayDate.setDate(nextDayDate.getDate() + 1);
+
+                 const dayEvents = calendarEvents.filter(ev => {
+                   const evDate = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+                   return evDate >= dayDate && evDate < nextDayDate;
+                 });
+
+                 return (
                  <div key={day} className="flex-1 min-w-[200px] bg-white border border-slate-200 rounded-2xl flex flex-col snap-start overflow-hidden">
                    <div className="p-3 border-b border-slate-100 text-center font-bold text-slate-600 shrink-0 bg-slate-50">
-                     {day}
+                     {day} <span className="text-xs font-normal ml-1">({dayDate.getDate()}/{dayDate.getMonth()+1})</span>
                    </div>
                    <div className="flex-1 p-2 space-y-2 overflow-y-auto scrollbar-thin">
-                     {dIdx === 1 /* Terça */ && (
-                       <>
-                         <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
-                           <div className="text-[10px] font-bold text-indigo-500 mb-1">08:00 - 08:45</div>
-                           <div className="text-xs font-bold text-slate-700">Aula 2º B - Matemática</div>
+                     {dayEvents.length > 0 ? dayEvents.map((ev, i) => {
+                       const startInfo = ev.start?.dateTime ? new Date(ev.start.dateTime) : null;
+                       const endInfo = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
+                       const timeStr = startInfo ? `${startInfo.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endInfo ? endInfo.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '?'}` : 'Dia todo';
+                       
+                       return (
+                         <div key={ev.id || i} className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl mb-2">
+                           <div className="text-[10px] font-bold text-indigo-500 mb-1">{timeStr}</div>
+                           <div className="text-xs font-bold text-slate-700">{ev.summary || 'Evento'}</div>
                          </div>
-                         <div className="bg-orange-50 border border-orange-100 p-3 rounded-xl relative overflow-hidden">
-                           <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-400"></div>
-                           <div className="text-[10px] font-bold text-orange-600 mb-1">10:15 - 11:00</div>
-                           <div className="text-xs font-bold text-slate-800">Reunião Coordenação</div>
-                         </div>
-                         <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl mt-4">
-                           <div className="text-[10px] font-bold text-emerald-600 mb-1">14:30 - 15:30</div>
-                           <div className="text-xs font-bold text-slate-700">Atendimento aos Pais</div>
-                         </div>
-                       </>
-                     )}
-                     {dIdx === 3 /* Quinta */ && (
-                       <>
-                         <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl">
-                           <div className="text-[10px] font-bold text-indigo-500 mb-1">09:00 - 10:30</div>
-                           <div className="text-xs font-bold text-slate-700">Aula 1º A - Física</div>
-                         </div>
-                         <div className="bg-slate-100 border border-slate-200 p-3 rounded-xl mt-4 border-dashed">
-                           <div className="text-[10px] font-bold text-slate-500 mb-1">13:00 - 14:00</div>
-                           <div className="text-xs font-bold text-slate-600 italic flex items-center justify-between">
-                             Período Livre
-                           </div>
-                         </div>
-                       </>
+                       );
+                     }) : (
+                        <div className="flex h-full items-center justify-center">
+                          <p className="text-xs text-slate-400 font-medium italic">Livre</p>
+                        </div>
                      )}
                    </div>
                  </div>
-               ))}
+               )})}
              </div>
            ) : (
              <div className="absolute inset-0 m-4 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center p-8 bg-white/60 backdrop-blur-sm">

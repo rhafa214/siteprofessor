@@ -12,9 +12,11 @@ interface ClassLog {
 
 export default function ClassJournal() {
   const [logs, setLogs] = useLocalStorage<ClassLog[]>('classLogs', []);
+  const [turmasList, setTurmasList] = useLocalStorage<string[]>('classTurmasList', ['1º A', '2º B', '3º C']);
   const [turma, setTurma] = useState('');
   const [progresso, setProgresso] = useState('');
   const [search, setSearch] = useState('');
+  const [novaTurma, setNovaTurma] = useState('');
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,8 +30,19 @@ export default function ClassJournal() {
     };
     
     setLogs([newLog, ...logs]);
-    setTurma('');
+    // Reset inputs, preserving the selected class if useful
     setProgresso('');
+  };
+
+  const handleAddTurma = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!novaTurma.trim() || turmasList.includes(novaTurma.trim())) return;
+    setTurmasList([...turmasList, novaTurma.trim()]);
+    setNovaTurma('');
+  };
+
+  const handleRemoveTurma = (t: string) => {
+    setTurmasList(turmasList.filter(item => item !== t));
   };
 
   const filteredLogs = logs.filter(l => 
@@ -46,13 +59,14 @@ export default function ClassJournal() {
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Novo Registro Diário</h2>
         <form onSubmit={handleSave} className="flex flex-col md:flex-row gap-4">
-          <input 
-            type="text" 
+          <select 
             value={turma}
             onChange={(e) => setTurma(e.target.value)}
-            placeholder="Turma (ex: 2º A)" 
-            className="md:w-1/4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-          />
+            className="md:w-1/4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+          >
+            <option value="" disabled>Selecione a Turma</option>
+            {turmasList.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
           <input 
             type="text" 
             value={progresso}
@@ -62,6 +76,36 @@ export default function ClassJournal() {
           />
           <button type="submit" className="bg-indigo-600 text-white rounded-xl px-6 py-3 font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shrink-0 shadow-md shadow-indigo-200">
             <Plus size={18} /> Registrar
+          </button>
+        </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold text-slate-800 mb-4">Minhas Turmas Atuais</h2>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {turmasList.map(t => (
+            <div key={t} className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-sm">
+              {t} 
+              <button 
+                onClick={() => handleRemoveTurma(t)}
+                className="text-indigo-400 hover:text-indigo-600 focus:outline-none"
+              >
+                &times;
+              </button>
+            </div>
+          ))}
+          {turmasList.length === 0 && <span className="text-slate-500 text-sm italic">Você não tem turmas cadastradas.</span>}
+        </div>
+        <form onSubmit={handleAddTurma} className="flex gap-3 max-w-sm">
+          <input 
+            type="text"
+            value={novaTurma}
+            onChange={(e) => setNovaTurma(e.target.value)}
+            placeholder="Adicionar turma (ex: 3º D)"
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-indigo-500"
+          />
+          <button type="submit" className="bg-white border border-slate-200 text-slate-700 font-bold px-4 py-2 rounded-xl shadow-sm hover:bg-slate-50 text-sm">
+            Adicionar
           </button>
         </form>
       </div>
