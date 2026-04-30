@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Plus, Search, Book, Folder, FolderOpen } from 'lucide-react';
+import { Plus, Search, Book, Folder, FolderOpen, Trash2, Edit2, Save, X } from 'lucide-react';
 
 interface ClassLog {
   id: number;
@@ -30,6 +30,35 @@ export default function ClassJournal() {
   const [search, setSearch] = useState('');
   const [novaTurma, setNovaTurma] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
+  const [editTurma, setEditTurma] = useState<string>('');
+  const [editProgresso, setEditProgresso] = useState<string>('');
+
+  const handleDeleteLog = (id: number) => {
+    if (confirm('Tem certeza que deseja excluir este registro?')) {
+      setLogs(logs.filter(log => log.id !== id));
+    }
+  };
+
+  const startEditLog = (log: ClassLog) => {
+    setEditingLogId(log.id);
+    setEditTurma(log.turma);
+    setEditProgresso(log.progresso);
+  };
+
+  const cancelEditLog = () => {
+    setEditingLogId(null);
+    setEditTurma('');
+    setEditProgresso('');
+  };
+
+  const saveEditLog = (id: number) => {
+    setLogs(logs.map(log => 
+      log.id === id ? { ...log, turma: editTurma, progresso: editProgresso } : log
+    ));
+    setEditingLogId(null);
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -212,6 +241,7 @@ export default function ClassJournal() {
                   <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6 w-24">Aula</th>
                   <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6 w-48">Turma</th>
                   <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6">Conteúdo / Progresso</th>
+                  <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6 text-right w-24">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -219,8 +249,52 @@ export default function ClassJournal() {
                   <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-4 px-6 text-sm text-slate-500 whitespace-nowrap">{log.data}</td>
                     <td className="py-4 px-6 font-bold text-slate-700 whitespace-nowrap">{log.aulaNumero}ª</td>
-                    <td className="py-4 px-6 font-bold text-indigo-700 whitespace-nowrap">{log.turma}</td>
-                    <td className="py-4 px-6 text-slate-700">{log.progresso}</td>
+                    <td className="py-4 px-6">
+                      {editingLogId === log.id ? (
+                        <select 
+                          value={editTurma}
+                          onChange={(e) => setEditTurma(e.target.value)}
+                          className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:border-indigo-500"
+                        >
+                          {turmasList.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      ) : (
+                        <span className="font-bold text-indigo-700 whitespace-nowrap">{log.turma}</span>
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-slate-700">
+                      {editingLogId === log.id ? (
+                        <input 
+                          type="text"
+                          value={editProgresso}
+                          onChange={(e) => setEditProgresso(e.target.value)}
+                          className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:border-indigo-500"
+                        />
+                      ) : (
+                        log.progresso
+                      )}
+                    </td>
+                    <td className="py-4 px-6 text-right whitespace-nowrap">
+                      {editingLogId === log.id ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <button onClick={() => saveEditLog(log.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Salvar">
+                            <Save size={16} />
+                          </button>
+                          <button onClick={cancelEditLog} className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Cancelar">
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-end gap-2 text-slate-400">
+                          <button onClick={() => startEditLog(log)} className="p-1.5 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Editar/Mover">
+                            <Edit2 size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteLog(log.id)} className="p-1.5 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
