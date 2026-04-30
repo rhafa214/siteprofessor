@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { Palmtree, Menu } from 'lucide-react';
+import { Palmtree, Menu, LogIn, LogOut, User as UserIcon } from 'lucide-react';
 import type { ViewType } from '../../lib/constants';
 import { DATAS_OFICIAIS } from '../../lib/constants';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Topbar({ currentView, setIsSidebarOpen }: { currentView: ViewType, setIsSidebarOpen: (b: boolean) => void }) {
   const [time, setTime] = useState(new Date());
   const [recessoDays, setRecessoDays] = useState(0);
+  const { user, loginWithGoogle, logout } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -49,8 +51,29 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
           <span>{recessoDays} dias p/ recesso</span>
         </div>
         
-        <div className="text-lg lg:text-xl font-extrabold text-indigo-600 font-mono tracking-tighter w-24 text-right">
+        <div className="hidden lg:block text-lg font-extrabold text-indigo-600 font-mono tracking-tighter w-24 text-right">
           {time.toLocaleTimeString('pt-BR')}
+        </div>
+        
+        <div className="flex items-center border-l border-slate-200 pl-4 lg:pl-6 ml-2 lg:ml-0">
+          {user ? (
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:block text-right">
+                <div className="text-xs font-bold text-slate-700">{user.displayName || 'Professor'}</div>
+                <div className="text-[10px] text-slate-500">{user.email}</div>
+              </div>
+              <button onClick={logout} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Sair">
+                <LogOut size={20} />
+              </button>
+            </div>
+          ) : (
+            <button 
+              onClick={loginWithGoogle} 
+              className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm"
+            >
+              <LogIn size={16} /> <span className="hidden sm:inline">Entrar com Google</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

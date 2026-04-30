@@ -4,6 +4,9 @@ import { Save, CheckCircle2, Printer, BotMessageSquare, Send, Sparkles, Loader2,
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { GoogleGenAI } from '@google/genai';
 import { getHolidays, DATAS_OFICIAIS } from '../lib/constants';
+import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 let aiClient: GoogleGenAI | null = null;
 function getAI() {
@@ -30,6 +33,7 @@ interface Plan {
 }
 
 export default function LessonPlan() {
+  const { user } = useAuth();
   const [oldContent, setOldContent] = useLocalStorage<string>('eduPlan', '');
   const [plansDict, setPlansDict] = useLocalStorage<Record<string, string>>('eduPlansRecord', {});
   const [appPlans, setAppPlans] = useLocalStorage<Plan[]>('eduPlans_v2', []);
@@ -51,6 +55,32 @@ export default function LessonPlan() {
   
   const [movingPlanId, setMovingPlanId] = useState<string | null>(null);
   const [movePlanData, setMovePlanData] = useState({ folder: 'Geral', newFolder: '' });
+
+  useEffect(() => {
+    if (user) {
+      const fetchPlans = async () => {
+        try {
+          const snap = await getDocs(collection(db, 'users', user.uid, 'plans'));
+          const fbPlans: Plan[] = [];
+          snap.forEach(d => fbPlans.push(d.data() as Plan));
+          if (fbPlans.length > 0) {
+            setAppPlans(fbPlans);
+            if (!selectedPlanId) setSelectedPlanId(fbPlans[0].id);
+          } else if (appPlans.length > 0) {
+            // migrate to firestore if firestore is empty but we have local plans
+            appPlans.forEach(async (p) => {
+              try {
+                await setDoc(doc(db, 'users', user.uid, 'plans', p.id), p);
+              } catch(e) {}
+            });
+          }
+        } catch (e) {
+          console.error('Error fetching plans', e);
+        }
+      };
+      fetchPlans();
+    }
+  }, [user]);
 
   useEffect(() => {
     // Migration script
@@ -92,13 +122,33 @@ export default function LessonPlan() {
     }));
   };
 
-  const updatePlan = (id: string, updates: Partial<Plan>) => {
-    setAppPlans(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+  const updatePlan = async (id: string, updates: Partial<Plan>) => {
+    setAppPlans(prev => {
+      const next = prev.map(p => p.id === id ? { ...p, ...updates } : p);
+      if (user) {
+        const updated = next.find(p => p.id === id);
+        if (updated) {
+          setDoc(doc(db, 'users', user.uid, 'plans', id), updated).catch(e => console.error(e));
+        }
+      }
+      return next;
+    });
   };
 
-  const deletePlan = (id: string) => {
+  const deletePlan = async (id: string) => {
     setAppPlans(prev => prev.filter(p => p.id !== id));
     if (selectedPlanId === id) setSelectedPlanId(null);
+    if (user) {
+      deleteDoc(doc(db, 'users', user.uid, 'plans', id)).catch(e => console.error(e));
+    }
+  };
+  
+  const createPlan = async (plan: Plan) => {
+    setAppPlans(prev => [...prev, plan]);
+    setSelectedPlanId(plan.id);
+    if (user) {
+      setDoc(doc(db, 'users', user.uid, 'plans', plan.id), plan).catch(e => console.error(e));
+    }
   };
   
   // Chat state
@@ -113,7 +163,14 @@ export default function LessonPlan() {
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (user && activePlan) {
+      try {
+        await setDoc(doc(db, 'users', user.uid, 'plans', activePlan.id), activePlan);
+      } catch (e) {
+        console.error(e);
+      }
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -392,18 +449,28 @@ Forneça o resultado formatado em Markdown com tabelas ou cronogramas passo a pa
           </div>
           
           <form onSubmit={handleSend} className="p-4 border-t border-slate-100 shrink-0 bg-slate-50/50">
-            <div className="flex gap-2">
-              <input 
-                type="text" 
+            <div className="flex gap-2 items-end">
+              <textarea 
                 value={inputVal}
-                onChange={e => setInputVal(e.target.value)}
+                onChange={e => {
+                  setInputVal(e.target.value);
+                  e.target.style.height = 'auto';
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder="Ex: Tenho 15 aulas planejadas de História para o 6º A as terças..." 
-                className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm placeholder:text-slate-400"
+                className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm placeholder:text-slate-400 resize-none min-h-[48px] max-h-[120px] scrollbar-thin"
+                rows={1}
               />
               <button 
                 disabled={isTyping || !inputVal.trim()}
                 type="submit" 
-                className="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
               >
                 <Send size={20} />
               </button>
@@ -526,8 +593,7 @@ Forneça o resultado formatado em Markdown com tabelas ou cronogramas passo a pa
                 onClick={() => {
                   const finalFolder = newPlanData.folder === 'Nova Pasta' ? newPlanData.newFolder.trim() : newPlanData.folder;
                   const id = Date.now().toString();
-                  setAppPlans([...appPlans, { id, folder: finalFolder, title: newPlanData.title.trim(), content: '' }]);
-                  setSelectedPlanId(id);
+                  createPlan({ id, folder: finalFolder, title: newPlanData.title.trim(), content: '' });
                   setIsNewPlanModalOpen(false);
                 }}
                 className="flex-1 bg-indigo-600 text-white px-4 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50"
