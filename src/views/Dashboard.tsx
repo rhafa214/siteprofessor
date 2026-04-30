@@ -455,37 +455,6 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Trabalhos e SEDUC Informes */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col h-auto lg:h-[340px]">
-          <div className="flex items-center gap-2 text-emerald-600 mb-4 shrink-0">
-            <Landmark size={18} className="text-emerald-500" />
-            <h2 className="font-bold text-slate-800 tracking-tight">Comunicados SEDUC-SP</h2>
-          </div>
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-            <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl hover:border-emerald-200 transition-colors cursor-pointer group">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Resolução</span>
-                <span className="text-[10px] text-slate-400 font-medium">Hoje</span>
-              </div>
-              <p className="text-sm font-bold text-slate-700 leading-snug group-hover:text-emerald-700 transition-colors">Novas diretrizes para o SARESP 2026 publicadas no Diário Oficial.</p>
-            </div>
-            <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl hover:border-blue-200 transition-colors cursor-pointer group">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Aviso</span>
-                <span className="text-[10px] text-slate-400 font-medium">Ontem</span>
-              </div>
-              <p className="text-sm font-bold text-slate-700 leading-snug group-hover:text-blue-700 transition-colors">Atribuição de aulas: Cronograma atualizado para o semestre letivo.</p>
-            </div>
-            <div className="bg-slate-50 border border-slate-100 p-3 rounded-2xl hover:border-orange-200 transition-colors cursor-pointer group">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider">Importante</span>
-                <span className="text-[10px] text-slate-400 font-medium">2 dias atrás</span>
-              </div>
-              <p className="text-sm font-bold text-slate-700 leading-snug group-hover:text-orange-700 transition-colors">Prazo final para fechamento do Diário de Classe do 1º Bimestre na SED.</p>
-            </div>
-          </div>
-        </div>
-
         {/* News Feed - Categorias */}
         <div className="lg:col-span-3 flex flex-col h-auto lg:h-[400px]">
           <NewsCarousel />

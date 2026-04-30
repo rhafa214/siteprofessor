@@ -1,28 +1,26 @@
 import React, { useEffect, useState } from 'react';
+import { Newspaper, FlaskConical, Trophy, Sparkles, ExternalLink, ArrowRight, ChevronLeft, ChevronRight, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Newspaper, FlaskConical, Trophy, ChevronRight, ChevronLeft } from 'lucide-react';
 
 interface NewsItem {
+  id: string;
   title: string;
   link: string;
-  thumbnail: string;
+  thumbnail: string | null;
   source: string;
   publishedDate?: string;
+  category: typeof CATEGORIES[0];
 }
 
-const FALLBACK_IMAGES = [
-  'https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=600&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=600&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop',
-];
-
 const CATEGORIES = [
-  { id: 'seduc', title: 'SEDUC-SP / Educação', icon: <Newspaper size={16} className="text-indigo-500" />, headerClass: "text-indigo-800", bg: "bg-indigo-50/50", feedUrl: 'https://news.google.com/rss/search?q=Secretaria+da+Educa%C3%A7%C3%A3o+do+Estado+de+S%C3%A3o+Paulo+OR+Seduc-SP&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { id: 'ciencia', title: 'Ciência & Tecnologia', icon: <FlaskConical size={16} className="text-emerald-500" />, headerClass: "text-emerald-800", bg: "bg-emerald-50/50", feedUrl: 'https://news.google.com/rss/search?q=Tecnologia+na+Educa%C3%A7%C3%A3o+Brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
-  { id: 'atualidades', title: 'Atualidades na Educação', icon: <Trophy size={16} className="text-orange-500" />, headerClass: "text-orange-800", bg: "bg-orange-50/50", feedUrl: 'https://news.google.com/rss/search?q=Educa%C3%A7%C3%A3o+MEC+Enem+Vestibular&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { id: 'seduc', title: 'SEDUC-SP', icon: <Newspaper size={14} />, color: "text-indigo-600", bg: "bg-indigo-50", feedUrl: 'https://news.google.com/rss/search?q=Secretaria+da+Educa%C3%A7%C3%A3o+do+Estado+de+S%C3%A3o+Paulo+OR+Seduc-SP&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { id: 'ciencia', title: 'Ciência & Tec', icon: <FlaskConical size={14} />, color: "text-emerald-600", bg: "bg-emerald-50", feedUrl: 'https://news.google.com/rss/search?q=Tecnologia+na+Educa%C3%A7%C3%A3o+Brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { id: 'atualidades', title: 'Atualidades', icon: <Globe size={14} />, color: "text-orange-600", bg: "bg-orange-50", feedUrl: 'https://news.google.com/rss/search?q=Educa%C3%A7%C3%A3o+MEC+Enem+Vestibular&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { id: 'esportes', title: 'Esportes', icon: <Trophy size={14} />, color: "text-rose-600", bg: "bg-rose-50", feedUrl: 'https://news.google.com/rss/headlines/section/topic/SPORTS?hl=pt-BR&gl=BR&ceid=BR:pt-419' },
 ];
 
-function timeAgo(dateString: string) {
+function timeAgo(dateString?: string) {
+  if (!dateString) return '';
   const date = new Date(dateString);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -46,169 +44,73 @@ function timeAgo(dateString: string) {
 }
 
 function normalizeImageUrl(url: string) {
-  if (!url) return url;
-  // Attempt to demand a larger image from google news attachment URLs
+  if (!url) return null;
   if (url.includes('news.google.com/api/attachments') || url.includes('-w200-h200')) {
-    return url.replace(/=-w\d+-h\d+.*$/, '=-w600-h400-p-df');
+    return url.replace(/=-w\d+-h\d+.*$/, '=-w800-h600-p-df');
   }
   return url;
 }
 
-const CategorySlider: React.FC<{ category: any, newsItems: NewsItem[], loading: boolean }> = ({ category, newsItems, loading }) => {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (newsItems.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % newsItems.length);
-    }, 5000 + Math.random() * 2000); // randomize interval slightly so they don't all slide at once
-    return () => clearInterval(interval);
-  }, [newsItems.length]);
-
-  const handleNext = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setCurrentIndex((prev) => (prev + 1) % newsItems.length);
-  };
-
-  const handlePrev = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setCurrentIndex((prev) => (prev - 1 + newsItems.length) % newsItems.length);
-  };
-
-  return (
-    <div className={`flex flex-col h-full rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow relative`}>
-      <div className={`flex items-center gap-2 px-4 py-3 border-b border-slate-100 shrink-0 z-10 ${category.bg}`}>
-        {category.icon}
-        <h3 className={`font-bold text-sm tracking-tight ${category.headerClass}`}>{category.title}</h3>
-      </div>
-      
-      <div className="flex-1 relative bg-slate-50 overflow-hidden">
-        {loading ? (
-          <div className="absolute inset-0 p-4 space-y-4 animate-pulse">
-            <div className="w-full h-32 bg-slate-200 rounded-xl" />
-            <div className="space-y-2">
-              <div className="w-full h-3 bg-slate-200 rounded" />
-              <div className="w-2/3 h-3 bg-slate-200 rounded" />
-            </div>
-          </div>
-        ) : newsItems.length === 0 ? (
-          <div className="absolute inset-0 flex flex-col justify-center items-center text-slate-400">
-            <p className="text-xs font-medium">Não disponível.</p>
-          </div>
-        ) : (
-          <>
-            <AnimatePresence mode="wait">
-              <motion.a 
-                key={currentIndex}
-                href={newsItems[currentIndex].link} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.3 }}
-                className="absolute inset-0 flex flex-col group"
-              >
-                <div className="w-full h-[140px] overflow-hidden bg-slate-100 relative shrink-0">
-                  <img 
-                    src={newsItems[currentIndex].thumbnail} 
-                    alt="Thumbnail" 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = FALLBACK_IMAGES[currentIndex % FALLBACK_IMAGES.length];
-                    }}
-                  />
-                  <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-[10px] text-white font-bold uppercase tracking-wider shadow-sm">
-                    {newsItems[currentIndex].source.substring(0, 20)}
-                  </div>
-                </div>
-                <div className="p-4 flex-1 flex flex-col justify-between">
-                  <h4 className="font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors text-sm line-clamp-3">
-                    {newsItems[currentIndex].title}
-                  </h4>
-                  {newsItems[currentIndex].publishedDate && (
-                    <span className="text-[10px] text-slate-400 mt-2 block font-medium">
-                      {timeAgo(newsItems[currentIndex].publishedDate)}
-                    </span>
-                  )}
-                </div>
-              </motion.a>
-            </AnimatePresence>
-            
-            {newsItems.length > 1 && (
-              <div className="absolute bottom-3 right-3 flex gap-1 z-10">
-                <button onClick={handlePrev} className="w-6 h-6 rounded-full bg-slate-100/80 hover:bg-white text-slate-600 flex items-center justify-center shadow-sm backdrop-blur-sm transition-colors cursor-pointer">
-                  <ChevronLeft size={14} />
-                </button>
-                <button onClick={handleNext} className="w-6 h-6 rounded-full bg-slate-100/80 hover:bg-white text-slate-600 flex items-center justify-center shadow-sm backdrop-blur-sm transition-colors cursor-pointer">
-                  <ChevronRight size={14} />
-                </button>
-              </div>
-            )}
-
-            {newsItems.length > 1 && (
-              <div className="absolute top-2 right-2 flex gap-1 z-10 opacity-60">
-                {newsItems.map((_, i) => (
-                  <div key={i} className={`w-1.5 h-1.5 rounded-full ${i === currentIndex ? 'bg-white shadow' : 'bg-white/40'}`} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
 export default function NewsCarousel() {
-  const [news, setNews] = useState<Record<string, NewsItem[]>>({});
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     
-    async function fetchCategory(feedUrl: string, id: string) {
+    async function fetchAllNews() {
       try {
-        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`);
-        const data = await res.json();
+        const results = await Promise.all(
+          CATEGORIES.map(async (cat) => {
+            const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(cat.feedUrl)}`);
+            const data = await res.json();
+            
+            if (data.status === 'ok') {
+              return data.items.map((item: any, idx: number) => {
+                let imgUrl = item.thumbnail || item.enclosure?.link;
+                if (!imgUrl) {
+                  const match = item.description?.match(/<img[^>]+src="([^">]+)"/);
+                  if (match) imgUrl = match[1];
+                }
+                return {
+                  id: `${cat.id}-${idx}`,
+                  title: item.title.split(' - ')[0],
+                  link: item.link,
+                  thumbnail: imgUrl ? normalizeImageUrl(imgUrl) : null,
+                  source: item.title.split(' - ').pop() || 'Notícias',
+                  publishedDate: item.pubDate,
+                  category: cat
+                };
+              });
+            }
+            return [];
+          })
+        );
         
-        if (data.status === 'ok') {
-          return {
-             id, 
-             items: data.items.map((item: any, i: number) => {
-              let imgUrl = item.thumbnail || item.enclosure?.link;
-              if (!imgUrl) {
-                const match = item.description?.match(/<img[^>]+src="([^">]+)"/);
-                if (match) imgUrl = match[1];
-              }
-              return {
-                title: item.title.split(' - ')[0],
-                link: item.link,
-                thumbnail: normalizeImageUrl(imgUrl) || FALLBACK_IMAGES[i % FALLBACK_IMAGES.length],
-                source: item.title.split(' - ').pop() || 'Notícias',
-                publishedDate: item.pubDate
-              };
-            }).filter((item: any) => item.thumbnail).slice(0, 5) // try to get up to 5 items with images
-          };
+        if (isMounted) {
+          const now = new Date();
+          const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
+          
+          let flattened = results.flat().filter(n => {
+            if (!n.title || !n.link) return false;
+            const pubDate = new Date(n.publishedDate || 0);
+            return pubDate >= twoMonthsAgo;
+          });
+          
+          // Sort by date newest first
+          flattened.sort((a, b) => new Date(b.publishedDate || 0).getTime() - new Date(a.publishedDate || 0).getTime());
+          
+          // Remove duplicates based on title
+          const uniqueNews = flattened.filter((v, i, a) => a.findIndex(t => (t.title === v.title)) === i);
+          
+          setNews(uniqueNews);
+          setLoading(false);
         }
       } catch (error) {
-        console.error(`Failed to fetch news for ${id}`, error);
-      }
-      return { id, items: [] };
-    }
-
-    async function fetchAllNews() {
-      const results = await Promise.all(
-        CATEGORIES.map(cat => fetchCategory(cat.feedUrl, cat.id))
-      );
-      
-      if (isMounted) {
-        const newNews: Record<string, NewsItem[]> = {};
-        results.forEach(res => {
-          newNews[res.id] = res.items; // Fallback happens in map
-        });
-        setNews(newNews);
-        setLoading(false);
+        console.error("Failed to fetch news", error);
+        if (isMounted) setLoading(false);
       }
     }
     
@@ -216,19 +118,161 @@ export default function NewsCarousel() {
     return () => { isMounted = false; };
   }, []);
 
+  useEffect(() => {
+    if (news.length <= 3 || isPaused) return;
+    const interval = setInterval(() => {
+      setOffset((prev) => (prev + 3) % news.length);
+    }, 8000); // changes every 8s
+    return () => clearInterval(interval);
+  }, [news.length, isPaused]);
+
+  if (loading) {
+    return (
+      <div className="bg-transparent h-full flex flex-col">
+        <div className="flex items-center gap-2 mb-4 shrink-0">
+          <Sparkles size={20} className="text-slate-400" />
+          <h2 className="font-bold text-slate-800 tracking-tight">Radar Educação</h2>
+        </div>
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 bg-slate-100 rounded-3xl animate-pulse h-full min-h-[300px]" />
+          <div className="flex flex-col gap-4">
+            <div className="flex-1 bg-slate-100 rounded-2xl animate-pulse" />
+            <div className="flex-1 bg-slate-100 rounded-2xl animate-pulse" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (news.length === 0) return null;
+
+  // Extract 3 news items to show currently
+  const offsetNews = [];
+  for (let i = 0; i < 3; i++) {
+    offsetNews.push(news[(offset + i) % news.length]);
+  }
+
+  // Prioritize an item with an image for the hero, else fallback to just the first of the three
+  const heroLocalIndex = offsetNews.findIndex(n => n?.thumbnail);
+  const heroNews = heroLocalIndex !== -1 ? offsetNews[heroLocalIndex] : offsetNews[0];
+  const sideNews = offsetNews.filter((_, idx) => idx !== (heroLocalIndex !== -1 ? heroLocalIndex : 0));
+
+  const handleNext = () => setOffset((prev) => (prev + 3) % news.length);
+  const handlePrev = () => setOffset((prev) => (prev - 3 + news.length) % news.length);
+
   return (
-    <div className="bg-transparent h-full flex flex-col overflow-hidden">
-      <div className="flex items-center gap-2 mb-4 shrink-0">
-        <Newspaper size={20} className="text-slate-600" />
-        <h2 className="font-bold text-slate-800 tracking-tight">Painel de Notícias</h2>
+    <div 
+      className="bg-transparent h-full flex flex-col"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div className="flex items-center justify-between mb-4 shrink-0">
+        <div className="flex items-center gap-2">
+          <Sparkles size={20} className="text-indigo-600" />
+          <h2 className="font-bold text-slate-800 tracking-tight text-lg">Radar Educação</h2>
+          <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">Ao Vivo</span>
+        </div>
+        
+        {news.length > 3 && (
+          <div className="flex gap-2 items-center">
+            <span className="text-xs font-bold text-slate-400 mr-2">{Math.floor(offset/3) + 1} / {Math.ceil(news.length/3)}</span>
+            <button onClick={handlePrev} className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm">
+              <ChevronLeft size={16} />
+            </button>
+            <button onClick={handleNext} className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm">
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 lg:min-h-[260px] lg:max-h-[300px]">
-        {CATEGORIES.map(cat => (
-          <div key={cat.id} className="h-[280px] lg:h-auto">
-            <CategorySlider category={cat} newsItems={news[cat.id] || []} loading={loading} />
-          </div>
-        ))}
+      <div className="flex-1 relative lg:min-h-[340px] flex flex-col overflow-hidden">
+        {heroNews && (
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={offset}
+              initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
+              transition={{ duration: 0.4 }}
+              className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4"
+            >
+              {/* Main Hero Card */}
+              <a 
+                href={heroNews.link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="lg:col-span-2 relative rounded-3xl overflow-hidden group border border-slate-200/60 shadow-sm flex flex-col min-h-[300px]"
+              >
+                {heroNews.thumbnail ? (
+                  <>
+                    <img 
+                      src={heroNews.thumbnail!} 
+                      alt="Highlight" 
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  </>
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-800 transition-transform duration-700 group-hover:scale-105" />
+                )}
+
+                <div className="relative h-full flex flex-col justify-end p-6 md:p-8 z-10">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm ${heroNews.category.bg} ${heroNews.category.color}`}>
+                      {heroNews.category.icon}
+                      {heroNews.category.title}
+                    </span>
+                    <span className="text-white/80 text-xs font-medium backdrop-blur-md bg-black/20 px-2 py-1 rounded-lg">
+                      {timeAgo(heroNews.publishedDate)}
+                    </span>
+                  </div>
+                  <h3 className={`font-bold leading-tight mb-3 transition-colors ${heroNews.thumbnail ? 'text-white group-hover:text-indigo-200' : 'text-white'} text-2xl md:text-3xl lg:text-4xl`}>
+                    {heroNews.title}
+                  </h3>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-slate-300 font-medium text-sm flex items-center gap-2">
+                      {heroNews.source}
+                    </p>
+                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-white group-hover:text-indigo-600 transition-colors">
+                      <ArrowRight size={18} />
+                    </div>
+                  </div>
+                </div>
+              </a>
+
+              {/* Side News */}
+              <div className="flex flex-col gap-4">
+                {sideNews.map((item) => (
+                  <a
+                    key={item.id}
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex-1 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${item.category.bg} ${item.category.color}`}>
+                          {item.category.title}
+                        </span>
+                        <ExternalLink size={14} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                      </div>
+                      <h4 className="font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors text-base line-clamp-3">
+                        {item.title}
+                      </h4>
+                    </div>
+                    
+                    <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-500">
+                      <span className="truncate pr-2">{item.source}</span>
+                      <span className="shrink-0">{timeAgo(item.publishedDate)}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
     </div>
   );
