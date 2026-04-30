@@ -1,7 +1,7 @@
 import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X } from 'lucide-react';
 import type { ViewType } from '../../lib/constants';
 import { cn } from '../../lib/utils';
-import { useGoogleAuth } from '../../contexts/GoogleAuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
   currentView: ViewType;
@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen }: SidebarProps) {
-  const { isConnected, login, logout } = useGoogleAuth();
+  const { user, loginWithGoogle, logout } = useAuth();
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Principal' },
@@ -46,14 +46,14 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl mb-6 overflow-hidden">
         <div className="w-10 h-10 shrink-0">
           <img 
-            src="https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff" 
+            src={user?.photoURL || "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"} 
             alt="Professor" 
             className="w-full h-full rounded-full border-2 border-indigo-500 object-cover"
           />
         </div>
         <div className="flex flex-col min-w-0">
-          <span className="text-sm font-bold truncate">Professor(a)</span>
-          <span className="text-xs text-slate-400 truncate">Modo Local</span>
+          <span className="text-sm font-bold truncate">{user?.displayName || 'Professor(a)'}</span>
+          <span className="text-xs text-slate-400 truncate">{user ? user.email : 'Visitante'}</span>
         </div>
       </div>
 
@@ -89,19 +89,19 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       </nav>
 
       <div className="mt-auto pt-4">
-        {isConnected ? (
+        {user ? (
           <button 
             onClick={logout}
             className="w-full py-3 bg-red-500 text-white font-bold rounded-xl text-sm hover:bg-red-600 transition-colors"
           >
-            Desconectar Google
+            Sair
           </button>
         ) : (
           <button 
-            onClick={login}
+            onClick={loginWithGoogle}
             className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"
           >
-            Sincronizar Google
+            Fazer Login com Google
           </button>
         )}
       </div>

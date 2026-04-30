@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useGoogleCalendar() {
-  const { isConnected, accessToken, logout, setAuthError } = useGoogleAuth();
+  const { user, accessToken, logout } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!isConnected || !accessToken) {
+    if (!user || !accessToken) {
       setEvents([]);
       return;
     }
@@ -27,7 +27,7 @@ export function useGoogleCalendar() {
         
         if (res.status === 401) {
           logout();
-          setAuthError('Sessão expirada. Por favor, conecte novamente.');
+          console.error('Sessão expirada. Por favor, conecte novamente.');
           return;
         }
         
@@ -43,7 +43,7 @@ export function useGoogleCalendar() {
     };
 
     fetchEvents();
-  }, [isConnected, accessToken, logout, setAuthError]);
+  }, [user, accessToken, logout]);
 
   return { events, isLoading };
 }

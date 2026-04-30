@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useGmail() {
-  const { isConnected, accessToken, logout, setAuthError } = useGoogleAuth();
+  const { user, accessToken, logout } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!isConnected || !accessToken) {
+    if (!user || !accessToken) {
       setMessages([]);
       return;
     }
@@ -22,7 +22,7 @@ export function useGmail() {
         
         if (resList.status === 401) {
           logout();
-          setAuthError('Sessão expirada. Por favor, conecte novamente.');
+          console.error('Sessão expirada. Por favor, conecte novamente.');
           return;
         }
 
@@ -64,7 +64,7 @@ export function useGmail() {
     };
 
     fetchMessages();
-  }, [isConnected, accessToken, logout, setAuthError]);
+  }, [user, accessToken, logout]);
 
   return { messages, isLoading };
 }

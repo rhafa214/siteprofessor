@@ -1,16 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut, ChevronLeft, ChevronRight, LogIn } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { useAuth } from '../contexts/AuthContext';
 import { getDocs, collection, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
 export default function Agenda() {
-  const { user } = useAuth();
-  const { isConnected, login, logout, authError } = useGoogleAuth();
+  const { user, loginWithGoogle, logout, authError } = useAuth();
   const { events: calendarEvents, isLoading } = useGoogleCalendar();
   const [tasks, setTasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
@@ -58,7 +56,7 @@ export default function Agenda() {
             <span className="bg-indigo-500/50 px-3 py-1 rounded-full text-xs font-bold border border-indigo-400">Hoje</span>
           </div>
           <p className="text-indigo-100 text-sm leading-relaxed max-w-xl">
-            {isConnected 
+            {user 
               ? "Você tem 3 aulas programadas e 1 reunião. Seu período de maior foco livre é das 11:00 às 14:00." 
               : "Sincronize sua agenda para receber insights sobre sua rotina diária."}
           </p>
@@ -97,7 +95,7 @@ export default function Agenda() {
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col items-stretch overflow-hidden">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <h2 className="text-lg font-bold text-slate-800">Eventos de Hoje</h2>
-              {isConnected && (
+              {user && (
                 <button 
                   onClick={logout}
                   className="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
@@ -113,7 +111,7 @@ export default function Agenda() {
                 {authError}
               </div>
             )}
-            {isConnected ? (
+            {user ? (
               <>
                 {isLoading ? (
                   <div className="text-center p-4">Carregando eventos...</div>
@@ -170,7 +168,7 @@ export default function Agenda() {
                 <ChevronRight size={18} />
               </button>
             </div>
-            {isConnected && (
+            {user && (
               <button 
                 onClick={logout}
                 className="text-xs font-bold text-slate-500 hover:text-red-500 transition-colors flex items-center gap-1 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm"
@@ -182,7 +180,7 @@ export default function Agenda() {
         </div>
         
         <div className="flex-1 bg-slate-50 p-4 relative overflow-hidden">
-           {isConnected ? (
+           {user ? (
              <div className="absolute inset-0 m-4 flex gap-4 overflow-x-auto snap-x scrollbar-thin">
                {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'].map((day, dIdx) => {
                  // Get day index relative to today (0 = Sun, 1 = Mon)
@@ -236,7 +234,7 @@ export default function Agenda() {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <button 
-                    onClick={login}
+                    onClick={loginWithGoogle}
                     className="bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0"
                   >
                     Conectar Google Calendar

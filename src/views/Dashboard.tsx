@@ -19,7 +19,6 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { cn } from '../lib/utils';
 import NewsCarousel from '../components/dashboard/NewsCarousel';
 import { GoogleGenAI } from '@google/genai';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { useGmail } from '../hooks/useGmail';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,8 +38,7 @@ function getAI() {
 }
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const { isConnected, login } = useGoogleAuth();
+  const { user, loginWithGoogle } = useAuth();
   const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
   const { messages: emails, isLoading: isEmailsLoading } = useGmail();
 
@@ -356,17 +354,17 @@ export default function Dashboard() {
           </div>
           <div className="relative z-10 flex flex-col h-full justify-center">
             <div className="flex items-center gap-2 text-indigo-100 text-xs font-bold uppercase tracking-wider mb-2">
-              <span className={cn("w-2 h-2 rounded-full", isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
-              {isConnected ? 'Sincronizado' : 'Status Agenda'}
+              <span className={cn("w-2 h-2 rounded-full", user ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+              {user ? 'Sincronizado' : 'Status Agenda'}
             </div>
             
-            {!isConnected ? (
+            {!user ? (
               <>
                 <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-3">Sincronize sua agenda do Google</h2>
                 <div className="flex items-center gap-2 text-indigo-50 font-medium text-sm mb-4">
                   <ArrowRight size={16} /> <span>Integre sua conta para ver suas próximas aulas e eventos.</span>
                 </div>
-                <button onClick={login} className="self-start bg-white text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-slate-50 transition-colors">
+                <button onClick={loginWithGoogle} className="self-start bg-white text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-slate-50 transition-colors">
                   Conectar Agora
                 </button>
               </>
@@ -463,11 +461,11 @@ export default function Dashboard() {
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-            {!isConnected ? (
+            {!user ? (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
                 <Mail size={32} className="text-slate-300 mb-2" />
                 <p className="text-sm font-medium text-slate-500">Conecte sua conta do Google para ler seus e-mails do Gmail Edu diretamente aqui.</p>
-                <button onClick={login} className="mt-3 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50">Conectar Contas</button>
+                <button onClick={loginWithGoogle} className="mt-3 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50">Conectar Contas</button>
               </div>
             ) : isEmailsLoading ? (
                <div className="flex items-center justify-center h-full text-slate-500">

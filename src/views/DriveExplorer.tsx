@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Folder, FileText, File, ArrowLeft, Star, Grid as GridIcon, List as ListIcon, Chrome } from 'lucide-react';
-import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { Folder, FileText, File, ArrowLeft, Star, Grid as GridIcon, List as ListIcon, Chrome, LogIn, LogOut } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function DriveExplorer() {
   const [activeTab, setActiveTab] = useState<'root' | 'starred'>('root');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { isConnected, accessToken, login, logout, authError, setAuthError } = useGoogleAuth();
+  const { user, accessToken, loginWithGoogle, logout, authError } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -21,7 +21,7 @@ export default function DriveExplorer() {
       
       if (res.status === 401) {
         logout();
-        setAuthError('Sessão expirada. Por favor, conecte novamente.');
+        console.error('Sessão expirada. Por favor, conecte novamente.');
         return;
       }
       
@@ -37,10 +37,10 @@ export default function DriveExplorer() {
   };
 
   useEffect(() => {
-    if (isConnected && accessToken) {
+    if (user && accessToken) {
       fetchFiles(accessToken);
     }
-  }, [isConnected, accessToken, activeTab]);
+  }, [user, accessToken, activeTab]);
 
   return (
     <motion.div 
@@ -68,13 +68,13 @@ export default function DriveExplorer() {
           </button>
         </div>
         
-        {isConnected ? (
+        {user ? (
           <button onClick={logout} className="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100 transition-colors shadow-sm self-start sm:self-auto">
             Desconectar
           </button>
         ) : (
-          <button onClick={login} className="bg-slate-900 text-white px-5 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-md self-start sm:self-auto">
-            Conectar Google Drive
+          <button onClick={loginWithGoogle} className="bg-slate-900 text-white px-5 py-2.5 flex items-center gap-2 rounded-xl text-sm font-bold hover:bg-slate-800 transition-colors shadow-md self-start sm:self-auto">
+            <LogIn size={18} /> Conectar Google Drive
           </button>
         )}
       </div>
@@ -108,14 +108,14 @@ export default function DriveExplorer() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative">
-          {!isConnected ? (
+          {!user ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
               <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Google Drive" className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Conecte seu Google Drive</h3>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Conecte sua conta</h3>
               <p className="text-slate-500 font-medium max-w-sm">
-                 Para testar de verdade, configure o VITE_GOOGLE_CLIENT_ID e faça login para ver seus próprios arquivos!
+                 Faça login com o Google para visualizar seus arquivos aqui!
               </p>
             </div>
           ) : isLoading ? (
