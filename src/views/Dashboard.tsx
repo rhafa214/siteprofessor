@@ -11,7 +11,8 @@ import {
   Mail,
   Landmark,
   Sparkles,
-  Loader2
+  Loader2,
+  Brain
 } from 'lucide-react';
 import { getSmartPhrase, DATAS_OFICIAIS } from '../lib/constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -172,6 +173,45 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* AI Context Card (Current Class Insight) */}
+      <motion.div 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-gradient-to-r from-indigo-50 leading-relaxed md:leading-normal to-purple-50 border border-indigo-100 rounded-3xl p-5 shadow-sm flex flex-col md:flex-row items-center gap-4 relative overflow-hidden"
+      >
+        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+          <Brain size={120} />
+        </div>
+        <div className="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-sm border border-indigo-200 relative z-10">
+          <BotMessageSquare size={24} />
+        </div>
+        <div className="relative z-10 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">EduIA Observou</span>
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+          </div>
+          <p className="text-slate-700 font-medium text-sm max-w-4xl">
+            Neste momento você está no <strong className="text-indigo-700">7º Ano C</strong> e vi que na última aula que esteve com eles você trabalhou a <strong className="text-indigo-700">Aula 7 do App CMSP</strong>. Posso gerar uma atividade de revisão baseada nisso se quiser!
+          </p>
+        </div>
+        <div className="relative z-10 shrink-0 w-full md:w-auto mt-2 md:mt-0">
+          <button 
+             onClick={() => {
+                const prompt = "Gere uma revisão rápida sobre a Aula 7 que trabalhei com o 7º Ano C na última aula.";
+                setChatInput(prompt);
+                document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' });
+             }}
+             className="w-full md:w-auto bg-white text-indigo-600 border border-indigo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap flex items-center justify-center gap-2"
+          >
+            <Sparkles size={14} /> Sugerir Revisão
+          </button>
+        </div>
+      </motion.div>
 
       {/* Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -385,7 +425,7 @@ export default function Dashboard() {
         </div>
 
         {/* Chat Assistant (EduIA) */}
-        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col">
+        <div id="chat-section" className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col">
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
             <BotMessageSquare size={16} className="text-indigo-500" /> Assistente EduIA
           </div>

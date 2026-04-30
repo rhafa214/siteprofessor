@@ -1,34 +1,34 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Plus, Search, Book, Download, Loader2 } from 'lucide-react';
+import { Plus, Search, Book } from 'lucide-react';
 
 interface ClassLog {
   id: number;
   data: string;
+  aulaNumero: string;
   turma: string;
   progresso: string;
 }
 
 export default function ClassJournal() {
   const [logs, setLogs] = useLocalStorage<ClassLog[]>('classLogs', []);
-  const [turmasList, setTurmasList] = useLocalStorage<string[]>('classTurmasList', ['1º A', '2º B', '3º C']);
+  const [turmasList, setTurmasList] = useLocalStorage<string[]>('classTurmasList', [
+    '6°A - Orientação de estudos',
+    '6°B - Matemática',
+    '6°C - Matemática',
+    '7°C - Matemática',
+    '8°A - Matemática',
+    '8°C - Matemática'
+  ]);
+  
+  const today = new Date().toISOString().split('T')[0];
+  const [dataAula, setDataAula] = useState(today);
+  const [aulaNumero, setAulaNumero] = useState('1');
   const [turma, setTurma] = useState('');
   const [progresso, setProgresso] = useState('');
   const [search, setSearch] = useState('');
   const [novaTurma, setNovaTurma] = useState('');
-  const [isImporting, setIsImporting] = useState(false);
-
-  const handleImportarSED = () => {
-    setIsImporting(true);
-    setTimeout(() => {
-      const novasTurmas = ['1º B', '2º A', '3º D'].filter(t => !turmasList.includes(t));
-      if (novasTurmas.length > 0) {
-        setTurmasList([...turmasList, ...novasTurmas]);
-      }
-      setIsImporting(false);
-    }, 1500);
-  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,13 +36,13 @@ export default function ClassJournal() {
     
     const newLog: ClassLog = {
       id: Date.now(),
-      data: new Date().toLocaleDateString('pt-BR'),
+      data: new Date(dataAula + 'T12:00:00').toLocaleDateString('pt-BR'),
+      aulaNumero: aulaNumero,
       turma: turma.trim(),
       progresso: progresso.trim()
     };
     
     setLogs([newLog, ...logs]);
-    // Reset inputs, preserving the selected class if useful
     setProgresso('');
   };
 
@@ -70,39 +70,58 @@ export default function ClassJournal() {
     >
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Novo Registro Diário</h2>
-        <form onSubmit={handleSave} className="flex flex-col md:flex-row gap-4">
-          <select 
-            value={turma}
-            onChange={(e) => setTurma(e.target.value)}
-            className="md:w-1/4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-          >
-            <option value="" disabled>Selecione a Turma</option>
-            {turmasList.map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
-          <input 
-            type="text" 
-            value={progresso}
-            onChange={(e) => setProgresso(e.target.value)}
-            placeholder="Conteúdo lecionado, observações, progresso..." 
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
-          />
-          <button type="submit" className="bg-indigo-600 text-white rounded-xl px-6 py-3 font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shrink-0 shadow-md shadow-indigo-200">
-            <Plus size={18} /> Registrar
-          </button>
+        <form onSubmit={handleSave} className="flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <input 
+              type="date"
+              value={dataAula}
+              onChange={(e) => setDataAula(e.target.value)}
+              className="md:w-auto bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm"
+              required
+            />
+            <select 
+              value={aulaNumero}
+              onChange={(e) => setAulaNumero(e.target.value)}
+              className="md:w-32 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm"
+              required
+            >
+              <option value="1">1ª Aula</option>
+              <option value="2">2ª Aula</option>
+              <option value="3">3ª Aula</option>
+              <option value="4">4ª Aula</option>
+              <option value="5">5ª Aula</option>
+              <option value="6">6ª Aula</option>
+              <option value="7">7ª Aula</option>
+            </select>
+            <select 
+              value={turma}
+              onChange={(e) => setTurma(e.target.value)}
+              className="md:w-1/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+              required
+            >
+              <option value="" disabled>Selecione a Turma</option>
+              {turmasList.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col md:flex-row gap-4">
+            <input 
+              type="text" 
+              value={progresso}
+              onChange={(e) => setProgresso(e.target.value)}
+              placeholder="Conteúdo lecionado, observações, progresso..." 
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+              required
+            />
+            <button type="submit" className="bg-indigo-600 text-white rounded-xl px-6 py-3 font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2 shrink-0 shadow-md shadow-indigo-200">
+              <Plus size={18} /> Registrar
+            </button>
+          </div>
         </form>
       </div>
 
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <h2 className="text-lg font-bold text-slate-800">Minhas Turmas Atuais</h2>
-          <button 
-            onClick={handleImportarSED}
-            disabled={isImporting}
-            className="text-sm font-bold bg-amber-50 text-amber-700 border border-amber-200 px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-amber-100 transition-colors shadow-sm disabled:opacity-50"
-          >
-            {isImporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-            {isImporting ? 'Sincronizando SED...' : 'Importar da SED / Sala do Futuro'}
-          </button>
         </div>
         <div className="flex flex-wrap gap-2 mb-4">
           {turmasList.map(t => (
@@ -158,7 +177,8 @@ export default function ClassJournal() {
               <thead className="bg-white sticky top-0 border-b border-slate-100 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                 <tr>
                   <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6">Data</th>
-                  <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6 w-32">Turma</th>
+                  <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6 w-24">Aula</th>
+                  <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6 w-48">Turma</th>
                   <th className="font-bold text-slate-500 text-xs uppercase tracking-wider py-4 px-6">Conteúdo / Progresso</th>
                 </tr>
               </thead>
@@ -166,6 +186,7 @@ export default function ClassJournal() {
                 {filteredLogs.map(log => (
                   <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-4 px-6 text-sm text-slate-500 whitespace-nowrap">{log.data}</td>
+                    <td className="py-4 px-6 font-bold text-slate-700 whitespace-nowrap">{log.aulaNumero}ª</td>
                     <td className="py-4 px-6 font-bold text-indigo-700 whitespace-nowrap">{log.turma}</td>
                     <td className="py-4 px-6 text-slate-700">{log.progresso}</td>
                   </tr>
