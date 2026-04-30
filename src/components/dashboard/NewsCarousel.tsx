@@ -17,9 +17,9 @@ const FALLBACK_IMAGES = [
 ];
 
 const CATEGORIES = [
-  { id: 'educacao', title: 'Educação', icon: <Newspaper size={16} className="text-indigo-500" />, headerClass: "text-indigo-800", bg: "bg-indigo-50/50", feedUrl: 'https://g1.globo.com/rss/g1/educacao/' },
-  { id: 'ciencia', title: 'Ciência & Tecnologia', icon: <FlaskConical size={16} className="text-emerald-500" />, headerClass: "text-emerald-800", bg: "bg-emerald-50/50", feedUrl: 'https://g1.globo.com/rss/g1/ciencia-e-saude/' },
-  { id: 'esportes', title: 'Esportes', icon: <Trophy size={16} className="text-orange-500" />, headerClass: "text-orange-800", bg: "bg-orange-50/50", feedUrl: 'https://jovempan.com.br/esportes/feed' },
+  { id: 'seduc', title: 'SEDUC-SP / Educação', icon: <Newspaper size={16} className="text-indigo-500" />, headerClass: "text-indigo-800", bg: "bg-indigo-50/50", feedUrl: 'https://news.google.com/rss/search?q=Secretaria+da+Educa%C3%A7%C3%A3o+do+Estado+de+S%C3%A3o+Paulo+OR+Seduc-SP&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { id: 'ciencia', title: 'Ciência & Tecnologia', icon: <FlaskConical size={16} className="text-emerald-500" />, headerClass: "text-emerald-800", bg: "bg-emerald-50/50", feedUrl: 'https://news.google.com/rss/search?q=Tecnologia+na+Educa%C3%A7%C3%A3o+Brasil&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
+  { id: 'atualidades', title: 'Atualidades na Educação', icon: <Trophy size={16} className="text-orange-500" />, headerClass: "text-orange-800", bg: "bg-orange-50/50", feedUrl: 'https://news.google.com/rss/search?q=Educa%C3%A7%C3%A3o+MEC+Enem+Vestibular&hl=pt-BR&gl=BR&ceid=BR:pt-419' },
 ];
 
 function timeAgo(dateString: string) {
