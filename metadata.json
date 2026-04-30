@@ -1,6 +1,6 @@
 {
-  "name": "",
-  "description": "",
+  "name": "Edupllaner",
+  "description": "Assistant for educators with Gemini AI",
   "requestFramePermissions": [],
   "majorCapabilities": []
 }
