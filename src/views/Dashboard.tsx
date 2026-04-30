@@ -49,9 +49,8 @@ export default function Dashboard() {
   ]);
   const [efapeDone, setEfapeDone] = useLocalStorage('efapeDone', false);
   const [classLogs] = useLocalStorage<any[]>('classLogs', []);
+  const [turmasList] = useLocalStorage<string[]>('classTurmasList', []);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const latestLog = classLogs && classLogs.length > 0 ? classLogs[0] : null;
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
@@ -63,6 +62,49 @@ export default function Dashboard() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [chatMessages, isTyping]);
+
+  // Compute events
+  const currentEvents = calendarEvents.filter(ev => {
+    const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+    const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : ev.end?.date ? new Date(ev.end.date) : new Date();
+    return now >= s && now <= e;
+  });
+  const futureEvents = calendarEvents.filter(ev => {
+    const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+    return s > now;
+  });
+  
+  const currentEvent = currentEvents[0];
+  const nextEvent = futureEvents[0];
+
+  // Identificar turma atual
+  let currentTurma: string | null = null;
+  if (currentEvent && currentEvent.summary) {
+    const summaryLower = currentEvent.summary.toLowerCase();
+    for (const t of (turmasList || [])) {
+      const tShort = t.split('-')[0].trim().toLowerCase();
+      const sClean = summaryLower.replace(/[^a-z0-9]/g, '');
+      const tClean = tShort.replace(/[^a-z0-9]/g, '');
+      
+      if ((tClean && sClean.includes(tClean)) || (sClean && tClean.includes(sClean))) {
+        currentTurma = t;
+        break;
+      }
+    }
+  }
+
+  const logForCurrentTurma = currentTurma ? classLogs?.find(l => l.turma === currentTurma) : null;
+  const latestLog = classLogs && classLogs.length > 0 ? classLogs[0] : null;
+
+  // Verificar se a aula está acabando
+  let isClassEndingSoon = false;
+  if (currentEvent && currentEvent.end?.dateTime) {
+    const end = new Date(currentEvent.end.dateTime);
+    const diffMins = (end.getTime() - now.getTime()) / (1000 * 60);
+    if (diffMins > 0 && diffMins <= 15) {
+      isClassEndingSoon = true;
+    }
+  }
 
   // Progress calculations
   const start = new Date(now).setHours(7, 0, 0, 0);
@@ -198,30 +240,42 @@ export default function Dashboard() {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
           </div>
-          <p className="text-slate-700 font-medium text-sm max-w-4xl">
-            {latestLog ? (
-              <>
-                Vi que na última aula (<strong className="text-indigo-700">{latestLog.data}</strong>) com o <strong className="text-indigo-700">{latestLog.turma}</strong> você trabalhou: <strong className="text-indigo-700">{latestLog.progresso}</strong>. Posso gerar uma atividade de revisão baseada nisso se quiser!
-              </>
+          <div className="text-slate-700 font-medium text-sm max-w-4xl space-y-2">
+            {currentTurma ? (
+               logForCurrentTurma ? (
+                 <p>Vi que você está no <strong className="text-indigo-700">{currentTurma}</strong> agora. Na última aula com eles (<strong className="text-indigo-700">{logForCurrentTurma.data}</strong>) você registrou: <strong className="text-indigo-700">{logForCurrentTurma.progresso}</strong>. Inicie a partir daí!</p>
+               ) : (
+                 <p>Vi que você está no <strong className="text-indigo-700">{currentTurma}</strong> agora, porém busquei nas aulas trabalhadas e não encontrei registros no seu <strong className="text-indigo-700">Diário de Classe</strong> para essa turma.</p>
+               )
             ) : (
-              <>
-                Ainda não encontrei registros no seu <strong className="text-indigo-700">Diário de Classe</strong>. Adicione anotações sobre suas aulas para que eu possa sugerir revisões!
-              </>
+              latestLog ? (
+                <p>No momento você não tem uma aula ativa na agenda ou está em seu horário de estudos. Aproveite para planejar seus próximos passos! Posso sugerir atividades ou exercícios com base no seu registro mais recente com o <strong className="text-indigo-700">{latestLog.turma}</strong> sobre <strong className="text-indigo-700">{latestLog.progresso}</strong>.</p>
+              ) : (
+                <p>No momento você não tem uma aula ativa na agenda ou está em seu horário de estudos. Como ainda não encontrei registros no seu <strong className="text-indigo-700">Diário de Classe</strong>, que tal aproveitar para se organizar, preparar novas aulas ou corrigir avaliações?</p>
+              )
             )}
-          </p>
+            
+            {isClassEndingSoon && (
+              <p className="text-orange-700 bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center">
+                ⚠️ A aula logo vai acabar. Não esqueça de fazer a chamada e o registro na Sala do Futuro!
+              </p>
+            )}
+          </div>
         </div>
         <div className="relative z-10 shrink-0 w-full md:w-auto mt-2 md:mt-0">
           <button 
              onClick={() => {
-                const prompt = latestLog 
-                  ? `Gere uma revisão rápida sobre o conteúdo: "${latestLog.progresso}" que trabalhei com a turma ${latestLog.turma} na última aula.`
-                  : "Me ajude a planejar minha próxima aula.";
+                const prompt = currentTurma && logForCurrentTurma 
+                  ? `Gere uma revisão rápida sobre o conteúdo: "${logForCurrentTurma.progresso}" que trabalhei com a turma ${currentTurma} na última aula.`
+                  : latestLog 
+                    ? `Estou em um momento de estudo/planejamento. Me dê sugestões de atividades, dinâmicas e exercícios baseados no conteúdo "${latestLog.progresso}" que trabalhei recentemente com a turma ${latestLog.turma}.`
+                    : "Estou em um momento de estudo/planejamento. Me dê sugestões de como organizar minha semana e preparar minhas próximas aulas de forma criativa.";
                 setChatInput(prompt);
                 document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' });
              }}
              className="w-full md:w-auto bg-white text-indigo-600 border border-indigo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap flex items-center justify-center gap-2"
           >
-            <Sparkles size={14} /> {latestLog ? 'Sugerir Revisão' : 'Planejar Aula'}
+            <Sparkles size={14} /> {(currentTurma && logForCurrentTurma) ? 'Sugerir Revisão' : latestLog ? 'Sugerir Atividades' : 'Planejar Aulas'}
           </button>
         </div>
       </motion.div>
