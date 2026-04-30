@@ -1,16 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Calendar as CalendarIcon, Clock, Link, CheckCircle2, AlertCircle, CalendarCheck, CheckSquare, ListTodo, LogOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
+import { useAuth } from '../contexts/AuthContext';
+import { getDocs, collection, doc, getDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function Agenda() {
+  const { user } = useAuth();
   const { isConnected, login, logout, authError } = useGoogleAuth();
   const { events: calendarEvents, isLoading } = useGoogleCalendar();
-  const [tasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
-  const [reminders] = useLocalStorage<string[]>('eduReminders', []);
+  const [tasks, setTasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
+  const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [weekOffset, setWeekOffset] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const fetchTasks = async () => {
+        try {
+          const snap = await getDocs(collection(db, 'users', user.uid, 'tasks'));
+          const fbTasks: any[] = [];
+          snap.forEach(d => fbTasks.push(d.data()));
+          if (fbTasks.length > 0) setTasks(fbTasks as any);
+        } catch(e) {}
+      };
+      const fetchSettings = async () => {
+        try {
+          const snap = await getDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'));
+          if (snap.exists() && snap.data().reminders) {
+            setReminders(snap.data().reminders);
+          }
+        } catch(e) {}
+      };
+      fetchTasks();
+      fetchSettings();
+    }
+  }, [user]);
 
   const pendingTasks = tasks.filter(t => !t.done);
 

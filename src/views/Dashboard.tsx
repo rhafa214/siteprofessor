@@ -22,6 +22,9 @@ import { GoogleGenAI } from '@google/genai';
 import { useGoogleAuth } from '../contexts/GoogleAuthContext';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { useGmail } from '../hooks/useGmail';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 let aiClient: GoogleGenAI | null = null;
 function getAI() {
@@ -36,6 +39,7 @@ function getAI() {
 }
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const { isConnected, login } = useGoogleAuth();
   const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
   const { messages: emails, isLoading: isEmailsLoading } = useGmail();
@@ -51,6 +55,64 @@ export default function Dashboard() {
   const [classLogs] = useLocalStorage<any[]>('classLogs', []);
   const [turmasList] = useLocalStorage<string[]>('classTurmasList', []);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (user) {
+      const fetchSettings = async () => {
+        try {
+          const snap = await getDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'));
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.reminders) {
+              setReminders(data.reminders);
+            }
+            if (data.efapeDoneAt) {
+              const doneAt = new Date(data.efapeDoneAt);
+              const nextWeek = new Date(doneAt);
+              nextWeek.setDate(nextWeek.getDate() + 7);
+              // reset next week
+              if (new Date() >= nextWeek) {
+                setEfapeDone(false);
+                await setDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'), { efapeDoneAt: null }, { merge: true });
+              } else {
+                setEfapeDone(true);
+              }
+            } else {
+              setEfapeDone(false);
+            }
+          } else {
+             // save local values if any
+             if (reminders.length > 0 || efapeDone) {
+               await setDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'), {
+                 reminders,
+                 efapeDoneAt: efapeDone ? new Date().toISOString() : null
+               });
+             }
+          }
+        } catch (e) { console.error('Error fetching dashboard settings', e); }
+      };
+      // only run once to load initial remote info
+      fetchSettings();
+    }
+  // empty dependency array or just user to load on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const updateFirestoreReminders = (newReminders: string[]) => {
+    if (user) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'), { reminders: newReminders }, { merge: true }).catch(e => console.error(e));
+    }
+  };
+
+  const handleEfapeToggle = () => {
+    const newState = !efapeDone;
+    setEfapeDone(newState);
+    if (user) {
+      setDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'), {
+        efapeDoneAt: newState ? new Date().toISOString() : null
+      }, { merge: true }).catch(e => console.error(e));
+    }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
@@ -140,7 +202,9 @@ export default function Dashboard() {
       if (userMessage.toLowerCase().includes("lembrar de") || userMessage.toLowerCase().includes("lembre-me de")) {
         const task = userMessage.replace(/lembrar de|lembre-me de/i, "").trim();
         if (task) {
-          setReminders(prev => [...prev, task]);
+          const nextRems = [...reminders, task];
+          setReminders(nextRems);
+          updateFirestoreReminders(nextRems);
           setChatMessages(prev => [...prev, { role: 'bot', text: `Prontinho! Anotei "${task}" na sua lista de lembretes.` }]);
           setIsTyping(false);
           return;
@@ -181,7 +245,9 @@ export default function Dashboard() {
   };
 
   const removeReminder = (index: number) => {
-    setReminders(prev => prev.filter((_, i) => i !== index));
+    const nextRems = reminders.filter((_, i) => i !== index);
+    setReminders(nextRems);
+    updateFirestoreReminders(nextRems);
   };
 
   return (
@@ -524,7 +590,7 @@ export default function Dashboard() {
               
               <button 
                 type="button"
-                onClick={() => setEfapeDone(true)}
+                onClick={handleEfapeToggle}
                 className={cn(
                   "w-full py-2.5 rounded-xl text-sm font-bold border transition-colors mt-4",
                   efapeDone 

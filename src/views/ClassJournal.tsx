@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { Plus, Search, Book, Folder, FolderOpen, Trash2, Edit2, Save, X } from 'lucide-react';
+import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ClassLog {
   id: number;
@@ -12,6 +15,7 @@ interface ClassLog {
 }
 
 export default function ClassJournal() {
+  const { user } = useAuth();
   const [logs, setLogs] = useLocalStorage<ClassLog[]>('classLogs', []);
   const [turmasList, setTurmasList] = useLocalStorage<string[]>('classTurmasList', [
     '6°A - Orientação de estudos',
@@ -22,6 +26,26 @@ export default function ClassJournal() {
     '8°C - Matemática'
   ]);
   
+  useEffect(() => {
+    if (user) {
+      const fetchLogs = async () => {
+        try {
+          const snap = await getDocs(collection(db, 'users', user.uid, 'classLogs'));
+          const fbLogs: ClassLog[] = [];
+          snap.forEach(d => fbLogs.push(d.data() as ClassLog));
+          if (fbLogs.length > 0) {
+            setLogs(fbLogs);
+          } else if (logs.length > 0) {
+            logs.forEach(async (log) => {
+              try { await setDoc(doc(db, 'users', user.uid, 'classLogs', log.id.toString()), log); } catch(e) {}
+            });
+          }
+        } catch (e) { console.error('Error fetching logs', e); }
+      };
+      fetchLogs();
+    }
+  }, [user]);
+
   const today = new Date().toISOString().split('T')[0];
   const [dataAula, setDataAula] = useState(today);
   const [aulaNumero, setAulaNumero] = useState('1');
@@ -38,6 +62,9 @@ export default function ClassJournal() {
   const handleDeleteLog = (id: number) => {
     if (confirm('Tem certeza que deseja excluir este registro?')) {
       setLogs(logs.filter(log => log.id !== id));
+      if (user) {
+        deleteDoc(doc(db, 'users', user.uid, 'classLogs', id.toString())).catch(e => console.error(e));
+      }
     }
   };
 
@@ -54,10 +81,17 @@ export default function ClassJournal() {
   };
 
   const saveEditLog = (id: number) => {
+    const updated = { turma: editTurma, progresso: editProgresso };
     setLogs(logs.map(log => 
-      log.id === id ? { ...log, turma: editTurma, progresso: editProgresso } : log
+      log.id === id ? { ...log, ...updated } : log
     ));
     setEditingLogId(null);
+    if (user) {
+      const logToUpdate = logs.find(log => log.id === id);
+      if (logToUpdate) {
+        setDoc(doc(db, 'users', user.uid, 'classLogs', id.toString()), { ...logToUpdate, ...updated }).catch(e => console.error(e));
+      }
+    }
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -75,6 +109,9 @@ export default function ClassJournal() {
     setLogs([newLog, ...logs]);
     setProgresso('');
     setSelectedFolder(turma.trim()); // Switch to the folder of the added item
+    if (user) {
+      setDoc(doc(db, 'users', user.uid, 'classLogs', newLog.id.toString()), newLog).catch(e => console.error(e));
+    }
   };
 
   const handleAddTurma = (e: React.FormEvent) => {

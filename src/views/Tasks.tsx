@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, CheckCircle2, Circle, AlertCircle, Calendar } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 type Priority = 'low' | 'medium' | 'high';
 
@@ -14,26 +17,61 @@ interface Task {
 }
 
 export default function Tasks() {
+  const { user } = useAuth();
   const [tasks, setTasks] = useLocalStorage<Task[]>('eduTasksPro', []);
   const [input, setInput] = useState('');
   const [priority, setPriority] = useState<Priority>('medium');
   const [dueDate, setDueDate] = useState('');
 
+  useEffect(() => {
+    if (user) {
+      const fetchTasks = async () => {
+        try {
+          const snap = await getDocs(collection(db, 'users', user.uid, 'tasks'));
+          const fbTasks: Task[] = [];
+          snap.forEach(d => fbTasks.push(d.data() as Task));
+          if (fbTasks.length > 0) {
+            setTasks(fbTasks);
+          } else if (tasks.length > 0) {
+            tasks.forEach(async (task) => {
+              try { await setDoc(doc(db, 'users', user.uid, 'tasks', task.id.toString()), task); } catch(e) {}
+            });
+          }
+        } catch (e) { console.error('Error fetching tasks', e); }
+      };
+      fetchTasks();
+    }
+  }, [user]);
+
   const addTask = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim()) return;
-    setTasks([{ id: Date.now(), text: input.trim(), done: false, priority, dueDate }, ...tasks]);
+    const newTask: Task = { id: Date.now(), text: input.trim(), done: false, priority, dueDate };
+    setTasks([newTask, ...tasks]);
     setInput('');
     setPriority('medium');
     setDueDate('');
+    
+    if (user) {
+      setDoc(doc(db, 'users', user.uid, 'tasks', newTask.id.toString()), newTask).catch(e => console.error(e));
+    }
   };
 
   const removeTask = (id: number) => {
     setTasks(tasks.filter(t => t.id !== id));
+    if (user) {
+      deleteDoc(doc(db, 'users', user.uid, 'tasks', id.toString())).catch(e => console.error(e));
+    }
   };
 
   const toggleTask = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    setTasks(tasks.map(t => {
+      const updated = t.id === id ? { ...t, done: !t.done } : t;
+      if (t.id === id && user) {
+        setDoc(doc(db, 'users', user.uid, 'tasks', id.toString()), updated).catch(e => console.error(e));
+      }
+      return updated;
+    }));
   };
 
   const completedCount = tasks.filter(t => t.done).length;
