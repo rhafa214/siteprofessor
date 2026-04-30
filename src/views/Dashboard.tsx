@@ -48,7 +48,10 @@ export default function Dashboard() {
     { role: 'bot', text: 'Olá, educador! Sou o EduIA, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?' }
   ]);
   const [efapeDone, setEfapeDone] = useLocalStorage('efapeDone', false);
+  const [classLogs] = useLocalStorage<any[]>('classLogs', []);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const latestLog = classLogs && classLogs.length > 0 ? classLogs[0] : null;
 
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
@@ -196,19 +199,29 @@ export default function Dashboard() {
             </span>
           </div>
           <p className="text-slate-700 font-medium text-sm max-w-4xl">
-            Neste momento você está no <strong className="text-indigo-700">7º Ano C</strong> e vi que na última aula que esteve com eles você trabalhou a <strong className="text-indigo-700">Aula 7 do App CMSP</strong>. Posso gerar uma atividade de revisão baseada nisso se quiser!
+            {latestLog ? (
+              <>
+                Vi que na última aula (<strong className="text-indigo-700">{latestLog.data}</strong>) com o <strong className="text-indigo-700">{latestLog.turma}</strong> você trabalhou: <strong className="text-indigo-700">{latestLog.progresso}</strong>. Posso gerar uma atividade de revisão baseada nisso se quiser!
+              </>
+            ) : (
+              <>
+                Ainda não encontrei registros no seu <strong className="text-indigo-700">Diário de Classe</strong>. Adicione anotações sobre suas aulas para que eu possa sugerir revisões!
+              </>
+            )}
           </p>
         </div>
         <div className="relative z-10 shrink-0 w-full md:w-auto mt-2 md:mt-0">
           <button 
              onClick={() => {
-                const prompt = "Gere uma revisão rápida sobre a Aula 7 que trabalhei com o 7º Ano C na última aula.";
+                const prompt = latestLog 
+                  ? `Gere uma revisão rápida sobre o conteúdo: "${latestLog.progresso}" que trabalhei com a turma ${latestLog.turma} na última aula.`
+                  : "Me ajude a planejar minha próxima aula.";
                 setChatInput(prompt);
                 document.getElementById('chat-section')?.scrollIntoView({ behavior: 'smooth' });
              }}
              className="w-full md:w-auto bg-white text-indigo-600 border border-indigo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap flex items-center justify-center gap-2"
           >
-            <Sparkles size={14} /> Sugerir Revisão
+            <Sparkles size={14} /> {latestLog ? 'Sugerir Revisão' : 'Planejar Aula'}
           </button>
         </div>
       </motion.div>
