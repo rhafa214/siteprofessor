@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Plus, Search, Book } from 'lucide-react';
+import { Plus, Search, Book, Folder, FolderOpen } from 'lucide-react';
 
 interface ClassLog {
   id: number;
@@ -29,6 +29,7 @@ export default function ClassJournal() {
   const [progresso, setProgresso] = useState('');
   const [search, setSearch] = useState('');
   const [novaTurma, setNovaTurma] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +45,7 @@ export default function ClassJournal() {
     
     setLogs([newLog, ...logs]);
     setProgresso('');
+    setSelectedFolder(turma.trim()); // Switch to the folder of the added item
   };
 
   const handleAddTurma = (e: React.FormEvent) => {
@@ -55,12 +57,15 @@ export default function ClassJournal() {
 
   const handleRemoveTurma = (t: string) => {
     setTurmasList(turmasList.filter(item => item !== t));
+    if (selectedFolder === t) setSelectedFolder(null);
   };
 
-  const filteredLogs = logs.filter(l => 
-    l.turma.toLowerCase().includes(search.toLowerCase()) || 
-    l.progresso.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredLogs = logs.filter(l => {
+    const matchesSearch = l.turma.toLowerCase().includes(search.toLowerCase()) || 
+                          l.progresso.toLowerCase().includes(search.toLowerCase());
+    const matchesFolder = selectedFolder ? l.turma === selectedFolder : true;
+    return matchesSearch && matchesFolder;
+  });
 
   return (
     <motion.div 
@@ -151,10 +156,17 @@ export default function ClassJournal() {
         </form>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[500px]">
-        <div className="p-4 lg:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h2 className="font-bold text-slate-800">Histórico de Aulas</h2>
-          <div className="relative w-64">
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden flex flex-col h-[600px]">
+        <div className="p-4 lg:p-6 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
+          <div className="flex items-center gap-3">
+             <h2 className="font-bold text-slate-800">
+               {selectedFolder ? `Histórico de: ${selectedFolder}` : 'Histórico Geral de Aulas'}
+             </h2>
+             {selectedFolder && (
+               <button onClick={() => setSelectedFolder(null)} className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition-colors">Ver todas as turmas</button>
+             )}
+          </div>
+          <div className="relative w-full md:w-64">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text"
@@ -163,6 +175,26 @@ export default function ClassJournal() {
               placeholder="Buscar histórico..."
               className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-indigo-500 transition-colors"
             />
+          </div>
+        </div>
+        
+        <div className="px-4 lg:px-6 pt-4 pb-2 border-b border-slate-100 bg-slate-50">
+          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-slate-200">
+            <button 
+              onClick={() => setSelectedFolder(null)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm whitespace-nowrap transition-all ${selectedFolder === null ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}
+            >
+              <Book size={18} /> Todos os Registros
+            </button>
+            {turmasList.map(t => (
+              <button 
+                onClick={() => setSelectedFolder(t)}
+                key={t}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-sm whitespace-nowrap transition-all ${selectedFolder === t ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}
+              >
+                {selectedFolder === t ? <FolderOpen size={18} className="fill-indigo-400 text-white" /> : <Folder size={18} className="fill-slate-200 text-slate-400" />} {t}
+              </button>
+            ))}
           </div>
         </div>
         
