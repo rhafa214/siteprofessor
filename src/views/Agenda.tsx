@@ -37,13 +37,53 @@ export default function Agenda() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!isLoading && todayEvents.length > 0) {
+      setTimeout(() => {
+        const marker = document.getElementById('agora-marker');
+        if (marker) {
+          marker.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 300);
+    }
+  }, [isLoading, calendarEvents.length]);
+
   const pendingTasks = tasks.filter(t => !t.done);
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayEvents = calendarEvents.filter(ev => {
+     const evDate = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+     return evDate >= today && evDate < tomorrow;
+  }).sort((a, b) => {
+     const tA = a.start?.dateTime ? new Date(a.start.dateTime).getTime() : 0;
+     const tB = b.start?.dateTime ? new Date(b.start.dateTime).getTime() : 0;
+     return tA - tB;
+  });
+
+  const getEventColor = (str: string) => {
+    const colors = [
+      { bg: 'bg-blue-50', border: 'border-blue-200', textTime: 'text-blue-600', textTitle: 'text-blue-900', shadow: 'shadow-blue-100', activeBg: 'bg-blue-100' },
+      { bg: 'bg-emerald-50', border: 'border-emerald-200', textTime: 'text-emerald-600', textTitle: 'text-emerald-900', shadow: 'shadow-emerald-100', activeBg: 'bg-emerald-100' },
+      { bg: 'bg-rose-50', border: 'border-rose-200', textTime: 'text-rose-600', textTitle: 'text-rose-900', shadow: 'shadow-rose-100', activeBg: 'bg-rose-100' },
+      { bg: 'bg-amber-50', border: 'border-amber-200', textTime: 'text-amber-600', textTitle: 'text-amber-900', shadow: 'shadow-amber-100', activeBg: 'bg-amber-100' },
+      { bg: 'bg-violet-50', border: 'border-violet-200', textTime: 'text-violet-600', textTitle: 'text-violet-900', shadow: 'shadow-violet-100', activeBg: 'bg-violet-100' },
+      { bg: 'bg-fuchsia-50', border: 'border-fuchsia-200', textTime: 'text-fuchsia-600', textTitle: 'text-fuchsia-900', shadow: 'shadow-fuchsia-100', activeBg: 'bg-fuchsia-100' },
+      { bg: 'bg-orange-50', border: 'border-orange-200', textTime: 'text-orange-600', textTitle: 'text-orange-900', shadow: 'shadow-orange-100', activeBg: 'bg-orange-100' },
+    ];
+    let hash = 0;
+    if (!str) return colors[0];
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+  }
 
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="h-full flex flex-col gap-6 pb-10"
+      className="min-h-full flex flex-col gap-6 pb-10"
     >
       {/* Resumo do Dia (Daily Summary) Banner */}
       <div className="bg-indigo-600 text-white p-6 rounded-3xl shadow-md border border-indigo-500 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6 shrink-0">
@@ -57,7 +97,7 @@ export default function Agenda() {
           </div>
           <p className="text-indigo-100 text-sm leading-relaxed max-w-xl">
             {user 
-              ? "Você tem 3 aulas programadas e 1 reunião. Seu período de maior foco livre é das 11:00 às 14:00." 
+              ? `Você tem ${todayEvents.length > 0 ? todayEvents.length : 'nenhum'} evento${todayEvents.length === 1 ? '' : 's'} programado${todayEvents.length === 1 ? '' : 's'} para hoje${todayEvents.length > 0 ? '. Prepare-se para um dia produtivo!' : '. Aproveite seu dia livre!'}` 
               : "Sincronize sua agenda para receber insights sobre sua rotina diária."}
           </p>
         </div>
@@ -92,7 +132,7 @@ export default function Agenda() {
       <div className="flex flex-col xl:flex-row gap-6 flex-1 min-h-0">
         <div className="xl:w-1/3 flex flex-col gap-6 h-full">
           {/* Hoje / Coisas Importantes */}
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col items-stretch overflow-hidden">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex-1 flex flex-col items-stretch">
             <div className="flex items-center justify-between mb-6 shrink-0">
               <h2 className="text-lg font-bold text-slate-800">Eventos de Hoje</h2>
               {user && (
@@ -105,7 +145,7 @@ export default function Agenda() {
               )}
             </div>
             
-            <div className="space-y-4 flex-1 overflow-y-auto pr-2 scrollbar-thin">
+            <div className="space-y-4 flex-1">
             {authError && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
                 {authError}
@@ -120,29 +160,57 @@ export default function Agenda() {
               <>
                 {isLoading ? (
                   <div className="text-center p-4">Carregando eventos...</div>
-                ) : calendarEvents.length > 0 ? (
-                  calendarEvents.slice(0, 5).map((ev, i) => {
+                ) : todayEvents.length > 0 ? (
+                  todayEvents.reduce((acc, ev, i) => {
                     const startInfo = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
                     const endInfo = ev.end?.dateTime ? new Date(ev.end.dateTime) : ev.end?.date ? new Date(ev.end.date) : new Date();
-                    const isCurrent = startInfo <= new Date() && endInfo >= new Date();
                     const timeStr = ev.start?.dateTime ? startInfo.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Dia todo';
                     
-                    return (
-                      <div key={ev.id || i} className={`flex gap-4 p-4 rounded-2xl border transition-all ${isCurrent ? 'border-indigo-200 bg-indigo-50/50 shadow-sm' : 'border-slate-100 bg-slate-50'}`}>
-                        <div className={`font-mono font-bold text-sm shrink-0 pt-1 ${isCurrent ? 'text-indigo-700' : 'text-slate-400'}`}>
+                    const now = new Date();
+                    const isPast = endInfo < now;
+                    const isCurrent = startInfo <= now && endInfo >= now;
+                    const isFuture = startInfo > now;
+
+                    const c = getEventColor(ev.summary || '');
+
+                    if (isFuture && !acc.some((el: any) => el?.key === 'agora-marker')) {
+                       acc.push(
+                         <div key="agora-marker" className="flex items-center gap-3 my-4 opacity-80" id="agora-marker">
+                           <div className="flex-1 border-t-2 border-red-400 border-dashed"></div>
+                           <span className="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">AGORA</span>
+                           <div className="flex-1 border-t-2 border-red-400 border-dashed"></div>
+                         </div>
+                       );
+                    }
+
+                    acc.push(
+                      <div key={ev.id || i} className={`flex gap-4 p-4 rounded-2xl border transition-all ${isCurrent ? `${c.activeBg} ${c.border} shadow-md scale-[1.01] ring-2 ring-opacity-50` : isPast ? 'bg-slate-50 border-slate-100 opacity-60' : `${c.bg} ${c.border} shadow-sm`} hover:-translate-y-0.5 hover:shadow-md`}>
+                        <div className={`font-mono font-bold text-sm shrink-0 pt-1 ${isPast ? 'text-slate-400' : c.textTime}`}>
                           {timeStr}
                         </div>
                         <div>
-                          <h4 className={`font-bold text-sm ${isCurrent ? 'text-indigo-900' : 'text-slate-700'}`}>{ev.summary || 'Evento sem título'}</h4>
-                          <div className="flex items-center gap-3 mt-1.5 text-xs font-semibold text-slate-500">
+                          <h4 className={`font-bold text-sm ${isPast ? 'text-slate-500 line-through decoration-slate-300' : c.textTitle}`}>{ev.summary || 'Evento sem título'}</h4>
+                          <div className={`flex items-center gap-3 mt-1.5 text-xs font-bold opacity-70 ${isPast ? 'text-slate-400' : c.textTitle}`}>
                             <span className="flex items-center gap-1"><Clock size={12}/> {ev.start?.dateTime ? Math.round((endInfo.getTime() - startInfo.getTime()) / 60000) + ' min' : '1 dia'}</span>
                           </div>
                         </div>
                       </div>
                     );
-                  })
+
+                    if (i === todayEvents.length - 1 && isPast && !acc.some((el: any) => el?.key === 'agora-marker')) {
+                       acc.push(
+                         <div key="agora-marker" className="flex items-center gap-3 mt-6 opacity-80">
+                           <div className="flex-1 border-t-2 border-slate-300 border-dashed"></div>
+                           <span className="text-xs font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">FIM DO DIA</span>
+                           <div className="flex-1 border-t-2 border-slate-300 border-dashed"></div>
+                         </div>
+                       );
+                    }
+
+                    return acc;
+                  }, [] as React.ReactNode[])
                 ) : (
-                  <div className="text-center p-4 text-slate-500">Nenhum evento futuro encontrado nesta semana.</div>
+                  <div className="text-center p-4 text-slate-500">Nenhum evento hoje.</div>
                 )}
               </>
             ) : (
@@ -213,10 +281,12 @@ export default function Agenda() {
                        const endInfo = ev.end?.dateTime ? new Date(ev.end.dateTime) : null;
                        const timeStr = startInfo ? `${startInfo.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${endInfo ? endInfo.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '?'}` : 'Dia todo';
                        
+                       const c = getEventColor(ev.summary || '');
+
                        return (
-                         <div key={ev.id || i} className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl mb-2">
-                           <div className="text-[10px] font-bold text-indigo-500 mb-1">{timeStr}</div>
-                           <div className="text-xs font-bold text-slate-700">{ev.summary || 'Evento'}</div>
+                         <div key={ev.id || i} className={`${c.bg} border ${c.border} shadow-sm ${c.shadow} p-3 rounded-xl mb-2 transition-all hover:-translate-y-1 hover:shadow-md cursor-pointer`}>
+                           <div className={`text-[10px] font-bold ${c.textTime} mb-1 uppercase tracking-wider`}>{timeStr}</div>
+                           <div className={`text-xs font-bold ${c.textTitle} leading-tight`}>{ev.summary || 'Evento'}</div>
                          </div>
                        );
                      }) : (
