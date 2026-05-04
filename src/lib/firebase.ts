@@ -3,13 +3,13 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCXdyqPAQcuNW61TAkUgcLfyu0gcZogvFA",
-  authDomain: "eduplanner-df8fc.firebaseapp.com",
-  projectId: "eduplanner-df8fc",
-  storageBucket: "eduplanner-df8fc.firebasestorage.app",
-  messagingSenderId: "910706139055",
-  appId: "1:910706139055:web:4415be40f717ccc1fa195a",
-  measurementId: "G-S386LD040L"
+  apiKey: "AIzaSyAln0cAozZfaK6mgFl7l0kPzWdewCse37o",
+  authDomain: "meueduplanner.firebaseapp.com",
+  projectId: "meueduplanner",
+  storageBucket: "meueduplanner.firebasestorage.app",
+  messagingSenderId: "667894322951",
+  appId: "1:667894322951:web:ac33c0675e7910da7ad7a2",
+  measurementId: "G-NEEL4B43QH"
 };
 
 const app = initializeApp(firebaseConfig);
