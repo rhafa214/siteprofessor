@@ -154,6 +154,7 @@ export default function LessonPlan() {
   // Chat state
   const userName = user?.displayName ? user.displayName.split(' ')[0] : 'Professor(a)';
   
+  const [currentLessonChatId, setCurrentLessonChatId] = useLocalStorage<string>('eduLessonPlanCurrentChatId', Date.now().toString());
   const [messages, setMessages] = useLocalStorage<Message[]>('eduLessonPlanChat', [
     {
       id: '1',
@@ -163,6 +164,30 @@ export default function LessonPlan() {
   ]);
   const [chatHistory, setChatHistory] = useLocalStorage<{id: string, date: string, preview: string, messages: Message[]}[]>('eduLessonPlanChatHistory', []);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  // Auto-save lesson plan chat to history
+  useEffect(() => {
+    if (messages.length > 1) {
+      setChatHistory(prev => {
+        const existingIdx = prev.findIndex(p => p.id === currentLessonChatId);
+        const newItem = {
+          id: currentLessonChatId,
+          date: new Date().toISOString(),
+          preview: messages.find(m => m.role === 'user')?.content || 'Conversa sem interação',
+          messages: messages
+        };
+        
+        if (existingIdx !== -1) {
+          const next = [...prev];
+          next[existingIdx] = newItem;
+          return next;
+        } else {
+          return [newItem, ...prev].slice(0, 50);
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, currentLessonChatId]);
 
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -219,14 +244,7 @@ export default function LessonPlan() {
   };
 
   const handleNewChat = () => {
-    if (messages.length > 1) {
-      setChatHistory(prev => [{
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
-        preview: messages.find(m => m.role === 'user')?.content || 'Conversa sem interação',
-        messages: messages
-      }, ...prev].slice(0, 50));
-    }
+    setCurrentLessonChatId(Date.now().toString());
     setMessages([{
       id: Date.now().toString(),
       role: 'model',
@@ -237,18 +255,7 @@ export default function LessonPlan() {
   const loadHistoryChat = (id: string) => {
     const historyItem = chatHistory.find(h => h.id === id);
     if (historyItem) {
-      if (messages.length > 1) {
-         setChatHistory(prev => {
-           const existingIdIndex = prev.findIndex(p => p.id === id);
-           if (existingIdIndex !== -1) return prev;
-           return [{
-              id: Date.now().toString(),
-              date: new Date().toISOString(),
-              preview: messages.find(m => m.role === 'user')?.content || 'Conversa sem interação',
-              messages: messages
-            }, ...prev].slice(0, 50);
-         });
-      }
+      setCurrentLessonChatId(id);
       setMessages(historyItem.messages);
       setIsHistoryOpen(false);
     }

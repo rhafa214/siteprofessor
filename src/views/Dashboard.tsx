@@ -49,6 +49,7 @@ export default function Dashboard() {
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentChatId, setCurrentChatId] = useLocalStorage<string>('eduCurrentChatId', Date.now().toString());
   const [chatMessages, setChatMessages] = useLocalStorage<{role: 'user'|'bot', text: string}[]>('eduChatCurrent', [
     { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }
   ]);
@@ -65,6 +66,30 @@ export default function Dashboard() {
        setChatMessages([{ role: 'bot', text: `Olá, ${user.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }]);
     }
   }, [user]);
+
+  // Auto-save current chat to history
+  useEffect(() => {
+    if (chatMessages.length > 1) {
+      setChatHistory(prev => {
+        const existingIdx = prev.findIndex(p => p.id === currentChatId);
+        const newItem = {
+          id: currentChatId,
+          date: new Date().toISOString(),
+          preview: chatMessages.find(m => m.role === 'user')?.text || 'Conversa sem interação',
+          messages: chatMessages
+        };
+        
+        if (existingIdx !== -1) {
+          const next = [...prev];
+          next[existingIdx] = newItem;
+          return next;
+        } else {
+          return [newItem, ...prev].slice(0, 50);
+        }
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatMessages, currentChatId]);
 
   useEffect(() => {
     if (user) {
@@ -242,6 +267,8 @@ export default function Dashboard() {
           systemInstruction: `Você é o Jarvis, um assistente especializado e prestativo estilo J.A.R.V.I.S. (do Homem de Ferro, muito inteligente, proativo, educado, focando na área da educação). 
 Ajude o/a professor/a ${user?.displayName?.split(' ')[0] || ''} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
 
+Se o usuário pedir para ser lembrado de algo, DEVE SEMPRE usar a função \`addReminder\`.
+
 Para sua referência, as datas do calendário escolar de 2026 são:
 - Início do ano letivo: 02/02/2026
 - Encerramento do 1º semestre: 06/07/2026
@@ -256,9 +283,41 @@ Bimestres escolares:
 - 1º bimestre: 02/02 a 22/04
 - 2º bimestre: 23/04 a 06/07
 - 3º bimestre: 24/07 a 02/10
-- 4º bimestre: 05/10 a 18/12`
+- 4º bimestre: 05/10 a 18/12`,
+          tools: [{
+            functionDeclarations: [
+              {
+                name: "addReminder",
+                description: "Adiciona um novo lembrete ou tarefa para o usuário. Use quando o usuário pedir para lembrá-lo de algo.",
+                parameters: {
+                  type: "OBJECT",
+                  properties: {
+                    task: {
+                      type: "STRING",
+                      description: "A descrição do lembrete a ser salvo. Seja conciso e direto."
+                    }
+                  },
+                  required: ["task"]
+                }
+              }
+            ]
+          }]
         }
       });
+
+      if (response.functionCalls && response.functionCalls.length > 0) {
+        const call = response.functionCalls[0];
+        if (call.name === 'addReminder') {
+          const args = call.args as { task: string };
+          const nextRems = [...reminders, args.task];
+          setReminders(nextRems);
+          updateFirestoreReminders(nextRems);
+          
+          setChatMessages(prev => [...prev, { role: 'bot', text: `Entendido. Adicionado o lembrete: "${args.task}" à sua agenda pessoal, senhor.` }]);
+          setIsTyping(false);
+          return;
+        }
+      }
 
       const responseText = response.text || "Desculpe, tive um problema ao tentar processar sua mensagem. Pode reformular?";
       setChatMessages(prev => [...prev, { role: 'bot', text: responseText }]);
@@ -278,14 +337,7 @@ Bimestres escolares:
   };
 
   const handleNewChat = () => {
-    if (chatMessages.length > 1) {
-      setChatHistory(prev => [{
-        id: Date.now().toString(),
-        date: new Date().toISOString(),
-        preview: chatMessages.find(m => m.role === 'user')?.text || 'Conversa sem interação',
-        messages: chatMessages
-      }, ...prev].slice(0, 50)); // keep last 50
-    }
+    setCurrentChatId(Date.now().toString());
     setChatMessages([
       { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }
     ]);
@@ -294,20 +346,7 @@ Bimestres escolares:
   const loadHistoryChat = (id: string) => {
     const historyItem = chatHistory.find(h => h.id === id);
     if (historyItem) {
-      if (chatMessages.length > 1) {
-         setChatHistory(prev => {
-           const existingIdIndex = prev.findIndex(p => p.id === id);
-           if (existingIdIndex !== -1) {
-               return prev; // we loaded an old one, let's not duplicate it
-           }
-           return [{
-              id: Date.now().toString(),
-              date: new Date().toISOString(),
-              preview: chatMessages.find(m => m.role === 'user')?.text || 'Conversa sem interação',
-              messages: chatMessages
-            }, ...prev].slice(0, 50);
-         });
-      }
+      setCurrentChatId(id);
       setChatMessages(historyItem.messages);
       setIsHistoryOpen(false);
     }
