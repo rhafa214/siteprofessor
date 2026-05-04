@@ -12,7 +12,10 @@ import {
   Landmark,
   Sparkles,
   Loader2,
-  Brain
+  Brain,
+  MessageSquarePlus,
+  History,
+  X
 } from 'lucide-react';
 import { getSmartPhrase, DATAS_OFICIAIS } from '../lib/constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -46,13 +49,22 @@ export default function Dashboard() {
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [chatMessages, setChatMessages] = useState<{role: 'user'|'bot', text: string}[]>([
-    { role: 'bot', text: 'Olá, educador! Sou o EduIA, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?' }
+  const [chatMessages, setChatMessages] = useLocalStorage<{role: 'user'|'bot', text: string}[]>('eduChatCurrent', [
+    { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Sou o EduAssistente, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?` }
   ]);
+  const [chatHistory, setChatHistory] = useLocalStorage<{id: string, date: string, preview: string, messages: {role: 'user'|'bot', text: string}[]}[]>('eduChatHistory', []);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  
   const [efapeDone, setEfapeDone] = useLocalStorage('efapeDone', false);
   const [classLogs] = useLocalStorage<any[]>('classLogs', []);
   const [turmasList] = useLocalStorage<string[]>('classTurmasList', []);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (user && chatMessages.length === 1 && chatMessages[0].role === 'bot') {
+       setChatMessages([{ role: 'bot', text: `Olá, ${user.displayName?.split(' ')[0] || 'educador'}! Sou o EduAssistente, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?` }]);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (user) {
@@ -227,7 +239,24 @@ export default function Dashboard() {
         model: 'gemini-2.5-flash',
         contents,
         config: {
-          systemInstruction: "Você é o EduIA, um assistente especializado e prestativo para professores da rede pública de São Paulo. Ajude com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta)."
+          systemInstruction: `Você é o EduAssistente, um assistente especializado e prestativo para professores. 
+Ajude o/a professor/a ${user?.displayName?.split(' ')[0] || ''} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
+
+Para sua referência, as datas do calendário escolar de 2026 são:
+- Início do ano letivo: 02/02/2026
+- Encerramento do 1º semestre: 06/07/2026
+- Início do 2º semestre: 24/07/2026
+- Término do ano letivo: 18/12/2026
+
+Períodos de férias e recesso:
+- Férias docentes: 02 a 16/01 e 07 a 21/07
+- Recesso escolar: 17 a 31/01 e 19 a 31/12
+
+Bimestres escolares:
+- 1º bimestre: 02/02 a 22/04
+- 2º bimestre: 23/04 a 06/07
+- 3º bimestre: 24/07 a 02/10
+- 4º bimestre: 05/10 a 18/12`
         }
       });
 
@@ -246,6 +275,42 @@ export default function Dashboard() {
     const nextRems = reminders.filter((_, i) => i !== index);
     setReminders(nextRems);
     updateFirestoreReminders(nextRems);
+  };
+
+  const handleNewChat = () => {
+    if (chatMessages.length > 1) {
+      setChatHistory(prev => [{
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        preview: chatMessages.find(m => m.role === 'user')?.text || 'Conversa sem interação',
+        messages: chatMessages
+      }, ...prev].slice(0, 50)); // keep last 50
+    }
+    setChatMessages([
+      { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Sou o EduAssistente, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?` }
+    ]);
+  };
+
+  const loadHistoryChat = (id: string) => {
+    const historyItem = chatHistory.find(h => h.id === id);
+    if (historyItem) {
+      if (chatMessages.length > 1) {
+         setChatHistory(prev => {
+           const existingIdIndex = prev.findIndex(p => p.id === id);
+           if (existingIdIndex !== -1) {
+               return prev; // we loaded an old one, let's not duplicate it
+           }
+           return [{
+              id: Date.now().toString(),
+              date: new Date().toISOString(),
+              preview: chatMessages.find(m => m.role === 'user')?.text || 'Conversa sem interação',
+              messages: chatMessages
+            }, ...prev].slice(0, 50);
+         });
+      }
+      setChatMessages(historyItem.messages);
+      setIsHistoryOpen(false);
+    }
   };
 
   return (
@@ -298,7 +363,7 @@ export default function Dashboard() {
         </div>
         <div className="relative z-10 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">EduIA Observou</span>
+            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">EduAssistente Observou</span>
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -530,10 +595,22 @@ export default function Dashboard() {
           <NewsCarousel />
         </div>
 
-        {/* Chat Assistant (EduIA) */}
-        <div id="chat-section" className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-            <BotMessageSquare size={16} className="text-indigo-500" /> Assistente EduIA
+        {/* Chat Assistant (EduAssistente) */}
+        <div id="chat-section" className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col relative">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <BotMessageSquare size={16} className="text-indigo-500" /> EduAssistente
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsHistoryOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
+                <History size={14} /> 
+                <span className="hidden sm:inline">Histórico</span>
+              </button>
+              <button onClick={handleNewChat} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors">
+                <MessageSquarePlus size={14} /> 
+                <span className="hidden sm:inline">Nova Conversa</span>
+              </button>
+            </div>
           </div>
           
           <div className="flex flex-col md:flex-row gap-6 lg:h-96 h-auto">
@@ -614,6 +691,55 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* History Slide-over */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" onClick={() => setIsHistoryOpen(false)} />
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="w-full max-w-sm bg-white h-full shadow-2xl relative flex flex-col border-l border-slate-200"
+          >
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <History size={18} className="text-indigo-600" /> Histórico de Conversas
+              </h3>
+              <button onClick={() => setIsHistoryOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatHistory.length === 0 ? (
+                <div className="text-center text-slate-400 text-sm mt-10">
+                  <MessageSquarePlus size={32} className="mx-auto mb-3 opacity-20" />
+                  Nenhuma conversa salva ainda.
+                </div>
+              ) : (
+                chatHistory.map(h => (
+                  <button 
+                    key={h.id}
+                    onClick={() => loadHistoryChat(h.id)}
+                    className="w-full text-left p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/50 transition-all group shadow-sm hover:shadow-md"
+                  >
+                    <div className="text-xs font-bold text-slate-400 mb-1 group-hover:text-indigo-500">
+                      {new Date(h.date).toLocaleDateString()} {new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="text-sm text-slate-700 font-medium line-clamp-2 leading-tight">
+                      {h.preview}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                      <BotMessageSquare size={12} /> {h.messages.length} mensagens
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
     </motion.div>
   );
 }

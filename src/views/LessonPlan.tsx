@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Save, CheckCircle2, Printer, BotMessageSquare, Send, Sparkles, Loader2, ArrowRight, Trash2, Folder, FolderOpen, Book, Plus, FileText, Edit2, Move } from 'lucide-react';
+import { Save, CheckCircle2, Printer, BotMessageSquare, Send, Sparkles, Loader2, ArrowRight, Trash2, Folder, FolderOpen, Book, Plus, FileText, Edit2, Move, MessageSquarePlus, History, X } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { GoogleGenAI } from '@google/genai';
 import { getHolidays, DATAS_OFICIAIS } from '../lib/constants';
@@ -152,13 +152,18 @@ export default function LessonPlan() {
   };
   
   // Chat state
-  const [messages, setMessages] = useState<Message[]>([
+  const userName = user?.displayName ? user.displayName.split(' ')[0] : 'Professor(a)';
+  
+  const [messages, setMessages] = useLocalStorage<Message[]>('eduLessonPlanChat', [
     {
       id: '1',
       role: 'model',
-      content: 'Olá! Sou o EduIA 🧠 e estou aqui para te ajudar a estruturar o seu **Planejamento Bimestral**. Para começar, me diga:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para calcular de forma precisa, **em quais dias da semana** você dá aula para essa turma?'
+      content: `Olá, ${userName}! Sou o EduAssistente 🧠 e estou aqui para te ajudar a estruturar o seu **Planejamento Bimestral**. Para começar, me diga:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para calcular de forma precisa, **em quais dias da semana** você dá aula para essa turma?`
     }
   ]);
+  const [chatHistory, setChatHistory] = useLocalStorage<{id: string, date: string, preview: string, messages: Message[]}[]>('eduLessonPlanChatHistory', []);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
@@ -213,6 +218,42 @@ export default function LessonPlan() {
     }
   };
 
+  const handleNewChat = () => {
+    if (messages.length > 1) {
+      setChatHistory(prev => [{
+        id: Date.now().toString(),
+        date: new Date().toISOString(),
+        preview: messages.find(m => m.role === 'user')?.content || 'Conversa sem interação',
+        messages: messages
+      }, ...prev].slice(0, 50));
+    }
+    setMessages([{
+      id: Date.now().toString(),
+      role: 'model',
+      content: `Olá, ${userName}! Sou o EduAssistente 🧠 e estou aqui para te ajudar a estruturar o seu **Planejamento Bimestral**. Para começar, me diga:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para calcular de forma precisa, **em quais dias da semana** você dá aula para essa turma?`
+    }]);
+  };
+
+  const loadHistoryChat = (id: string) => {
+    const historyItem = chatHistory.find(h => h.id === id);
+    if (historyItem) {
+      if (messages.length > 1) {
+         setChatHistory(prev => {
+           const existingIdIndex = prev.findIndex(p => p.id === id);
+           if (existingIdIndex !== -1) return prev;
+           return [{
+              id: Date.now().toString(),
+              date: new Date().toISOString(),
+              preview: messages.find(m => m.role === 'user')?.content || 'Conversa sem interação',
+              messages: messages
+            }, ...prev].slice(0, 50);
+         });
+      }
+      setMessages(historyItem.messages);
+      setIsHistoryOpen(false);
+    }
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
@@ -242,16 +283,20 @@ export default function LessonPlan() {
       const feriados = getHolidays(year);
       const feriadosList = Object.entries(feriados).map(([k,v]) => `${k}/${year}: ${v}`).join(', ');
 
-      const sysPrompt = `Você é o EduIA, um assistente especializado no planejamento estratégico de aulas para professores da Secretaria Escolar de São Paulo (SEDUC-SP).
-Seu objetivo é guiar o professor passo a passo para criar o plano bimestral.
+      const sysPrompt = `Você é o EduAssistente, um assistente especializado no planejamento estratégico de aulas para professores da Secretaria Escolar de São Paulo (SEDUC-SP).
+Seu objetivo é guiar o/a professor/a ${user?.displayName?.split(' ')[0] || ''} passo a passo para criar o plano bimestral.
 Leve em consideração a data atual (${new Date().toLocaleDateString()}), os feriados do ano (${feriadosList}), e as datas oficiais da rede.
 INFORMAÇÕES OFICIAIS DO CALENDÁRIO 2026:
-- Mínimo de 200 dias letivos.
-- Sábados podem ser usados se destinados ao trabalho com estudantes.
-- Início do ano letivo: 02/02/2026 | Término: 18/12/2026
-- Encerramento 1º sem: 06/07/2026 | Início 2º sem: 24/07/2026
+- Início do ano letivo: 02/02/2026
+- Encerramento do 1º semestre: 06/07/2026
+- Início do 2º semestre: 24/07/2026
+- Término do ano letivo: 18/12/2026
+
+Períodos de férias e recesso:
 - Férias docentes: 02 a 16/01 e 07 a 21/07
 - Recesso escolar: 17 a 31/01 e 19 a 31/12
+
+Bimestres escolares:
 - 1º bimestre: 02/02 a 22/04
 - 2º bimestre: 23/04 a 06/07
 - 3º bimestre: 24/07 a 02/10
@@ -388,16 +433,24 @@ Forneça o resultado formatado em Markdown com tabelas ou cronogramas passo a pa
                 <BotMessageSquare size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-indigo-900">EduIA Planejador</h3>
+                <h3 className="font-bold text-indigo-900">EduAssistente Planejador</h3>
                 <p className="text-xs text-indigo-600/80 font-medium tracking-wide">Assistente SEDUC-SP</p>
               </div>
             </div>
-            <button 
-              onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-              className="text-indigo-600 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-indigo-200"
-            >
-              Info Calendário
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsHistoryOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-white hover:bg-slate-50 rounded-lg transition-colors border border-slate-200 shadow-sm" title="Histórico">
+                <History size={14} /> <span className="hidden sm:inline">Histórico</span>
+              </button>
+              <button onClick={handleNewChat} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-white hover:bg-indigo-50 rounded-lg transition-colors border border-indigo-200 shadow-sm" title="Nova Conversa">
+                <MessageSquarePlus size={14} /> <span className="hidden sm:inline">Nova Conversa</span>
+              </button>
+              <button 
+                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                className="text-indigo-600 bg-indigo-100/50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-indigo-200 shadow-sm"
+              >
+                Calendário
+              </button>
+            </div>
           </div>
           
           {isCalendarOpen && (
@@ -657,6 +710,55 @@ Forneça o resultado formatado em Markdown com tabelas ou cronogramas passo a pa
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* History Slide-over */}
+      {isHistoryOpen && (
+        <div className="fixed inset-0 z-[60] flex justify-end">
+          <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm" onClick={() => setIsHistoryOpen(false)} />
+          <motion.div 
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="w-full max-w-sm bg-white h-full shadow-2xl relative flex flex-col border-l border-slate-200"
+          >
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <History size={18} className="text-indigo-600" /> Histórico de Planejador
+              </h3>
+              <button onClick={() => setIsHistoryOpen(false)} className="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatHistory.length === 0 ? (
+                <div className="text-center text-slate-400 text-sm mt-10">
+                  <MessageSquarePlus size={32} className="mx-auto mb-3 opacity-20" />
+                  Nenhuma conversa salva ainda.
+                </div>
+              ) : (
+                chatHistory.map(h => (
+                  <button 
+                    key={h.id}
+                    onClick={() => loadHistoryChat(h.id)}
+                    className="w-full text-left p-4 rounded-2xl border border-slate-100 bg-white hover:border-indigo-200 hover:bg-indigo-50/50 transition-all group shadow-sm hover:shadow-md"
+                  >
+                    <div className="text-xs font-bold text-slate-400 mb-1 group-hover:text-indigo-500">
+                      {new Date(h.date).toLocaleDateString()} {new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="text-sm text-slate-700 font-medium line-clamp-2 leading-tight">
+                      {h.preview}
+                    </div>
+                    <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                      <BotMessageSquare size={12} /> {h.messages.length} mensagens
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </motion.div>
         </div>
       )}
 

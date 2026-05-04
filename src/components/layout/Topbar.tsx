@@ -6,18 +6,29 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function Topbar({ currentView, setIsSidebarOpen }: { currentView: ViewType, setIsSidebarOpen: (b: boolean) => void }) {
   const [time, setTime] = useState(new Date());
-  const [recessoDays, setRecessoDays] = useState(0);
+  const [recessoInfo, setRecessoInfo] = useState<{ days: number, nome: string } | null>(null);
   const { user, loginWithGoogle, logout } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     
-    // Calculate recesso
+    // Calculate next recesso/férias
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const dataR = new Date(DATAS_OFICIAIS.recesso + "T00:00:00");
-    const diffR = Math.ceil((dataR.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    setRecessoDays(diffR > 0 ? diffR : 0);
+    
+    let upcoming: { days: number, nome: string } | null = null;
+    let minDays = Infinity;
+    
+    for (const item of DATAS_OFICIAIS.recessoDatas) {
+      const dataR = new Date(item.data + "T00:00:00");
+      const diffR = Math.ceil((dataR.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffR >= 0 && diffR < minDays) {
+        minDays = diffR;
+        upcoming = { days: diffR, nome: item.nome };
+      }
+    }
+    
+    setRecessoInfo(upcoming);
     
     return () => clearInterval(timer);
   }, []);
@@ -46,10 +57,12 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
       </div>
       
       <div className="flex items-center gap-4 lg:gap-6">
-        <div className="hidden sm:flex bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full border border-emerald-100 items-center gap-2 text-xs font-bold shadow-sm">
-          <Palmtree size={14} />
-          <span>{recessoDays} dias p/ recesso</span>
-        </div>
+        {recessoInfo && (
+          <div className="hidden sm:flex bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full border border-emerald-100 items-center gap-2 text-xs font-bold shadow-sm">
+            <Palmtree size={14} />
+            <span>{recessoInfo.days} dias p/ {recessoInfo.nome}</span>
+          </div>
+        )}
         
         <div className="hidden lg:block text-lg font-extrabold text-indigo-600 font-mono tracking-tighter w-24 text-right">
           {time.toLocaleTimeString('pt-BR')}

@@ -7,7 +7,26 @@ export const DATAS_OFICIAIS = {
     { nome: "Prova Paulista - 3º Bim", data: "2026-09-21" },
     { nome: "SARESP", data: "2026-11-03" }
   ],
-  recesso: "2026-07-07"
+  recessoDatas: [
+    { nome: "férias", data: "2026-01-02" },
+    { nome: "recesso", data: "2026-01-17" },
+    { nome: "férias", data: "2026-07-07" },
+    { nome: "recesso", data: "2026-12-19" }
+  ],
+  calendario: {
+    inicioAnoLetivo: "2026-02-02",
+    fim1Semestre: "2026-07-06",
+    inicio2Semestre: "2026-07-24",
+    fimAnoLetivo: "2026-12-18",
+    feriasDocentes: ["02 a 16/01", "07 a 21/07"],
+    recessoEscolar: ["17 a 31/01", "19 a 31/12"],
+    bimestres: {
+      "1º": "02/02 a 22/04",
+      "2º": "23/04 a 06/07",
+      "3º": "24/07 a 02/10",
+      "4º": "05/10 a 18/12"
+    }
+  }
 };
 
 export function getHolidays(year: number): Record<string, string> {
