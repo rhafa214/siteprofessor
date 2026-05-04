@@ -7,12 +7,14 @@ export default function DriveExplorer() {
   const [activeTab, setActiveTab] = useState<'root' | 'starred'>('root');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { user, accessToken, loginWithGoogle, logout, authError } = useAuth();
+  const { user, accessToken, loginWithGoogle, logout, authError: globalAuthError } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const fetchFiles = async (token: string) => {
     setIsLoading(true);
+    setApiError(null);
     try {
       const q = activeTab === 'starred' ? 'starred = true and trashed = false' : 'trashed = false and "root" in parents';
       const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,starred,iconLink)&orderBy=folder,name`, {
@@ -24,13 +26,23 @@ export default function DriveExplorer() {
         console.error('Sessão expirada. Por favor, conecte novamente.');
         return;
       }
+
+      if (res.status === 403) {
+        let errMsg = 'Permissão negada ou API não ativada. Ao fazer login, marque a caixa de permissão do Google Drive.';
+        try {
+          const errData = await res.json();
+          if (errData?.error?.message) errMsg = errData.error.message;
+        } catch(e) {}
+        throw new Error(errMsg);
+      }
       
       const data = await res.json();
       if (data.files) {
         setFiles(data.files);
       }
-    } catch (error) {
+    } catch (error: any) {
        console.error(error);
+       setApiError(error.message || 'Erro ao carregar arquivos');
     } finally {
       setIsLoading(false);
     }
@@ -39,8 +51,12 @@ export default function DriveExplorer() {
   useEffect(() => {
     if (user && accessToken) {
       fetchFiles(accessToken);
+    } else {
+      setApiError(null);
     }
   }, [user, accessToken, activeTab]);
+
+  const displayError = globalAuthError || apiError;
 
   return (
     <motion.div 
@@ -49,6 +65,7 @@ export default function DriveExplorer() {
       className="max-w-6xl mx-auto flex flex-col h-[calc(100vh-140px)] gap-6"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-4">
+        {/* ... */}
         <div className="flex bg-slate-200/50 p-1 rounded-xl w-fit">
           <button 
             onClick={() => setActiveTab('root')}
@@ -79,9 +96,9 @@ export default function DriveExplorer() {
         )}
       </div>
 
-      {authError && (
+      {displayError && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
-          {authError}
+          {displayError}
         </div>
       )}
 

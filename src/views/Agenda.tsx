@@ -9,7 +9,7 @@ import { db } from '../lib/firebase';
 
 export default function Agenda() {
   const { user, loginWithGoogle, logout, authError } = useAuth();
-  const { events: calendarEvents, isLoading } = useGoogleCalendar();
+  const { events: calendarEvents, isLoading, apiError: calendarApiError } = useGoogleCalendar();
   const [tasks, setTasks] = useLocalStorage<{id: number, text: string, done: boolean}[]>('eduTasksPro', []);
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [weekOffset, setWeekOffset] = useState(0);
@@ -109,6 +109,11 @@ export default function Agenda() {
             {authError && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
                 {authError}
+              </div>
+            )}
+            {calendarApiError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl text-sm font-medium">
+                {calendarApiError}
               </div>
             )}
             {user ? (

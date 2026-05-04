@@ -5,15 +5,18 @@ export function useGmail() {
   const { user, accessToken, logout } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || !accessToken) {
       setMessages([]);
+      setApiError(null);
       return;
     }
 
     const fetchMessages = async () => {
       setIsLoading(true);
+      setApiError(null);
       try {
         // Fetch recent messages
         const resList = await fetch(`https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&labelIds=INBOX`, {
@@ -23,6 +26,13 @@ export function useGmail() {
         if (resList.status === 401) {
           logout();
           console.error('Sessão expirada. Por favor, conecte novamente.');
+          return;
+        }
+
+        if (resList.status === 403) {
+          const errData = await resList.json().catch(() => null);
+          const errMsg = errData?.error?.message || 'Permissão negada ou API não ativada. Ao fazer login, marque a caixa de permissão do Gmail.';
+          setApiError(errMsg);
           return;
         }
 
@@ -66,5 +76,5 @@ export function useGmail() {
     fetchMessages();
   }, [user, accessToken, logout]);
 
-  return { messages, isLoading };
+  return { messages, isLoading, apiError };
 }

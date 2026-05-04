@@ -39,8 +39,8 @@ function getAI() {
 
 export default function Dashboard() {
   const { user, loginWithGoogle } = useAuth();
-  const { events: calendarEvents, isLoading: isCalendarLoading } = useGoogleCalendar();
-  const { messages: emails, isLoading: isEmailsLoading } = useGmail();
+  const { events: calendarEvents, isLoading: isCalendarLoading, apiError: calendarApiError } = useGoogleCalendar();
+  const { messages: emails, isLoading: isEmailsLoading, apiError: emailsApiError } = useGmail();
 
   const [now, setNow] = useState(new Date());
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
@@ -368,6 +368,10 @@ export default function Dashboard() {
                   Conectar Agora
                 </button>
               </>
+            ) : calendarApiError ? (
+              <div className="text-red-200 mt-2 font-medium text-sm">
+                <p>⚠️ {calendarApiError}</p>
+              </div>
             ) : isCalendarLoading ? (
               <div className="text-indigo-100 font-medium flex items-center gap-2">
                 <Loader2 size={16} className="animate-spin" /> Carregando seus próximos eventos...
@@ -467,6 +471,8 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-slate-500">Conecte sua conta do Google para ler seus e-mails do Gmail Edu diretamente aqui.</p>
                 <button onClick={loginWithGoogle} className="mt-3 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50">Conectar Contas</button>
               </div>
+            ) : emailsApiError ? (
+               <div className="text-center p-4 text-red-600 text-sm font-medium">{'⚠️ ' + emailsApiError}</div>
             ) : isEmailsLoading ? (
                <div className="flex items-center justify-center h-full text-slate-500">
                  <Loader2 size={24} className="animate-spin mb-2" />
