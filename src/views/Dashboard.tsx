@@ -557,16 +557,22 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
-              <form onSubmit={handleChat} className="p-3 bg-white border-t border-slate-100 flex gap-2">
-                <input 
-                  type="text" 
+              <form onSubmit={handleChat} className="p-3 bg-white border-t border-slate-100 flex gap-2 items-end">
+                <textarea 
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleChat(e);
+                    }
+                  }}
                   disabled={isTyping}
                   placeholder="Ex: Como engajar alunos no 2º ano?"
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all disabled:opacity-50"
+                  rows={2}
+                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all disabled:opacity-50 resize-none min-h-[44px]"
                 />
-                <button type="submit" disabled={isTyping} className="bg-slate-900 text-white p-2 rounded-xl hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-50">
+                <button type="submit" disabled={isTyping} className="bg-slate-900 text-white p-3 rounded-xl hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-50 h-[44px] flex items-center justify-center">
                   <Send size={18} />
                 </button>
               </form>
