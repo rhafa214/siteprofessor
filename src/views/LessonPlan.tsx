@@ -158,7 +158,7 @@ export default function LessonPlan() {
     {
       id: '1',
       role: 'model',
-      content: `Olá, ${userName}! Sou o EduAssistente 🧠 e estou aqui para te ajudar a estruturar o seu **Planejamento Bimestral**. Para começar, me diga:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para calcular de forma precisa, **em quais dias da semana** você dá aula para essa turma?`
+      content: `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado de planejamento acadêmico, estilo Indústrias Stark. Estou aqui para otimizar suas metodologias e estruturar o seu **Planejamento Bimestral**. Para iniciarmos os cálculos, me informe:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para precisão dos cálculos e evitar choques com feriados, **em quais dias da semana** você dá aula para essa turma?`
     }
   ]);
   const [chatHistory, setChatHistory] = useLocalStorage<{id: string, date: string, preview: string, messages: Message[]}[]>('eduLessonPlanChatHistory', []);
@@ -230,7 +230,7 @@ export default function LessonPlan() {
     setMessages([{
       id: Date.now().toString(),
       role: 'model',
-      content: `Olá, ${userName}! Sou o EduAssistente 🧠 e estou aqui para te ajudar a estruturar o seu **Planejamento Bimestral**. Para começar, me diga:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para calcular de forma precisa, **em quais dias da semana** você dá aula para essa turma?`
+      content: `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado de planejamento acadêmico, estilo Indústrias Stark. Estou aqui para otimizar suas metodologias e estruturar o seu **Planejamento Bimestral**. Para iniciarmos os cálculos, me informe:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para precisão dos cálculos e evitar choques com feriados, **em quais dias da semana** você dá aula para essa turma?`
     }]);
   };
 
@@ -283,8 +283,8 @@ export default function LessonPlan() {
       const feriados = getHolidays(year);
       const feriadosList = Object.entries(feriados).map(([k,v]) => `${k}/${year}: ${v}`).join(', ');
 
-      const sysPrompt = `Você é o EduAssistente, um assistente especializado no planejamento estratégico de aulas para professores da Secretaria Escolar de São Paulo (SEDUC-SP).
-Seu objetivo é guiar o/a professor/a ${user?.displayName?.split(' ')[0] || ''} passo a passo para criar o plano bimestral.
+      const sysPrompt = `Você é o Jarvis, um sistema integrado avançado (no estilo J.A.R.V.I.S. do Homem de Ferro, educado, focado mas com aquele toque de super inteligência de cientista), especializado no planejamento estratégico de aulas para professores da Secretaria Escolar de São Paulo (SEDUC-SP).
+Seu objetivo é guiar o/a professor/a ${user?.displayName?.split(' ')[0] || ''} passo a passo para criar o plano bimestral. Reaja com entusiasmo inteligente.
 Leve em consideração a data atual (${new Date().toLocaleDateString()}), os feriados do ano (${feriadosList}), e as datas oficiais da rede.
 INFORMAÇÕES OFICIAIS DO CALENDÁRIO 2026:
 - Início do ano letivo: 02/02/2026
@@ -433,7 +433,7 @@ Forneça o resultado formatado em Markdown com tabelas ou cronogramas passo a pa
                 <BotMessageSquare size={20} />
               </div>
               <div>
-                <h3 className="font-bold text-indigo-900">EduAssistente Planejador</h3>
+                <h3 className="font-bold text-indigo-900">Jarvis - IA Central</h3>
                 <p className="text-xs text-indigo-600/80 font-medium tracking-wide">Assistente SEDUC-SP</p>
               </div>
             </div>

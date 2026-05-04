@@ -120,7 +120,7 @@ export default function Agenda() {
               <ListTodo size={18} />
             </div>
             <div>
-              <div className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider mb-0.5">EduAssistente</div>
+              <div className="text-[10px] text-indigo-200 font-bold uppercase tracking-wider mb-0.5">Jarvis</div>
               <div className="font-bold text-sm leading-tight">
                 {reminders.length > 0 ? `${reminders.length} lembretes` : "Nenhum lembrete"}
               </div>

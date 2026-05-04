@@ -50,7 +50,7 @@ export default function Dashboard() {
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [chatMessages, setChatMessages] = useLocalStorage<{role: 'user'|'bot', text: string}[]>('eduChatCurrent', [
-    { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Sou o EduAssistente, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?` }
+    { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }
   ]);
   const [chatHistory, setChatHistory] = useLocalStorage<{id: string, date: string, preview: string, messages: {role: 'user'|'bot', text: string}[]}[]>('eduChatHistory', []);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -62,7 +62,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user && chatMessages.length === 1 && chatMessages[0].role === 'bot') {
-       setChatMessages([{ role: 'bot', text: `Olá, ${user.displayName?.split(' ')[0] || 'educador'}! Sou o EduAssistente, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?` }]);
+       setChatMessages([{ role: 'bot', text: `Olá, ${user.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }]);
     }
   }, [user]);
 
@@ -239,7 +239,7 @@ export default function Dashboard() {
         model: 'gemini-2.5-flash',
         contents,
         config: {
-          systemInstruction: `Você é o EduAssistente, um assistente especializado e prestativo para professores. 
+          systemInstruction: `Você é o Jarvis, um assistente especializado e prestativo estilo J.A.R.V.I.S. (do Homem de Ferro, muito inteligente, proativo, educado, focando na área da educação). 
 Ajude o/a professor/a ${user?.displayName?.split(' ')[0] || ''} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
 
 Para sua referência, as datas do calendário escolar de 2026 são:
@@ -287,7 +287,7 @@ Bimestres escolares:
       }, ...prev].slice(0, 50)); // keep last 50
     }
     setChatMessages([
-      { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Sou o EduAssistente, seu assistente inteligente integrado via Gemini. Como posso ajudar com sua rotina, planejamento de aulas ou dicas para a sala de aula hoje?` }
+      { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }
     ]);
   };
 
@@ -363,7 +363,7 @@ Bimestres escolares:
         </div>
         <div className="relative z-10 flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">EduAssistente Observou</span>
+            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">Jarvis Observou</span>
             <span className="flex h-2 w-2 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -595,11 +595,11 @@ Bimestres escolares:
           <NewsCarousel />
         </div>
 
-        {/* Chat Assistant (EduAssistente) */}
+        {/* Chat Assistant (Jarvis) */}
         <div id="chat-section" className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col relative">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
             <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-              <BotMessageSquare size={16} className="text-indigo-500" /> EduAssistente
+              <BotMessageSquare size={16} className="text-indigo-500" /> Jarvis
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => setIsHistoryOpen(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">
