@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Plus, Search, Book, Folder, FolderOpen, Trash2, Edit2, Save, X } from 'lucide-react';
+import { Plus, Search, Book, Folder, FolderOpen, Trash2, Edit2, Save, X, ChevronDown } from 'lucide-react';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -48,12 +48,21 @@ export default function ClassJournal() {
 
   const today = new Date().toISOString().split('T')[0];
   const [dataAula, setDataAula] = useState(today);
-  const [aulaNumero, setAulaNumero] = useState('1');
+  const [aulasSelecionadas, setAulasSelecionadas] = useState<number[]>([1]);
+  const [isAulasDropdownOpen, setIsAulasDropdownOpen] = useState(false);
   const [turma, setTurma] = useState('');
   const [progresso, setProgresso] = useState('');
   const [search, setSearch] = useState('');
   const [novaTurma, setNovaTurma] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
+
+  const toggleAula = (aulaNum: number) => {
+    setAulasSelecionadas(prev => 
+      prev.includes(aulaNum)
+        ? prev.filter(a => a !== aulaNum)
+        : [...prev, aulaNum].sort((a, b) => a - b)
+    );
+  };
 
   const [editingLogId, setEditingLogId] = useState<number | null>(null);
   const [editTurma, setEditTurma] = useState<string>('');
@@ -101,7 +110,7 @@ export default function ClassJournal() {
     const newLog: ClassLog = {
       id: Date.now(),
       data: new Date(dataAula + 'T12:00:00').toLocaleDateString('pt-BR'),
-      aulaNumero: aulaNumero,
+      aulaNumero: aulasSelecionadas.length > 0 ? aulasSelecionadas.map(a => `${a}ª`).join(', ') : '1ª',
       turma: turma.trim(),
       progresso: progresso.trim()
     };
@@ -142,7 +151,7 @@ export default function ClassJournal() {
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
         <h2 className="text-lg font-bold text-slate-800 mb-4">Novo Registro Diário</h2>
         <form onSubmit={handleSave} className="flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
             <input 
               type="date"
               value={dataAula}
@@ -150,24 +159,46 @@ export default function ClassJournal() {
               className="md:w-auto bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm"
               required
             />
-            <select 
-              value={aulaNumero}
-              onChange={(e) => setAulaNumero(e.target.value)}
-              className="md:w-32 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm"
-              required
+            <div 
+              className="relative w-full md:w-56 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all text-sm font-medium"
+              tabIndex={0}
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                  setIsAulasDropdownOpen(false);
+                }
+              }}
             >
-              <option value="1">1ª Aula</option>
-              <option value="2">2ª Aula</option>
-              <option value="3">3ª Aula</option>
-              <option value="4">4ª Aula</option>
-              <option value="5">5ª Aula</option>
-              <option value="6">6ª Aula</option>
-              <option value="7">7ª Aula</option>
-            </select>
+              <div 
+                className="px-4 py-3 cursor-pointer flex items-center justify-between"
+                onClick={() => setIsAulasDropdownOpen(!isAulasDropdownOpen)}
+              >
+                <span className="text-slate-700 truncate pr-2">
+                  {aulasSelecionadas.length > 0 ? (aulasSelecionadas.length > 3 ? `${aulasSelecionadas.length} aulas sel.` : aulasSelecionadas.map(a => `${a}ª`).join(', ') + ' Aula' + (aulasSelecionadas.length > 1 ? 's' : '')) : 'Aulas no dia'}
+                </span>
+                <ChevronDown size={16} className={`text-slate-400 shrink-0 transition-transform ${isAulasDropdownOpen ? 'rotate-180' : ''}`} />
+              </div>
+              
+              {isAulasDropdownOpen && (
+                <div className="absolute top-full left-0 mt-2 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-20 py-2 flex flex-col gap-1 max-h-60 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">Aulas</div>
+                  {[1, 2, 3, 4, 5, 6, 7].map(num => (
+                    <label key={num} className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 cursor-pointer w-full transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={aulasSelecionadas.includes(num)}
+                        onChange={() => toggleAula(num)}
+                        className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 max-w-none focus:ring-2 border-slate-300"
+                      />
+                      <span className="text-sm font-medium text-slate-700">{num}ª Aula</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <select 
               value={turma}
               onChange={(e) => setTurma(e.target.value)}
-              className="md:w-1/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+              className="w-full md:w-1/3 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-sm"
               required
             >
               <option value="" disabled>Selecione a Turma</option>
@@ -285,7 +316,7 @@ export default function ClassJournal() {
                 {filteredLogs.map(log => (
                   <tr key={log.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-4 px-6 text-sm text-slate-500 whitespace-nowrap">{log.data}</td>
-                    <td className="py-4 px-6 font-bold text-slate-700 whitespace-nowrap">{log.aulaNumero}ª</td>
+                    <td className="py-4 px-6 font-bold text-slate-700 whitespace-nowrap">{log.aulaNumero.includes('ª') ? log.aulaNumero : `${log.aulaNumero}ª`}</td>
                     <td className="py-4 px-6">
                       {editingLogId === log.id ? (
                         <select 
