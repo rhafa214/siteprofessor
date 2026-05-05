@@ -21,10 +21,11 @@ import { getSmartPhrase, DATAS_OFICIAIS } from '../lib/constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { cn } from '../lib/utils';
 import NewsCarousel from '../components/dashboard/NewsCarousel';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 import { useGoogleCalendar } from '../hooks/useGoogleCalendar';
 import { useGmail } from '../hooks/useGmail';
 import { useAuth } from '../contexts/AuthContext';
+import { useJarvisKnowledge } from '../hooks/useJarvisKnowledge';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -42,6 +43,7 @@ function getAI() {
 
 export default function Dashboard() {
   const { user, loginWithGoogle } = useAuth();
+  const { curriculum, schoolModel } = useJarvisKnowledge();
   const { events: calendarEvents, isLoading: isCalendarLoading, apiError: calendarApiError } = useGoogleCalendar();
   const { messages: emails, isLoading: isEmailsLoading, apiError: emailsApiError } = useGmail();
 
@@ -260,11 +262,7 @@ export default function Dashboard() {
         return;
       }
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents,
-        config: {
-          systemInstruction: `Você é o Jarvis, um assistente especializado e prestativo estilo J.A.R.V.I.S. (do Homem de Ferro, muito inteligente, proativo, educado, focando na área da educação). 
+      const basePrompt = `Você é o Jarvis, um assistente especializado e prestativo estilo J.A.R.V.I.S. (do Homem de Ferro, muito inteligente, proativo, educado, focando na área da educação). 
 Ajude o/a professor/a ${user?.displayName?.split(' ')[0] || ''} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
 
 Se o usuário pedir para ser lembrado de algo, DEVE SEMPRE usar a função \`addReminder\`.
@@ -283,17 +281,26 @@ Bimestres escolares:
 - 1º bimestre: 02/02 a 22/04
 - 2º bimestre: 23/04 a 06/07
 - 3º bimestre: 24/07 a 02/10
-- 4º bimestre: 05/10 a 18/12`,
+- 4º bimestre: 05/10 a 18/12`;
+
+      const curPrompt = curriculum ? `\n\n[MATRIZ CURRICULAR (ESTADO)]: \n${curriculum}\nUtilize essa matriz quando for planejar algo específico do currículo.` : '';
+      const modPrompt = schoolModel ? `\n\n[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nUtilize este modelo de plano de aula sempre que criar planejamentos estruturados.` : '';
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents,
+        config: {
+          systemInstruction: basePrompt + curPrompt + modPrompt,
           tools: [{
             functionDeclarations: [
               {
                 name: "addReminder",
                 description: "Adiciona um novo lembrete ou tarefa para o usuário. Use quando o usuário pedir para lembrá-lo de algo.",
                 parameters: {
-                  type: "OBJECT",
+                  type: Type.OBJECT,
                   properties: {
                     task: {
-                      type: "STRING",
+                      type: Type.STRING,
                       description: "A descrição do lembrete a ser salvo. Seja conciso e direto."
                     }
                   },

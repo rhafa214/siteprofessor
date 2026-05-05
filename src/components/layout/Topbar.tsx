@@ -40,6 +40,7 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
     arquivos: 'Explorador Drive',
     plano: 'Plano de Aula',
     tarefas: 'Checklist',
+    conhecimento: 'Base do Jarvis',
   };
 
   return (

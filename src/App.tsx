@@ -9,6 +9,7 @@ import Agenda from './views/Agenda';
 import DriveExplorer from './views/DriveExplorer';
 import LessonPlan from './views/LessonPlan';
 import Tasks from './views/Tasks';
+import KnowledgeBase from './views/KnowledgeBase';
 import type { ViewType } from './lib/constants';
 import { useAuth } from './contexts/AuthContext';
 
@@ -97,6 +98,7 @@ function App() {
             {currentView === 'arquivos' && <DriveExplorer />}
             {currentView === 'plano' && <LessonPlan />}
             {currentView === 'tarefas' && <Tasks />}
+            {currentView === 'conhecimento' && <KnowledgeBase />}
           </div>
         </div>
       </main>
