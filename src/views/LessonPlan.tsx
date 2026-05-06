@@ -214,6 +214,11 @@ export default function LessonPlan() {
       }
     }
     setSaved(true);
+    setMessages([{
+      id: Date.now().toString(),
+      role: 'model',
+      content: 'Projeto salvo com sucesso! O histórico do chat foi limpo para facilitar novas consultas. Como o Jarvis pode ajudar com o plano agora?'
+    }]);
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -321,10 +326,10 @@ Bimestres escolares:
 - 3º bimestre: 24/07 a 02/10
 - 4º bimestre: 05/10 a 18/12
 
-${curriculum ? `[MATRIZ CURRICULAR (ESTADO)]: \n${curriculum}\nUtilize essa matriz como guia fundamental dos conteúdos, habilidades e objetivos.` : ''}
+${curriculum ? `[MATRIZ CURRICULAR (ESTADO)]: \n${curriculum}\nUtilize essa matriz como guia fundamental dos conteúdos, habilidades e objetivos. Extraia as informações da tabela "Escopo-Sequência" (que contém Aula, Conteúdo, Objetivos, Habilidades) sempre que o usuário pedir detalhes de uma aula específica.` : ''}
 ${schoolModel ? `[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nUtilize este modelo de plano de aula sempre que criar o seu planejamento estruturado.` : ''}
 
-Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Se o professor der algumas informações vagas, faça perguntas para refinar.
+Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Se o professor der algumas informações vagas, faça perguntas para refinar. O usuário também pode pedir informações diretas da matriz enviada.
 Forneça o resultado formatado em Markdown com tabelas ou cronogramas passo a passo.`;
 
       // Build chat history for Gemini

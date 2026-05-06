@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { SP_MATH_CURRICULUM } from '../lib/spMath';
+import { SP_MATH_CURRICULUM_DETAILED } from '../lib/spMathData';
 
 export default function KnowledgeBase() {
   const { user } = useAuth();
@@ -12,6 +13,7 @@ export default function KnowledgeBase() {
   const [isSavingCurriculum, setIsSavingCurriculum] = useState(false);
   const [isSavingModel, setIsSavingModel] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
     async function loadKnowledge() {
@@ -40,8 +42,12 @@ export default function KnowledgeBase() {
     setIsSavingCurriculum(true);
     try {
       await setDoc(doc(db, 'users', user.uid, 'knowledge', 'curriculum'), { text: curriculumData, updatedAt: new Date().toISOString() });
+      setToastMessage('Matriz Curricular salva com sucesso!');
+      setTimeout(() => setToastMessage(''), 3000);
     } catch (error) {
       console.error(error);
+      setToastMessage('Erro ao salvar Matriz Curricular.');
+      setTimeout(() => setToastMessage(''), 3000);
     } finally {
       setIsSavingCurriculum(false);
     }
@@ -52,8 +58,12 @@ export default function KnowledgeBase() {
     setIsSavingModel(true);
     try {
       await setDoc(doc(db, 'users', user.uid, 'knowledge', 'schoolModel'), { text: schoolModelData, updatedAt: new Date().toISOString() });
+      setToastMessage('Modelo da Escola salvo com sucesso!');
+      setTimeout(() => setToastMessage(''), 3000);
     } catch (error) {
       console.error(error);
+      setToastMessage('Erro ao salvar Modelo da Escola.');
+      setTimeout(() => setToastMessage(''), 3000);
     } finally {
       setIsSavingModel(false);
     }
@@ -101,7 +111,7 @@ export default function KnowledgeBase() {
             </div>
             
             <button
-              onClick={() => setCurriculumData(SP_MATH_CURRICULUM)}
+              onClick={() => setCurriculumData(SP_MATH_CURRICULUM_DETAILED)}
               title="Preencher com Currículo Paulista de Matemática (6º ao 8º ano)"
               className="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
             >
@@ -172,6 +182,14 @@ export default function KnowledgeBase() {
           </button>
         </div>
       </div>
+
+      {/* Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 bg-slate-900 border border-slate-700 text-white px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+          <p className="font-bold text-sm">{toastMessage}</p>
+        </div>
+      )}
     </div>
   );
 }
