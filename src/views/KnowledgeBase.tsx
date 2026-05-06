@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Brain, FileSpreadsheet, Save, Loader2, Info, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Brain, FileSpreadsheet, Save, Loader2, Info, Sparkles, Upload } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { SP_MATH_CURRICULUM } from '../lib/spMath';
 import { SP_MATH_CURRICULUM_DETAILED } from '../lib/spMathData';
+import { extractTextFromFile } from '../lib/fileExtraction';
 
 export default function KnowledgeBase() {
   const { user } = useAuth();
@@ -14,6 +15,9 @@ export default function KnowledgeBase() {
   const [isSavingModel, setIsSavingModel] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+
+  const curriculumFileInputRef = useRef<HTMLInputElement>(null);
+  const modelFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function loadKnowledge() {
@@ -69,6 +73,25 @@ export default function KnowledgeBase() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setToastMessage('Lendo arquivo, aguarde...');
+      const text = await extractTextFromFile(file);
+      setter(prev => prev + (prev ? '\n\n' : '') + text);
+      setToastMessage('Documento extraído e anexado com sucesso!');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch (err: any) {
+      console.error(err);
+      setToastMessage(err.message || 'Erro ao extrair o documento.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -110,14 +133,32 @@ export default function KnowledgeBase() {
               <h2 className="text-lg font-bold text-slate-800 tracking-tight">O que ensinar? (Matriz)</h2>
             </div>
             
-            <button
-              onClick={() => setCurriculumData(SP_MATH_CURRICULUM_DETAILED)}
-              title="Preencher com Currículo Paulista de Matemática (6º ao 8º ano)"
-              className="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
-            >
-              <Sparkles size={14} />
-              Currículo SP (Mat)
-            </button>
+            <div className="flex items-center gap-2">
+              <input 
+                type="file" 
+                ref={curriculumFileInputRef} 
+                onChange={(e) => handleFileUpload(e, setCurriculumData)}
+                className="hidden"
+                accept=".txt,.pdf,.docx,.csv,.json,.md" 
+              />
+              <button
+                onClick={() => curriculumFileInputRef.current?.click()}
+                title="Carregar de um arquivo (TXT, PDF, DOCX)"
+                className="text-slate-600 hover:text-indigo-600 bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                <Upload size={14} />
+                <span className="hidden sm:inline">Anexar</span>
+              </button>
+              
+              <button
+                onClick={() => setCurriculumData(SP_MATH_CURRICULUM_DETAILED)}
+                title="Preencher com Currículo Paulista de Matemática (6º ao 8º ano)"
+                className="text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                <Sparkles size={14} />
+                Currículo SP (Mat)
+              </button>
+            </div>
           </div>
           
           <div className="mb-4 text-sm text-slate-600 space-y-2 flex-grow-0">
@@ -153,6 +194,24 @@ export default function KnowledgeBase() {
                 <Brain size={20} />
               </div>
               <h2 className="text-lg font-bold text-slate-800 tracking-tight">Como ensinar? (Modelo)</h2>
+            </div>
+            
+            <div>
+              <input 
+                type="file" 
+                ref={modelFileInputRef} 
+                onChange={(e) => handleFileUpload(e, setSchoolModelData)}
+                className="hidden"
+                accept=".txt,.pdf,.docx,.csv,.json,.md" 
+              />
+              <button
+                onClick={() => modelFileInputRef.current?.click()}
+                title="Carregar modelo de arquivo (TXT, PDF, DOCX)"
+                className="text-pink-600 hover:text-pink-800 bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+              >
+                <Upload size={14} />
+                Anexar Modelo de Plano (.docx, .pdf)
+              </button>
             </div>
           </div>
 
