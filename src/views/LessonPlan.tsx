@@ -165,9 +165,27 @@ export default function LessonPlan() {
       content: `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado de planejamento acadêmico, estilo Indústrias Stark. Estou aqui para otimizar suas metodologias e estruturar o seu **Planejamento Bimestral**. Para iniciarmos os cálculos, me informe:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para precisão dos cálculos e evitar choques com feriados, **em quais dias da semana** você dá aula para essa turma?`
     }
   ]);
-  const [chatHistory, setChatHistory] = useLocalStorage<{id: string, date: string, preview: string, messages: Message[]}[]>('eduLessonPlanChatHistory', []);
+  const [chatHistory, setChatHistory] = useState<{id: string, date: string, preview: string, messages: Message[]}[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
+
+  useEffect(() => {
+    if (user) {
+      const fetchHistory = async () => {
+        try {
+          const snap = await getDocs(collection(db, 'users', user.uid, 'chatHistory'));
+          const fbHistory: {id: string, date: string, preview: string, messages: Message[]}[] = [];
+          snap.forEach(d => fbHistory.push(d.data() as any));
+          if (fbHistory.length > 0) {
+            setChatHistory(fbHistory.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+          }
+        } catch (e) {
+          console.error('Error fetching chat history', e);
+        }
+      };
+      fetchHistory();
+    }
+  }, [user]);
 
   const handleBimestralClick = () => {
     setInputVal("Preciso de um planejamento BIMESTRAL detalhado. Calcule todas as aulas que teremos no bimestre selecionado, a quantidade de aulas previstas, quantas realmente darão para realizar (considerando feriados e o calendário estadual), a quantidade de slides/materiais necessários e sugira possíveis avaliações e instrumentos avaliativos. Por favor, me faça as perguntas necessárias para começarmos, como: bimestre, ano/série, quantidade de aulas semanais.");
@@ -189,6 +207,10 @@ export default function LessonPlan() {
           messages: messages
         };
         
+        if (user) {
+          setDoc(doc(db, 'users', user.uid, 'chatHistory', currentLessonChatId), newItem).catch(e => console.error(e));
+        }
+
         if (existingIdx !== -1) {
           const next = [...prev];
           next[existingIdx] = newItem;
@@ -199,7 +221,7 @@ export default function LessonPlan() {
       });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, currentLessonChatId]);
+  }, [messages, currentLessonChatId, user]);
 
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
