@@ -214,6 +214,7 @@ export default function LessonPlan() {
       }
     }
     setSaved(true);
+    setCurrentLessonChatId(Date.now().toString());
     setMessages([{
       id: Date.now().toString(),
       role: 'model',
