@@ -25,6 +25,7 @@ interface Message {
   id: string;
   role: 'user' | 'model';
   content: string;
+  isError?: boolean;
 }
 
 interface Plan {
@@ -356,28 +357,55 @@ Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias 
 Forneça o resultado formatado de forma limpa em Markdown.`;
 
       // Build chat history for Gemini
-      const contents = messages.map(m => ({
-        role: m.role === 'model' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      }));
+      const contents = messages
+        .filter(m => !m.isError)
+        .map(m => ({
+          role: m.role === 'model' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        }));
       
       contents.push({ role: 'user', parts: [{ text: userMsg }]} as any);
 
-      // Using gemini-2.5-flash as default, or whatever you want
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [
-          { role: 'user', parts: [{ text: `System Prompt: ${sysPrompt}\n\nAgora continue a conversa.` }] },
-          ...contents
-        ]
-      });
+      let response;
+      let lastError;
+      const MAX_RETRIES = 3;
+      
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [
+              { role: 'user', parts: [{ text: `System Prompt: ${sysPrompt}\n\nAgora continue a conversa.` }] },
+              ...contents
+            ]
+          });
+          break; // success
+        } catch (error: any) {
+          lastError = error;
+          
+          if (error?.status === 400 || error?.message?.includes('400')) {
+             break; // don't retry bad requests
+          }
+          
+          console.warn(`Tentativa ${attempt + 1} falhou. Tentando novamente...`, error);
+          if (attempt < MAX_RETRIES - 1) {
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
+          }
+        }
+      }
+
+      if (!response) {
+         throw lastError || new Error("Falha após várias tentativas");
+      }
 
       const responseText = response.text || "Desculpe, tive um problema em organizar as ideias.";
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', content: responseText }]);
 
     } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', content: "Desculpe, ocorreu um erro ao se comunicar com a inteligência artificial." }]);
+      console.error("Erro na comunicação com a IA:", err);
+      // Removemos a última mensagem do usuário para que ele possa enviar novamente facilmente, ou mantemos?
+      // É melhor manter e mostrar a mensagem de erro. Filtramos o isError na próxima tentativa.
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'model', content: "Desculpe, os servidores da inteligência artificial parecem estar indisponíveis ou sobrecarregados no momento. Por favor, aguarde alguns segundos e tente enviar sua mensagem novamente.", isError: true }]);
     } finally {
       setIsTyping(false);
     }
@@ -532,12 +560,14 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                     <div className={`max-w-[90%] rounded-2xl p-3 shadow-sm ${
                       m.role === 'user' 
                         ? 'bg-indigo-600 text-white rounded-tr-sm' 
-                        : 'bg-slate-50 border border-slate-100 text-slate-700 rounded-tl-sm'
+                        : m.isError
+                          ? 'bg-red-50 border border-red-200 text-red-700 rounded-tl-sm'
+                          : 'bg-slate-50 border border-slate-100 text-slate-700 rounded-tl-sm'
                     }`}>
                       <div className="text-[13px] font-medium leading-relaxed">
                         {formatText(m.content)}
                       </div>
-                      {m.role === 'model' && m.id !== '1' && (
+                      {m.role === 'model' && !m.isError && m.id !== '1' && (
                         <button 
                           onClick={() => appendToEditor(m.content)}
                           className="mt-3 text-[11px] bg-white border border-slate-200 text-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-indigo-50 hover:border-indigo-200 font-bold transition-all shadow-sm"
