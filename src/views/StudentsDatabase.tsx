@@ -279,7 +279,7 @@ export default function StudentsDatabase() {
                                 </span>
                                 <button 
                                   onClick={() => removeStudent(turma, student.id)}
-                                  className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                  className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                   title="Remover Aluno"
                                 >
                                   <Trash2 size={16} />

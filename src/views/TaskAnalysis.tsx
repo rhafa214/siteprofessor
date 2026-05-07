@@ -235,25 +235,21 @@ export default function TaskAnalysis() {
   const calculateMedia = (studentId: string) => {
     const studentGrades = classData.grades[studentId] || {};
     let totalScore = 0;
-    let totalMax = 0;
-    let totalConverted = 0;
     let scoredTasks = 0;
     
     classData.tasks.forEach(t => {
       const g = studentGrades[t.id];
       if (g !== null && g !== undefined) {
         totalScore += g;
-        totalMax += t.maxScore;
-        totalConverted += (g / t.maxScore) * 10;
         scoredTasks += 1;
       }
     });
     
-    if (totalMax === 0 || scoredTasks === 0) return { final: 0, percentage: 0, converted10: 0 };
+    if (scoredTasks === 0) return { final: 0, percentage: 0, converted10: 0 };
     return {
       final: totalScore,
-      percentage: (totalScore / totalMax) * 100,
-      converted10: totalConverted / scoredTasks
+      percentage: (totalScore / 60) * 100,
+      converted10: (totalScore * 10) / 60
     };
   };
 
@@ -453,7 +449,8 @@ export default function TaskAnalysis() {
                            </div>
                            <button 
                              onClick={() => removeTask(task.id)}
-                             className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 bg-white rounded shadow-sm border border-slate-200"
+                             className="text-slate-400 hover:text-red-600 transition-colors p-1.5 bg-white rounded-md shadow-sm border border-slate-200"
+                             title="Remover Tarefa"
                             >
                              <Trash2 size={12} />
                            </button>
@@ -480,7 +477,7 @@ export default function TaskAnalysis() {
                         
                         {classData.tasks.map(task => {
                           const val = classData.grades[student.id]?.[task.id];
-                          const converted = val !== null && val !== undefined ? ((val / task.maxScore) * 10).toFixed(1) : null;
+                          const converted = val !== null && val !== undefined ? ((val * 10) / 60).toFixed(1) : null;
                           return (
                             <td key={task.id} className="p-3 border-l border-slate-100 align-top">
                               <input 
@@ -511,7 +508,8 @@ export default function TaskAnalysis() {
                         <td className="p-4 text-center">
                           <button 
                             onClick={() => removeStudent(student.id)}
-                            className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                            title="Remover Aluno"
                           >
                             <X size={16} />
                           </button>

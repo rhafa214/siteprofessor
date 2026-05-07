@@ -635,7 +635,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                             <FileText size={14} className={selectedPlanId === plan.id ? "text-indigo-500" : "text-slate-400"} />
                             <span className="truncate text-[13px]">{plan.title}</span>
                           </div>
-                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <button 
                               onClick={(e) => {
                                 e.stopPropagation();
