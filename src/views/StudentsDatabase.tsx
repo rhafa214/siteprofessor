@@ -66,6 +66,18 @@ export default function StudentsDatabase() {
       try {
         await deleteDoc(doc(db, 'users', user.uid, 'taskAnalysis', turmaId));
         setStudents(prev => prev.filter(s => s.turma !== turmaId));
+        
+        try {
+           const stored = window.localStorage.getItem('classTurmasList');
+           if (stored) {
+              const list = JSON.parse(stored);
+              if (Array.isArray(list)) {
+                 const updated = list.filter(t => t !== turmaId);
+                 window.localStorage.setItem('classTurmasList', JSON.stringify(updated));
+                 window.dispatchEvent(new Event('local-storage'));
+              }
+           }
+        } catch(e){}
       } catch (e) {
         console.error('Error deleting turma:', e);
         alert('Erro ao excluir turma.');

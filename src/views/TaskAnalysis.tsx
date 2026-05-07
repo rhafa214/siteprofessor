@@ -239,21 +239,25 @@ export default function TaskAnalysis() {
   const calculateMedia = (studentId: string) => {
     const studentGrades = classData.grades[studentId] || {};
     let totalScore = 0;
+    let totalConverted = 0;
     let scoredTasks = 0;
     
     classData.tasks.forEach(t => {
       const g = studentGrades[t.id];
       if (g !== null && g !== undefined) {
         totalScore += g;
+        totalConverted += (g * 10) / 60;
         scoredTasks += 1;
       }
     });
     
-    if (scoredTasks === 0) return { final: 0, percentage: 0, converted10: 0 };
+    const taskCount = classData.tasks.length;
+    if (taskCount === 0) return { final: 0, percentage: 0, converted10: 0 };
+    
     return {
       final: totalScore,
-      percentage: (totalScore / 60) * 100,
-      converted10: (totalScore * 10) / 60
+      percentage: (totalScore / (taskCount * 60)) * 100,
+      converted10: totalConverted / taskCount
     };
   };
 
