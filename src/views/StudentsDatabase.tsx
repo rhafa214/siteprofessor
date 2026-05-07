@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Users, Search, Book, ChevronRight, ChevronDown, GraduationCap, Loader2, Trash2, Upload, FileText } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { extractTextFromFile } from '../lib/fileExtraction';
 
 interface StudentData {
@@ -59,6 +59,19 @@ export default function StudentsDatabase() {
   useEffect(() => {
     fetchStudents();
   }, [user]);
+
+  const handleDeleteTurma = async (turmaId: string) => {
+    if (!user) return;
+    if (confirm(`Tem certeza que deseja excluir a turma "${turmaId}" e TODOS os seus alunos e notas?`)) {
+      try {
+        await deleteDoc(doc(db, 'users', user.uid, 'taskAnalysis', turmaId));
+        setStudents(prev => prev.filter(s => s.turma !== turmaId));
+      } catch (e) {
+        console.error('Error deleting turma:', e);
+        alert('Erro ao excluir turma.');
+      }
+    }
+  };
 
   const removeStudent = async (turmaId: string, studentId: string) => {
     if (!confirm('Tem certeza que deseja remover este aluno da turma?')) return;
@@ -250,12 +263,22 @@ export default function StudentsDatabase() {
                       </div>
                       <div className="flex items-center gap-2">
                         {isExpanded && (
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); handleOpenImport(turma); }}
-                            className="bg-white text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-50 shadow-sm flex items-center gap-2 transition-colors mr-2"
-                          >
-                            <Upload size={16} /> Substituir Lista
-                          </button>
+                          <>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleOpenImport(turma); }}
+                              className="bg-white text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-50 shadow-sm flex items-center gap-2 transition-colors mr-1"
+                              title="Substituir todos os alunos da turma"
+                            >
+                              <Upload size={16} /> Substituir Lista
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteTurma(turma); }}
+                              className="bg-white text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-50 shadow-sm flex items-center gap-2 transition-colors mr-2"
+                              title="Excluir Turma"
+                            >
+                              <Trash2 size={16} /> Excluir
+                            </button>
+                          </>
                         )}
                         <div className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
                           <ChevronDown size={24} />

@@ -213,13 +213,13 @@ export default function TaskAnalysis() {
   // ----------------------------------------
   // GRADING
   // ----------------------------------------
-  const handleGradeChange = (studentId: string, taskId: string, val: string, maxScore: number) => {
+  const handleGradeChange = (studentId: string, taskId: string, val: string) => {
     let score: number | null = null;
     if (val.trim() !== '') {
       score = parseFloat(val);
       if (isNaN(score)) return;
       if (score < 0) score = 0;
-      if (score > maxScore) score = maxScore;
+      if (score > 60) score = 60;
     }
     
     const newGrades = { ...classData.grades };
@@ -383,7 +383,7 @@ export default function TaskAnalysis() {
                 <form onSubmit={handleAddTask} className="p-6">
                   <h3 className="font-bold text-indigo-900 mb-4">Adicionar Nova Tarefa ou Avaliação</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-xs font-bold text-indigo-800 uppercase tracking-wide mb-1">Título/Descrição</label>
                       <input 
                         type="text" 
@@ -392,18 +392,6 @@ export default function TaskAnalysis() {
                         onChange={(e) => setNewTask({...newTask, title: e.target.value})}
                         className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
                         placeholder="Ex: Trabalho de Pesquisa"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-indigo-800 uppercase tracking-wide mb-1">Nota Máxima</label>
-                      <input 
-                        type="number"
-                        min="0"
-                        step="0.1" 
-                        required
-                        value={newTask.maxScore} 
-                        onChange={(e) => setNewTask({...newTask, maxScore: parseFloat(e.target.value) || 0})}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
                       />
                     </div>
                     <div>
@@ -449,7 +437,6 @@ export default function TaskAnalysis() {
                            <div className="flex flex-col">
                              <span className="text-sm font-bold text-indigo-900 border-b border-indigo-200 pb-1 mb-1 truncate max-w-[120px]" title={task.title}>{task.title}</span>
                              <span className="text-[10px] text-slate-500">{new Date(task.date + 'T12:00:00').toLocaleDateString('pt-BR')}</span>
-                             <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded mr-auto mt-1">Máx: {task.maxScore}</span>
                            </div>
                            <button 
                              onClick={() => removeTask(task.id)}
@@ -487,10 +474,10 @@ export default function TaskAnalysis() {
                               <input 
                                 type="number" 
                                 min="0" 
-                                max={task.maxScore}
+                                max="60"
                                 step="0.1"
                                 value={val === null || val === undefined ? '' : val}
-                                onChange={(e) => handleGradeChange(student.id, task.id, e.target.value, task.maxScore)}
+                                onChange={(e) => handleGradeChange(student.id, task.id, e.target.value)}
                                 onBlur={handleGradeBlur}
                                 className={`w-full bg-transparent border-b-2 px-2 py-1 text-center font-bold text-sm focus:outline-none focus:bg-white focus:rounded focus:shadow-sm focus:border-indigo-500 transition-all ${val === undefined || val === null ? 'border-dashed border-slate-200 text-slate-400' : 'border-indigo-200 text-indigo-700'}`}
                                 placeholder="--"
