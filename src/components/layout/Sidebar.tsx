@@ -1,4 +1,5 @@
-import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database, ClipboardCheck, Users } from 'lucide-react';
+import { useState } from 'react';
+import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database, ClipboardCheck, Users, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
 import type { ViewType } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,6 +13,7 @@ interface SidebarProps {
 
 export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen }: SidebarProps) {
   const { user, loginWithGoogle, logout } = useAuth();
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Principal' },
@@ -46,18 +48,52 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
         </div>
       </div>
 
-      <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl mb-6 overflow-hidden">
-        <div className="w-10 h-10 shrink-0">
-          <img 
-            src={user?.photoURL || "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"} 
-            alt="Professor" 
-            className="w-full h-full rounded-full border-2 border-indigo-500 object-cover"
-          />
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-sm font-bold truncate">{user?.displayName || 'Professor(a)'}</span>
-          <span className="text-xs text-slate-400 truncate">{user ? user.email : 'Visitante'}</span>
-        </div>
+      <div className="relative mb-6">
+        <button 
+          onClick={() => user ? setIsProfileOpen(!isProfileOpen) : null}
+          className={cn(
+            "w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl transition-colors text-left",
+            user ? "hover:bg-white/10 cursor-pointer" : "cursor-default"
+          )}
+        >
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="w-10 h-10 shrink-0">
+              <img 
+                src={user?.photoURL || "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"} 
+                alt="Professor" 
+                className="w-full h-full rounded-full border-2 border-indigo-500 object-cover"
+              />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-bold truncate">
+                {user ? `Professor ${user.displayName?.split(' ')[0] || ''}` : 'Visitante'}
+              </span>
+            </div>
+          </div>
+          {user && (
+            <div className="text-slate-400 shrink-0">
+              {isProfileOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </div>
+          )}
+        </button>
+
+        {isProfileOpen && user && (
+          <div className="absolute top-full left-0 w-full mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden z-50 p-2">
+            <div className="px-3 py-2 text-xs font-medium text-slate-400 border-b border-slate-800/50 mb-1 truncate">
+              {user.email}
+            </div>
+            <button 
+              onClick={() => {
+                logout();
+                setIsProfileOpen(false);
+              }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors"
+            >
+              <LogOut size={16} />
+              Sair
+            </button>
+          </div>
+        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto scrollbar-thin">
@@ -92,14 +128,7 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       </nav>
 
       <div className="mt-auto pt-4">
-        {user ? (
-          <button 
-            onClick={logout}
-            className="w-full py-3 bg-red-500 text-white font-bold rounded-xl text-sm hover:bg-red-600 transition-colors"
-          >
-            Sair
-          </button>
-        ) : (
+        {!user && (
           <button 
             onClick={loginWithGoogle}
             className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"

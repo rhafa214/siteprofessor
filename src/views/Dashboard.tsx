@@ -368,7 +368,9 @@ Bimestres escolares:
       {/* Hero Section */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 lg:pb-8 border-b border-slate-200">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">Olá, Professor(a)!</h1>
+          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
+            Olá, Professor {user?.displayName?.split(' ')[0] || ''}! 
+          </h1>
           <p className="text-indigo-600 font-semibold text-lg">{getSmartPhrase()}</p>
           <p className="text-slate-500 text-sm mt-1">
             {now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
