@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { motion } from 'motion/react';
 import { Save, CheckCircle2, Printer, BotMessageSquare, Send, Sparkles, Loader2, ArrowRight, Trash2, Folder, FolderOpen, Book, Plus, FileText, Edit2, Move, MessageSquarePlus, History, X, CalendarDays, ListTodo } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -411,16 +413,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
     }
   };
 
-  // Simple Markdown renderer just using basic HTML tags for bold/lists since we can't easily import react-markdown if it's not present. We can try to use a basic replacement approach.
-  const formatText = (text: string) => {
-    // Basic bold and line breaks parsing
-    const parts = text.split('\n').map((line, i) => {
-      // Bold
-      const boldReplaced = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-      return <p key={i} className="mb-2" dangerouslySetInnerHTML={{ __html: boldReplaced }} />;
-    });
-    return <>{parts}</>;
-  };
+  // Markdown renderer is now handled by react-markdown directly in the component.
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
@@ -468,7 +461,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
         </button>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-6 min-h-[700px] items-stretch pb-12">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[550px_1fr] gap-6 min-h-[700px] items-stretch pb-12">
         
         {/* Left Panel: Tabs (Chat / Documentos) */}
         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-[850px] print:hidden relative">
@@ -564,8 +557,8 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                           ? 'bg-red-50 border border-red-200 text-red-700 rounded-tl-sm'
                           : 'bg-slate-50 border border-slate-100 text-slate-700 rounded-tl-sm'
                     }`}>
-                      <div className="text-[13px] font-medium leading-relaxed">
-                        {formatText(m.content)}
+                      <div className="text-[13px] font-medium leading-relaxed markdown-body">
+                        <Markdown remarkPlugins={[remarkGfm]}>{m.content}</Markdown>
                       </div>
                       {m.role === 'model' && !m.isError && m.id !== '1' && (
                         <button 

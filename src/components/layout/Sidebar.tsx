@@ -1,4 +1,4 @@
-import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database, ClipboardCheck, Users } from 'lucide-react';
 import type { ViewType } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,9 +17,11 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Principal' },
     { id: 'diario', label: 'Diário de Classe', icon: Book, group: 'Principal' },
     { id: 'agenda', label: 'Agenda Estratégica', icon: CalendarDays, group: 'Principal' },
+    { id: 'controle-tarefas', label: 'Controle de Tarefas', icon: ClipboardCheck, group: 'Principal' },
     { id: 'arquivos', label: 'Explorador Drive', icon: FolderTree, group: 'Recursos' },
     { id: 'plano', label: 'Plano de Aula', icon: PenTool, group: 'Recursos' },
     { id: 'tarefas', label: 'Checklist', icon: ListTodo, group: 'Recursos' },
+    { id: 'alunos', label: 'Banco de Alunos', icon: Users, group: 'Recursos' },
     { id: 'conhecimento', label: 'Base do Jarvis', icon: Database, group: 'Recursos' },
   ] as const;
 
