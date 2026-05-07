@@ -32,7 +32,11 @@ export default function TaskAnalysis() {
   const { user } = useAuth();
   const [turmasList] = useLocalStorage<string[]>('classTurmasList', [
     '6°A - Orientação de estudos',
-    '6°B - Matemática'
+    '6°B - Matemática',
+    '6°C - Matemática',
+    '7°C - Matemática',
+    '8°A - Matemática',
+    'Itinerário 1° e 2°'
   ]);
   const [selectedTurma, setSelectedTurma] = useState<string>(turmasList[0] || '');
   const [classData, setClassData] = useState<ClassData>(defaultClassData);

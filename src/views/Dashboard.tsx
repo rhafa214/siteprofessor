@@ -60,7 +60,14 @@ export default function Dashboard() {
   
   const [efapeDone, setEfapeDone] = useLocalStorage('efapeDone', false);
   const [classLogs] = useLocalStorage<any[]>('classLogs', []);
-  const [turmasList] = useLocalStorage<string[]>('classTurmasList', []);
+  const [turmasList] = useLocalStorage<string[]>('classTurmasList', [
+    '6°A - Orientação de estudos',
+    '6°B - Matemática',
+    '6°C - Matemática',
+    '7°C - Matemática',
+    '8°A - Matemática',
+    'Itinerário 1° e 2°'
+  ]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
