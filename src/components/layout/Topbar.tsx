@@ -72,17 +72,7 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
         </div>
         
         <div className="flex items-center border-l border-slate-200 pl-4 lg:pl-6 ml-2 lg:ml-0">
-          {user ? (
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
-                <div className="text-xs font-bold text-slate-700">{user.displayName || 'Professor'}</div>
-                <div className="text-[10px] text-slate-500">{user.email}</div>
-              </div>
-              <button onClick={logout} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Sair">
-                <LogOut size={20} />
-              </button>
-            </div>
-          ) : (
+          {!user && (
             <button 
               onClick={loginWithGoogle} 
               className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm"
