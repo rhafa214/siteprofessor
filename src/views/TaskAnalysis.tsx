@@ -38,7 +38,7 @@ export default function TaskAnalysis() {
     '8°A - Matemática',
     'Itinerário 1° e 2°'
   ]);
-  const [selectedTurma, setSelectedTurma] = useState<string>(turmasList[0] || '');
+  const [selectedTurma, setSelectedTurma] = useState<string | null>(null);
   const [classData, setClassData] = useState<ClassData>(defaultClassData);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -289,19 +289,60 @@ export default function TaskAnalysis() {
           </div>
           <p className="text-slate-500 font-medium">Acompanhe a entrega de trabalhos e componha a média final de cada aluno.</p>
         </div>
-        <div className="relative">
-          <select
-            value={selectedTurma}
-            onChange={(e) => setSelectedTurma(e.target.value)}
-            className="appearance-none bg-white border border-slate-200 text-slate-700 font-bold rounded-xl pl-4 pr-10 py-3 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          >
-            {turmasList.map((t) => (
-              <option key={t} value={t}>{t}</option>
-            ))}
-          </select>
-          <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 rotate-90 pointer-events-none" size={18} />
-        </div>
       </div>
+
+      {!selectedTurma ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
+          {turmasList.map((turma) => {
+            const localData = localStorage.getItem(`taskAnalysis_${turma}`);
+            let studentsCount = 0;
+            let tasksCount = 0;
+            if (localData) {
+              try {
+                const parsed = JSON.parse(localData);
+                studentsCount = parsed.students?.length || 0;
+                tasksCount = parsed.tasks?.length || 0;
+              } catch(e) {}
+            }
+            
+            return (
+              <motion.div
+                key={turma}
+                whileHover={{ y: -4 }}
+                onClick={() => setSelectedTurma(turma)}
+                className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:shadow-md hover:border-emerald-200 transition-all group flex flex-col justify-between min-h-[160px]"
+              >
+                <div>
+                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <Users size={20} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-2">{turma}</h3>
+                  <div className="flex gap-4 text-xs font-bold text-slate-500">
+                    <span className="flex items-center gap-1"><Users size={14} /> {studentsCount} Alunos</span>
+                    <span className="flex items-center gap-1"><ClipboardCheck size={14} /> {tasksCount} Tarefas</span>
+                  </div>
+                </div>
+                <div className="flex items-center text-sm font-bold text-emerald-600 mt-4 gap-1">
+                  Acessar Turma <ChevronRight size={16} />
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => setSelectedTurma(null)}
+                className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
+                title="Voltar para turmas"
+              >
+                <ChevronRight size={20} className="rotate-180" />
+              </button>
+              <h2 className="text-xl font-bold text-slate-800">{selectedTurma}</h2>
+            </div>
+          </div>
 
       {isLoading ? (
         <div className="flex justify-center p-12">
@@ -517,6 +558,8 @@ export default function TaskAnalysis() {
             )}
           </div>
         </div>
+      )}
+      </>
       )}
     </motion.div>
   );
