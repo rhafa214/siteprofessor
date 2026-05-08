@@ -7,7 +7,7 @@ export default function DriveExplorer() {
   const [activeTab, setActiveTab] = useState<'root' | 'starred'>('root');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { user, accessToken, loginWithGoogle, clearGoogleToken, logout, authError: globalAuthError } = useAuth();
+  const { user, accessToken, loginWithGoogle, logout, authError: globalAuthError } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -22,7 +22,7 @@ export default function DriveExplorer() {
       });
       
       if (res.status === 401) {
-        clearGoogleToken();
+        logout();
         setApiError('Sessão do Google expirada. Por favor, conecte novamente.');
         return;
       }

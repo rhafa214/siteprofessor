@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export function useGoogleCalendar() {
-  const { user, accessToken, clearGoogleToken } = useAuth();
+  const { user, accessToken, logout } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -29,7 +29,7 @@ export function useGoogleCalendar() {
         });
         
         if (res.status === 401) {
-          clearGoogleToken();
+          logout();
           setApiError('Sessão do Google expirada. Por favor, conecte novamente.');
           return;
         }
@@ -53,7 +53,7 @@ export function useGoogleCalendar() {
     };
 
     fetchEvents();
-  }, [user, accessToken, clearGoogleToken]);
+  }, [user, accessToken, logout]);
 
   return { events, isLoading, apiError };
 }
