@@ -30,7 +30,7 @@ const defaultClassData: ClassData = { students: [], tasks: [], grades: {} };
 
 export default function TaskAnalysis() {
   const { user } = useAuth();
-  const [turmasList] = useLocalStorage<string[]>('classTurmasList', [
+  const [turmasList, setTurmasList] = useLocalStorage<string[]>('classTurmasList', [
     '6°A - Orientação de estudos',
     '6°B - Matemática',
     '6°C - Matemática',
@@ -262,17 +262,14 @@ export default function TaskAnalysis() {
     };
   };
 
-  if (!turmasList || turmasList.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center p-8 bg-white rounded-3xl border border-slate-200 shadow-sm max-w-sm">
-          <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhuma Turma Encontrada</h2>
-          <p className="text-slate-500 text-sm">Vá até o Diário de Classe e cadastre suas turmas primeiro.</p>
-        </div>
-      </div>
-    );
-  }
+  const handleDeleteTurma = (e: React.MouseEvent, turma: string) => {
+    e.stopPropagation();
+    if (confirm(`Tem certeza que deseja excluir a turma "${turma}" permanentemente? Isso apagará todas as tarefas e notas associadas.`)) {
+      const newList = (turmasList || []).filter(t => t !== turma);
+      setTurmasList(newList);
+      localStorage.removeItem(`taskAnalysis_${turma}`);
+    }
+  };
 
   return (
     <motion.div
@@ -294,41 +291,56 @@ export default function TaskAnalysis() {
 
       {!selectedTurma ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
-          {turmasList.map((turma) => {
-            const localData = localStorage.getItem(`taskAnalysis_${turma}`);
-            let studentsCount = 0;
-            let tasksCount = 0;
-            if (localData) {
-              try {
-                const parsed = JSON.parse(localData);
-                studentsCount = parsed.students?.length || 0;
-                tasksCount = parsed.tasks?.length || 0;
-              } catch(e) {}
-            }
-            
-            return (
-              <motion.div
-                key={turma}
-                whileHover={{ y: -4 }}
-                onClick={() => setSelectedTurma(turma)}
-                className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:shadow-md hover:border-emerald-200 transition-all group flex flex-col justify-between min-h-[160px]"
-              >
-                <div>
-                  <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Users size={20} />
+          {!turmasList || turmasList.length === 0 ? (
+            <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
+               <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
+               <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhuma Turma Adicionada</h2>
+               <p className="text-slate-500 text-sm">Acesse a página de Diário de Classe para gerenciar suas turmas e eles aparecerão aqui.</p>
+            </div>
+          ) : (
+            turmasList.map((turma) => {
+              const localData = localStorage.getItem(`taskAnalysis_${turma}`);
+              let studentsCount = 0;
+              let tasksCount = 0;
+              if (localData) {
+                try {
+                  const parsed = JSON.parse(localData);
+                  studentsCount = parsed.students?.length || 0;
+                  tasksCount = parsed.tasks?.length || 0;
+                } catch(e) {}
+              }
+              
+              return (
+                <motion.div
+                  key={turma}
+                  whileHover={{ y: -4 }}
+                  onClick={() => setSelectedTurma(turma)}
+                  className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:shadow-md hover:border-emerald-200 transition-all group flex flex-col justify-between min-h-[160px] relative"
+                >
+                  <button 
+                    onClick={(e) => handleDeleteTurma(e, turma)}
+                    className="absolute top-4 right-4 p-2 text-slate-300 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
+                    title="Excluir Turma"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                  <div>
+                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                      <Users size={20} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-2 pr-8">{turma}</h3>
+                    <div className="flex gap-4 text-xs font-bold text-slate-500">
+                      <span className="flex items-center gap-1"><Users size={14} /> {studentsCount} Alunos</span>
+                      <span className="flex items-center gap-1"><ClipboardCheck size={14} /> {tasksCount} Tarefas</span>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800 tracking-tight mb-2">{turma}</h3>
-                  <div className="flex gap-4 text-xs font-bold text-slate-500">
-                    <span className="flex items-center gap-1"><Users size={14} /> {studentsCount} Alunos</span>
-                    <span className="flex items-center gap-1"><ClipboardCheck size={14} /> {tasksCount} Tarefas</span>
+                  <div className="flex items-center text-sm font-bold text-emerald-600 mt-4 gap-1">
+                    Acessar Turma <ChevronRight size={16} />
                   </div>
-                </div>
-                <div className="flex items-center text-sm font-bold text-emerald-600 mt-4 gap-1">
-                  Acessar Turma <ChevronRight size={16} />
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })
+          )}
         </div>
       ) : (
         <>
