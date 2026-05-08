@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  clearGoogleToken: () => void;
   accessToken: string | null;
   authError: string | null;
 }
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   loginWithGoogle: async () => {},
   logout: async () => {},
+  clearGoogleToken: () => {},
   accessToken: null,
   authError: null,
 });
@@ -83,8 +85,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const clearGoogleToken = () => {
+    setAccessToken(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout, accessToken, authError }}>
+    <AuthContext.Provider value={{ user, loading, loginWithGoogle, logout, clearGoogleToken, accessToken, authError }}>
       {children}
     </AuthContext.Provider>
   );

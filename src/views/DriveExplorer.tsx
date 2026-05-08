@@ -7,7 +7,7 @@ export default function DriveExplorer() {
   const [activeTab, setActiveTab] = useState<'root' | 'starred'>('root');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  const { user, accessToken, loginWithGoogle, logout, authError: globalAuthError } = useAuth();
+  const { user, accessToken, loginWithGoogle, clearGoogleToken, logout, authError: globalAuthError } = useAuth();
   const [files, setFiles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -22,8 +22,8 @@ export default function DriveExplorer() {
       });
       
       if (res.status === 401) {
-        logout();
-        console.error('Sessão expirada. Por favor, conecte novamente.');
+        clearGoogleToken();
+        setApiError('Sessão do Google expirada. Por favor, conecte novamente.');
         return;
       }
 
@@ -85,7 +85,7 @@ export default function DriveExplorer() {
           </button>
         </div>
         
-        {user ? (
+        {accessToken ? (
           <button onClick={logout} className="bg-red-50 text-red-600 px-5 py-2.5 rounded-xl text-sm font-bold border border-red-100 hover:bg-red-100 transition-colors shadow-sm self-start sm:self-auto">
             Desconectar
           </button>
@@ -125,7 +125,7 @@ export default function DriveExplorer() {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 relative">
-          {!user ? (
+          {!accessToken ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 bg-slate-50/50">
               <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
                  <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Google Drive" className="w-10 h-10" />

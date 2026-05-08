@@ -47,19 +47,23 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
-      
-      // Async sync to Firestore
-      const user = auth.currentUser;
-      if (user) {
-        const docRef = doc(db, 'users', user.uid, 'appData', key);
-        setDoc(docRef, { value: valueToStore }, { merge: true })
-          .catch(e => console.error(`Error syncing ${key} to Firestore`, e));
-      }
+      setStoredValue(current => {
+        const valueToStore = value instanceof Function ? value(current) : value;
+        
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+        
+        // Async sync to Firestore
+        const user = auth.currentUser;
+        if (user) {
+          const docRef = doc(db, 'users', user.uid, 'appData', key);
+          setDoc(docRef, { value: valueToStore }, { merge: true })
+            .catch(e => console.error(`Error syncing ${key} to Firestore`, e));
+        }
+        
+        return valueToStore;
+      });
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
     }

@@ -51,6 +51,7 @@ export default function Dashboard() {
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [activeStreamingMessage, setActiveStreamingMessage] = useState<string | null>(null);
   const [currentChatId, setCurrentChatId] = useLocalStorage<string>('eduCurrentChatId', Date.now().toString());
   const [chatMessages, setChatMessages] = useLocalStorage<{role: 'user'|'bot', text: string}[]>('eduChatCurrent', [
     { role: 'bot', text: `Olá, ${user?.displayName?.split(' ')[0] || 'educador'}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?` }
@@ -167,7 +168,7 @@ export default function Dashboard() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [chatMessages, isTyping]);
+  }, [chatMessages, isTyping, activeStreamingMessage]);
 
   // Compute events
   const currentEvents = calendarEvents.filter(ev => {
@@ -293,7 +294,7 @@ Bimestres escolares:
       const curPrompt = curriculum ? `\n\n[MATRIZ CURRICULAR (ESTADO)]: \n${curriculum}\nUtilize essa matriz quando for planejar algo específico do currículo.` : '';
       const modPrompt = schoolModel ? `\n\n[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nUtilize este modelo de plano de aula sempre que criar planejamentos estruturados.` : '';
 
-      const response = await ai.models.generateContent({
+      const responseStream = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',
         contents,
         config: {
@@ -319,22 +320,35 @@ Bimestres escolares:
         }
       });
 
-      if (response.functionCalls && response.functionCalls.length > 0) {
-        const call = response.functionCalls[0];
-        if (call.name === 'addReminder') {
-          const args = call.args as { task: string };
-          const nextRems = [...reminders, args.task];
-          setReminders(nextRems);
-          updateFirestoreReminders(nextRems);
-          
-          setChatMessages(prev => [...prev, { role: 'bot', text: `Entendido. Adicionado o lembrete: "${args.task}" à sua agenda pessoal, senhor.` }]);
-          setIsTyping(false);
-          return;
+      let fullResponse = "";
+      setActiveStreamingMessage("");
+      let functionCalled = false;
+
+      for await (const chunk of responseStream) {
+        if (chunk.functionCalls && chunk.functionCalls.length > 0) {
+          const call = chunk.functionCalls[0];
+          if (call.name === 'addReminder') {
+            const args = call.args as { task: string };
+            const nextRems = [...reminders, args.task];
+            setReminders(nextRems);
+            updateFirestoreReminders(nextRems);
+            
+            setChatMessages(prev => [...prev, { role: 'bot', text: `Entendido. Adicionado o lembrete: "${args.task}" à sua agenda pessoal, senhor.` }]);
+            functionCalled = true;
+            break;
+          }
+        }
+        if (chunk.text) {
+          fullResponse += chunk.text;
+          setActiveStreamingMessage(fullResponse);
         }
       }
 
-      const responseText = response.text || "Desculpe, tive um problema ao tentar processar sua mensagem. Pode reformular?";
-      setChatMessages(prev => [...prev, { role: 'bot', text: responseText }]);
+      setActiveStreamingMessage(null);
+      if (!functionCalled) {
+        const responseText = fullResponse || "Desculpe, tive um problema ao tentar processar sua mensagem. Pode reformular?";
+        setChatMessages(prev => [...prev, { role: 'bot', text: responseText }]);
+      }
 
     } catch (error) {
       console.error(error);
@@ -682,10 +696,16 @@ Bimestres escolares:
                     {msg.text}
                   </div>
                 ))}
-                {isTyping && (
+                {isTyping && activeStreamingMessage === null && (
                   <div className="bg-white border border-slate-200 text-slate-500 self-start rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
                     <Loader2 size={16} className="animate-spin text-indigo-500" />
                     <span className="text-xs font-medium">Pensando...</span>
+                  </div>
+                )}
+                {activeStreamingMessage !== null && (
+                  <div className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-700 self-start rounded-tl-sm whitespace-pre-wrap">
+                    {activeStreamingMessage}
+                    <span className="ml-1 inline-block w-1.5 h-4 bg-indigo-400 animate-pulse align-middle" />
                   </div>
                 )}
               </div>
