@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database, ClipboardCheck, Users, ChevronDown, ChevronUp, LogOut } from 'lucide-react';
+import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database, ClipboardCheck, Users, ChevronDown, ChevronUp, LogOut, Bot } from 'lucide-react';
 import type { ViewType } from '../../lib/constants';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,9 +17,10 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Principal' },
-    { id: 'diario', label: 'Diário de Classe', icon: Book, group: 'Principal' },
+    { id: 'diario', label: 'Registro de Aulas', icon: Book, group: 'Principal' },
     { id: 'agenda', label: 'Agenda Estratégica', icon: CalendarDays, group: 'Principal' },
     { id: 'controle-tarefas', label: 'Controle de Tarefas', icon: ClipboardCheck, group: 'Principal' },
+    { id: 'banner', label: 'Assistente Banner', icon: Bot, group: 'Principal' },
     { id: 'arquivos', label: 'Explorador Drive', icon: FolderTree, group: 'Recursos' },
     { id: 'plano', label: 'Plano de Aula', icon: PenTool, group: 'Recursos' },
     { id: 'tarefas', label: 'Checklist', icon: ListTodo, group: 'Recursos' },

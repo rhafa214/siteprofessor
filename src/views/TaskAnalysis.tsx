@@ -295,7 +295,7 @@ export default function TaskAnalysis() {
             <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
                <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
                <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhuma Turma Adicionada</h2>
-               <p className="text-slate-500 text-sm">Acesse a página de Diário de Classe para gerenciar suas turmas e eles aparecerão aqui.</p>
+               <p className="text-slate-500 text-sm">Acesse a página de Registro de Aulas para gerenciar suas turmas e eles aparecerão aqui.</p>
             </div>
           ) : (
             turmasList.map((turma) => {

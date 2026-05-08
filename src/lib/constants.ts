@@ -1,4 +1,4 @@
-export type ViewType = 'dashboard' | 'diario' | 'agenda' | 'arquivos' | 'plano' | 'tarefas' | 'conhecimento' | 'controle-tarefas' | 'alunos';
+export type ViewType = 'dashboard' | 'diario' | 'agenda' | 'arquivos' | 'plano' | 'tarefas' | 'conhecimento' | 'controle-tarefas' | 'alunos' | 'banner';
 
 export const DATAS_OFICIAIS = {
   provas: [

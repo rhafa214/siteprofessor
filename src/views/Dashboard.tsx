@@ -15,7 +15,8 @@ import {
   Brain,
   MessageSquarePlus,
   History,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { getSmartPhrase, DATAS_OFICIAIS } from '../lib/constants';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -41,16 +42,23 @@ function getAI() {
   return aiClient;
 }
 
-export default function Dashboard() {
+interface DashboardProps {
+  setCurrentView?: (view: any) => void;
+}
+
+export default function Dashboard({ setCurrentView }: DashboardProps) {
   const { user, loginWithGoogle } = useAuth();
   const { curriculum, schoolModel } = useJarvisKnowledge();
   const { events: calendarEvents, isLoading: isCalendarLoading, apiError: calendarApiError } = useGoogleCalendar();
-  const { messages: emails, isLoading: isEmailsLoading, apiError: emailsApiError } = useGmail();
+  const { messages: emails, isLoading: isEmailsLoading, apiError: emailsApiError, getEmailBody } = useGmail();
 
   const [now, setNow] = useState(new Date());
   const [reminders, setReminders] = useLocalStorage<string[]>('eduReminders', []);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState<any>(null);
+  const [emailContent, setEmailContent] = useState<string | null>(null);
+  const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [activeStreamingMessage, setActiveStreamingMessage] = useState<string | null>(null);
   const [currentChatId, setCurrentChatId] = useLocalStorage<string>('eduCurrentChatId', Date.now().toString());
   const [chatMessages, setChatMessages] = useLocalStorage<{role: 'user'|'bot', text: string}[]>('eduChatCurrent', [
@@ -380,6 +388,15 @@ Bimestres escolares:
     }
   };
 
+  const handleOpenEmail = async (email: any) => {
+    setSelectedEmail(email);
+    setEmailContent(null);
+    setIsEmailLoading(true);
+    const content = await getEmailBody(email.id);
+    setEmailContent(content);
+    setIsEmailLoading(false);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
@@ -443,13 +460,13 @@ Bimestres escolares:
                logForCurrentTurma ? (
                  <p>Vi que você está no <strong className="text-indigo-700">{currentTurma}</strong> agora. Na última aula com eles (<strong className="text-indigo-700">{logForCurrentTurma.data}</strong>) você registrou: <strong className="text-indigo-700">{logForCurrentTurma.progresso}</strong>. Inicie a partir daí!</p>
                ) : (
-                 <p>Vi que você está no <strong className="text-indigo-700">{currentTurma}</strong> agora, porém busquei nas aulas trabalhadas e não encontrei registros no seu <strong className="text-indigo-700">Diário de Classe</strong> para essa turma.</p>
+                 <p>Vi que você está no <strong className="text-indigo-700">{currentTurma}</strong> agora, porém busquei nas aulas trabalhadas e não encontrei registros no seu <strong className="text-indigo-700">Registro de Aulas</strong> para essa turma.</p>
                )
             ) : (
               latestLog ? (
                 <p>No momento você não tem uma aula ativa na agenda ou está em seu horário de estudos. Aproveite para planejar seus próximos passos! Posso sugerir atividades ou exercícios com base no seu registro mais recente com o <strong className="text-indigo-700">{latestLog.turma}</strong> sobre <strong className="text-indigo-700">{latestLog.progresso}</strong>.</p>
               ) : (
-                <p>No momento você não tem uma aula ativa na agenda ou está em seu horário de estudos. Como ainda não encontrei registros no seu <strong className="text-indigo-700">Diário de Classe</strong>, que tal aproveitar para se organizar, preparar novas aulas ou corrigir avaliações?</p>
+                <p>No momento você não tem uma aula ativa na agenda ou está em seu horário de estudos. Como ainda não encontrei registros no seu <strong className="text-indigo-700">Registro de Aulas</strong>, que tal aproveitar para se organizar, preparar novas aulas ou corrigir avaliações?</p>
               )
             )}
             
@@ -537,7 +554,20 @@ Bimestres escolares:
                 <div className="flex flex-col md:flex-row gap-4 w-full">
                   {currentEvent && (
                     <div className="flex-1">
-                      <h2 className="text-lg lg:text-xl font-bold tracking-tight mb-2 text-emerald-100">Agora</h2>
+                      <div className="flex justify-between items-center mb-2">
+                        <h2 className="text-lg lg:text-xl font-bold tracking-tight text-emerald-100">Agora</h2>
+                        {setCurrentView && (
+                          <button 
+                            onClick={() => {
+                              localStorage.setItem('nav_class_journal_turma', currentEvent.summary || '');
+                              setCurrentView('diario');
+                            }}
+                            className="bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+                          >
+                            <BookOpen size={14} /> Registrar Aula
+                          </button>
+                        )}
+                      </div>
                       <div className="bg-white/10 rounded-xl p-4 border border-emerald-400/30 backdrop-blur-md">
                         <h3 className="font-bold text-lg mb-1 truncate">{currentEvent.summary || 'Evento'}</h3>
                         <p className="text-indigo-100 text-sm flex items-center gap-2">
@@ -613,7 +643,7 @@ Bimestres escolares:
                </div>
             ) : emails.length > 0 ? (
               emails.map((msg, i) => (
-                <div key={msg.id || i} className={`flex gap-4 p-3 rounded-2xl border transition-colors group cursor-pointer ${i === 0 ? 'bg-red-50/50 border-red-100 hover:bg-red-50' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
+                <div key={msg.id || i} onClick={() => handleOpenEmail(msg)} className={`flex gap-4 p-3 rounded-2xl border transition-colors group cursor-pointer ${i === 0 ? 'bg-red-50/50 border-red-100 hover:bg-red-50' : 'bg-white border-slate-100 hover:bg-slate-50'}`}>
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${i === 0 ? 'bg-red-200 text-red-700' : 'bg-slate-200 text-slate-700'}`}>
                     {msg.from ? msg.from.charAt(0).toUpperCase() : 'M'}
                   </div>
@@ -811,6 +841,67 @@ Bimestres escolares:
                   </button>
                 ))
               )}
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Email Modal */}
+      {selectedEmail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setSelectedEmail(null)} />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-white rounded-3xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col relative overflow-hidden"
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between p-6 border-b border-slate-100 bg-slate-50 shrink-0">
+              <div className="pr-10">
+                <h2 className="text-xl font-bold text-slate-800 leading-tight mb-2">{selectedEmail.subject}</h2>
+                <div className="flex items-center gap-3 text-sm text-slate-500">
+                  <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
+                    <span className="font-bold text-slate-700">{selectedEmail.from}</span>
+                  </div>
+                  <span>{new Date(selectedEmail.date).toLocaleString('pt-BR')}</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedEmail(null)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-colors absolute top-6 right-6"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto p-6 bg-white min-h-[300px] relative">
+              {isEmailLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3">
+                  <Loader2 size={32} className="animate-spin text-indigo-500" />
+                  <span className="text-sm font-medium">Carregando conteúdo do e-mail...</span>
+                </div>
+              ) : emailContent ? (
+                <div dangerouslySetInnerHTML={{ __html: emailContent }} className="prose prose-slate max-w-none text-sm break-words" />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
+                  <Mail size={32} className="opacity-20" />
+                  <p className="text-sm">Não foi possível carregar o conteúdo deste e-mail.</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
+               <button 
+                 onClick={() => {
+                   window.open(`https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`, '_blank');
+                 }}
+                 className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 font-bold text-sm rounded-xl transition-colors"
+               >
+                 <ArrowRight size={16} /> Abrir no Gmail
+               </button>
             </div>
           </motion.div>
         </div>

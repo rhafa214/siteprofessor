@@ -35,7 +35,7 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
 
   const viewTitles: Record<ViewType, string> = {
     dashboard: 'Dashboard',
-    diario: 'Diário de Classe',
+    diario: 'Registro de Aulas',
     agenda: 'Agenda Estratégica',
     arquivos: 'Explorador Drive',
     plano: 'Plano de Aula',
@@ -43,6 +43,7 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
     'controle-tarefas': 'Controle de Tarefas',
     alunos: 'Banco de Alunos',
     conhecimento: 'Base do Jarvis',
+    banner: 'Assistente Banner',
   };
 
   return (
@@ -55,7 +56,7 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
           <Menu size={24} />
         </button>
         <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-          {viewTitles[currentView].toUpperCase()}
+          {(viewTitles[currentView] || '').toUpperCase()}
         </h2>
       </div>
       

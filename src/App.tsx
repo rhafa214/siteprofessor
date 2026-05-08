@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Brain, Sparkles, Loader2, LogIn } from 'lucide-react';
+import { Brain, Sparkles, Loader2, BookOpen, GraduationCap, PencilRuler, Atom, Globe, Calculator } from 'lucide-react';
 import Sidebar from './components/layout/Sidebar';
 import Topbar from './components/layout/Topbar';
 import Dashboard from './views/Dashboard';
@@ -12,6 +12,7 @@ import Tasks from './views/Tasks';
 import KnowledgeBase from './views/KnowledgeBase';
 import TaskAnalysis from './views/TaskAnalysis';
 import StudentsDatabase from './views/StudentsDatabase';
+import BannerAssistant from './views/BannerAssistant';
 import type { ViewType } from './lib/constants';
 import { useAuth } from './contexts/AuthContext';
 
@@ -31,12 +32,25 @@ function App() {
 
   if (!user) {
     return (
-      <div className="flex min-h-screen w-full bg-[#121214] items-center justify-center p-6 font-sans">
+      <div className="flex min-h-screen w-full items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden bg-slate-900">
+        {/* Background Image with Overlay */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center z-0 opacity-40 mix-blend-luminosity"
+          style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2673&auto=format&fit=crop")' }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#8257E5]/90 via-[#4f319b]/90 to-[#121214]/95 z-0 backdrop-blur-sm" />
+        
+        {/* Floating particles/shapes in background */}
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none hidden sm:block">
+           <motion.div animate={{ y: [-20, 20, -20], x: [-10, 10, -10], rotate: [0, 45, 0] }} transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }} className="absolute top-[10%] left-[10%] w-64 h-64 border border-white/5 rounded-full" />
+           <motion.div animate={{ y: [20, -20, 20], x: [10, -10, 10], rotate: [0, -45, 0] }} transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }} className="absolute bottom-[20%] right-[10%] w-96 h-96 border border-white/5 rounded-full" />
+        </div>
+
         <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="bg-white rounded-[32px] overflow-hidden flex flex-col lg:flex-row shadow-2xl max-w-5xl w-full mx-auto min-h-[600px]"
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden flex flex-col lg:flex-row shadow-2xl max-w-5xl w-full mx-auto min-h-[600px] relative z-10 border border-white/20"
         >
           {/* Left Side - Login Form */}
           <div className="w-full lg:w-1/2 p-10 lg:p-16 flex flex-col justify-center">
@@ -99,9 +113,42 @@ function App() {
             <div className="absolute inset-0 bg-[#121214]/5 pointer-events-none backdrop-blur-[100px]" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-b from-white/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
 
-            <div className="relative z-10">
-              <div className="mb-6 flex gap-2">
-                <Sparkles className="text-white/80" fill="currentColor" size={24} />
+            {/* Floating Educational Elements */}
+            <motion.div 
+              animate={{ y: [-15, 15, -15], rotate: [0, 10, 0] }} 
+              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-[15%] right-[20%] text-white/20 pointer-events-none"
+            >
+              <BookOpen size={72} strokeWidth={1.5} />
+            </motion.div>
+
+            <motion.div 
+              animate={{ y: [15, -15, 15], rotate: [0, -10, 0] }} 
+              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute top-[35%] left-[20%] text-white/10 pointer-events-none"
+            >
+              <GraduationCap size={96} strokeWidth={1} />
+            </motion.div>
+
+            <motion.div 
+              animate={{ y: [-10, 20, -10], rotate: [0, -15, 0] }} 
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+              className="absolute top-[55%] right-[15%] text-white/15 pointer-events-none"
+            >
+              <Atom size={64} strokeWidth={1.5} />
+            </motion.div>
+
+            <motion.div 
+              animate={{ y: [20, -10, 20], rotate: [0, 5, 0] }} 
+              transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 3 }}
+              className="absolute top-[20%] left-[45%] text-white/10 pointer-events-none"
+            >
+              <Globe size={48} strokeWidth={1.5} />
+            </motion.div>
+
+            <div className="relative z-10 bg-black/10 backdrop-blur-md p-8 rounded-3xl border border-white/10 shadow-2xl">
+              <div className="mb-4 flex gap-2">
+                <Sparkles className="text-[#FBBF24]" fill="currentColor" size={28} />
               </div>
               <h3 className="text-4xl font-black tracking-tight leading-tight mb-4 text-white">
                 O futuro da <br />
@@ -137,7 +184,7 @@ function App() {
         
         <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
           <div className="max-w-7xl mx-auto h-full">
-            {currentView === 'dashboard' && <Dashboard />}
+            {currentView === 'dashboard' && <Dashboard setCurrentView={setCurrentView} />}
             {currentView === 'diario' && <ClassJournal />}
             {currentView === 'agenda' && <Agenda />}
             {currentView === 'arquivos' && <DriveExplorer />}
@@ -146,6 +193,7 @@ function App() {
             {currentView === 'controle-tarefas' && <TaskAnalysis />}
             {currentView === 'alunos' && <StudentsDatabase />}
             {currentView === 'conhecimento' && <KnowledgeBase />}
+            {currentView === 'banner' && <BannerAssistant />}
           </div>
         </div>
       </main>
