@@ -244,20 +244,21 @@ export default function TaskAnalysis() {
     
     classData.tasks.forEach(t => {
       const g = studentGrades[t.id];
-      if (g !== null && g !== undefined) {
-        totalScore += g;
-        totalConverted += (g * 10) / 60;
+      if (g !== null && g !== undefined && g !== '') {
+        totalScore += Number(g);
+        totalConverted += (Number(g) * 10) / 60;
         scoredTasks += 1;
       }
     });
     
     const taskCount = classData.tasks.length;
-    if (taskCount === 0) return { final: 0, percentage: 0, converted10: 0 };
+    if (taskCount === 0) return { final: 0, percentage: 0, converted10: 0, scoredTasks: 0 };
     
     return {
       final: totalScore,
       percentage: (totalScore / (taskCount * 60)) * 100,
-      converted10: totalConverted / taskCount
+      converted10: totalConverted / taskCount,
+      scoredTasks
     };
   };
 
@@ -516,30 +517,45 @@ export default function TaskAnalysis() {
                           const converted = val !== null && val !== undefined ? ((val * 10) / 60).toFixed(1) : null;
                           return (
                             <td key={task.id} className="p-3 border-l border-slate-100 align-top">
-                              <input 
-                                type="number" 
-                                min="0" 
-                                max="60"
-                                step="0.1"
-                                value={val === null || val === undefined ? '' : val}
-                                onChange={(e) => handleGradeChange(student.id, task.id, e.target.value)}
-                                onBlur={handleGradeBlur}
-                                className={`w-full bg-transparent border-b-2 px-2 py-1 text-center font-bold text-sm focus:outline-none focus:bg-white focus:rounded focus:shadow-sm focus:border-indigo-500 transition-all ${val === undefined || val === null ? 'border-dashed border-slate-200 text-slate-400' : 'border-indigo-200 text-indigo-700'}`}
-                                placeholder="--"
-                              />
-                              {converted !== null && (
-                                <div className="text-center font-bold text-[10px] text-emerald-600 mt-1">
-                                  Nota: {converted}
-                                </div>
-                              )}
+                                <input 
+                                  type="number" 
+                                  min="0" 
+                                  max="60"
+                                  step="0.1"
+                                  value={val === null || val === undefined ? '' : val}
+                                  onChange={(e) => handleGradeChange(student.id, task.id, e.target.value)}
+                                  onBlur={handleGradeBlur}
+                                  className={`w-full bg-transparent border-b-2 px-2 py-1 text-center font-bold text-sm focus:outline-none focus:bg-white focus:rounded focus:shadow-sm transition-all ${
+                                    val === undefined || val === null || val === ''
+                                      ? 'border-dashed border-slate-200 text-slate-400 focus:border-indigo-500' 
+                                      : Number(converted) < 5 
+                                        ? 'border-red-200 text-red-600 bg-red-50/50 focus:border-red-500' 
+                                        : Number(converted) < 8 
+                                          ? 'border-emerald-200 text-emerald-500 bg-emerald-50/50 focus:border-emerald-400' 
+                                          : 'border-emerald-300 text-emerald-700 bg-emerald-100/50 focus:border-emerald-500'
+                                  }`}
+                                  placeholder="--"
+                                />
+                                {converted !== null && converted !== undefined && val !== '' && (
+                                  <div className={`text-center font-bold text-[10px] mt-1 ${
+                                    Number(converted) < 5 ? 'text-red-500' : Number(converted) < 8 ? 'text-emerald-500' : 'text-emerald-700'
+                                  }`}>
+                                    Nota: {converted}
+                                  </div>
+                                )}
                             </td>
                           );
                         })}
                         <td className="p-4 font-black border-l-2 border-indigo-100 bg-indigo-50/30 text-center flex flex-col justify-center h-full gap-1">
-                          <span className={`text-lg ${stats.percentage >= 60 ? 'text-emerald-600' : stats.percentage > 0 ? 'text-amber-500' : 'text-slate-300'}`} title={`Soma: ${stats.final.toFixed(1)} pontos`}>
+                          <span className={`text-lg ${
+                            stats.scoredTasks === 0 ? 'text-slate-300' : 
+                            stats.converted10 < 5 ? 'text-red-600' : 
+                            stats.converted10 < 8 ? 'text-emerald-500' : 
+                            'text-emerald-700'
+                          }`} title={`Soma: ${stats.final.toFixed(1)} pontos`}>
                             {stats.converted10.toFixed(1)}
                           </span>
-                          {stats.percentage > 0 && <span className="text-[10px] text-slate-500 font-medium">Soma: {stats.final.toFixed(1)}</span>}
+                          {stats.scoredTasks > 0 && <span className="text-[10px] text-slate-500 font-medium">Soma: {stats.final.toFixed(1)}</span>}
                         </td>
                         <td className="p-4 text-center">
                           <button 
