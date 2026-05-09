@@ -69,3 +69,14 @@ body {
 .markdown-body th {
   background-color: rgba(0, 0, 0, 0.05);
 }
+
+@media print {
+  @page {
+    margin: 0;
+  }
+  body {
+    padding: 15mm;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

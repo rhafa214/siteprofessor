@@ -2,11 +2,11 @@ export type ViewType = 'dashboard' | 'diario' | 'agenda' | 'arquivos' | 'plano' 
 
 export const DATAS_OFICIAIS = {
   provas: [
-    { nome: "Prova Paulista - 1º Bim", data: "2026-04-13" },
-    { nome: "Prova Paulista - 2º Bim", data: "2026-06-15" },
-    { nome: "Prova Paulista - 3º Bim", data: "2026-09-21" },
-    { nome: "SARESP", data: "2026-11-03" }
-  ],
+    { nome: "Prova Paulista - 1º Bim", data: "2026-04-13", dataFim: "2026-04-17" },
+    { nome: "Prova Paulista - 2º Bim", data: "2026-06-15", dataFim: "2026-06-19" },
+    { nome: "Prova Paulista - 3º Bim", data: "2026-09-21", dataFim: "2026-09-25" },
+    { nome: "SARESP", data: "2026-11-03", dataFim: "2026-11-06" }
+  ] as { nome: string; data: string; dataFim?: string }[],
   recessoDatas: [
     { nome: "férias", data: "2026-01-02" },
     { nome: "recesso", data: "2026-01-17" },

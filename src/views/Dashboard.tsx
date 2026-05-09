@@ -77,7 +77,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     '8°A - Matemática',
     'Itinerário 1° e 2°'
   ]);
-  const [importantDates, setImportantDates] = useState<{ id: string, nome: string, data: string }[]>([]);
+  const [importantDates, setImportantDates] = useState<{ id: string, nome: string, data: string, dataFim?: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

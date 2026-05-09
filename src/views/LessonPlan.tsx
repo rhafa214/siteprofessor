@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { motion } from 'motion/react';
-import { Save, CheckCircle2, Printer, BotMessageSquare, Send, Sparkles, Loader2, ArrowRight, Trash2, Folder, FolderOpen, Book, Plus, FileText, Edit2, Move, MessageSquarePlus, History, X, CalendarDays, ListTodo } from 'lucide-react';
+import { Save, CheckCircle2, Printer, BotMessageSquare, Send, Sparkles, Loader2, ArrowRight, Trash2, Folder, FolderOpen, Book, Plus, FileText, Edit2, Move, MessageSquarePlus, History, X, CalendarDays, ListTodo, Bot } from 'lucide-react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { GoogleGenAI } from '@google/genai';
 import { getHolidays, DATAS_OFICIAIS } from '../lib/constants';
@@ -161,16 +161,12 @@ export default function LessonPlan() {
   const userName = user?.displayName ? user.displayName.split(' ')[0] : 'Professor(a)';
   
   const [currentLessonChatId, setCurrentLessonChatId] = useLocalStorage<string>('eduLessonPlanCurrentChatId', Date.now().toString());
-  const [messages, setMessages] = useLocalStorage<Message[]>('eduLessonPlanChat', [
-    {
-      id: '1',
-      role: 'model',
-      content: `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado de planejamento acadêmico, estilo Indústrias Stark. Estou aqui para otimizar suas metodologias e estruturar o seu **Planejamento Bimestral**. Para iniciarmos os cálculos, me informe:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para precisão dos cálculos e evitar choques com feriados, **em quais dias da semana** você dá aula para essa turma?`
-    }
-  ]);
+  const [messages, setMessages] = useLocalStorage<Message[]>('eduLessonPlanChat', []);
   const [chatHistory, setChatHistory] = useState<{id: string, date: string, preview: string, messages: Message[]}[]>([]);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'files'>('chat');
+  
+  // View mode
+  const [viewMode, setViewMode] = useState<'dashboard' | 'chat' | 'editor'>('dashboard');
 
   useEffect(() => {
     if (user) {
@@ -180,7 +176,13 @@ export default function LessonPlan() {
           const fbHistory: {id: string, date: string, preview: string, messages: Message[]}[] = [];
           snap.forEach(d => fbHistory.push(d.data() as any));
           if (fbHistory.length > 0) {
-            setChatHistory(fbHistory.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+            const sorted = fbHistory.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            setChatHistory(sorted);
+            
+            if (messages.length <= 1) {
+              setCurrentLessonChatId(sorted[0].id);
+              setMessages(sorted[0].messages);
+            }
           }
         } catch (e) {
           console.error('Error fetching chat history', e);
@@ -190,12 +192,28 @@ export default function LessonPlan() {
     }
   }, [user]);
 
+  const handleQuinzenalClick = () => {
+    setViewMode('chat');
+    setInputVal("Preciso de um planejamento QUINZENAL detalhado para minhas aulas. Baseado na matriz curricular e no modelo estruturado, descreva aula a aula para as próximas duas semanas. Por favor, me faça as perguntas necessárias para começarmos, como: tema/habilidade foco destas semanas, ano/série, etc.");
+  };
+
   const handleBimestralClick = () => {
+    setViewMode('chat');
     setInputVal("Preciso de um planejamento BIMESTRAL detalhado. Calcule todas as aulas que teremos no bimestre selecionado, a quantidade de aulas previstas, quantas realmente darão para realizar (considerando feriados e o calendário estadual), a quantidade de slides/materiais necessários e sugira possíveis avaliações e instrumentos avaliativos. Por favor, me faça as perguntas necessárias para começarmos, como: bimestre, ano/série, quantidade de aulas semanais.");
   };
 
-  const handleQuinzenalClick = () => {
-    setInputVal("Preciso de um planejamento QUINZENAL detalhado para minhas aulas. Baseado na matriz curricular e no modelo estruturado, descreva aula a aula para as próximas duas semanas. Por favor, me faça as perguntas necessárias para começarmos, como: tema/habilidade foco destas semanas, ano/série, etc.");
+  const handleDeleteChat = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) return;
+    try {
+      await deleteDoc(doc(db, 'users', user.uid, 'chatHistory', id));
+      setChatHistory(prev => prev.filter(h => h.id !== id));
+      if (currentLessonChatId === id) {
+        handleNewChat();
+      }
+    } catch (err) {
+      console.error('Failed to delete chat', err);
+    }
   };
 
   // Auto-save lesson plan chat to history
@@ -229,6 +247,7 @@ export default function LessonPlan() {
   const [inputVal, setInputVal] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const handleSave = async () => {
     if (user && activePlan) {
@@ -240,11 +259,7 @@ export default function LessonPlan() {
     }
     setSaved(true);
     setCurrentLessonChatId(Date.now().toString());
-    setMessages([{
-      id: Date.now().toString(),
-      role: 'model',
-      content: 'Projeto salvo com sucesso! O histórico do chat foi limpo para facilitar novas consultas. Como o Jarvis pode ajudar com o plano agora?'
-    }]);
+    setMessages([]);
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -256,11 +271,7 @@ export default function LessonPlan() {
     if (!activePlan) return;
     if (window.confirm('Tem certeza que deseja apagar todo o texto deste plano? Esta ação não pode ser desfeita.')) {
       setContent('');
-      setMessages([{
-        id: Date.now().toString(),
-        role: 'model',
-        content: 'Texto apagado! Vamos começar de novo? \n\nMe diga sua disciplina, quantidade de aulas esperadas e os dias das aulas.'
-      }]);
+      setMessages([]);
     }
   };
 
@@ -268,11 +279,7 @@ export default function LessonPlan() {
     if (!activePlan) return;
     if (window.confirm('Tem certeza que deseja excluir ESTE ARQUIVO inteiro? Esta ação não pode ser desfeita.')) {
       deletePlan(activePlan.id);
-      setMessages([{
-        id: Date.now().toString(),
-        role: 'model',
-        content: 'Plano excluído! Vamos começar um novo? \n\nMe diga sua disciplina, quantidade de aulas esperadas e os dias das aulas.'
-      }]);
+      setMessages([]);
     }
   };
 
@@ -281,18 +288,17 @@ export default function LessonPlan() {
   };
 
   const scrollToBottom = () => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight;
-    }
+    setTimeout(() => {
+      if (chatRef.current) {
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    }, 150);
   };
 
   const handleNewChat = () => {
     setCurrentLessonChatId(Date.now().toString());
-    setMessages([{
-      id: Date.now().toString(),
-      role: 'model',
-      content: `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado de planejamento acadêmico, estilo Indústrias Stark. Estou aqui para otimizar suas metodologias e estruturar o seu **Planejamento Bimestral**. Para iniciarmos os cálculos, me informe:\n\n1. Qual é a sua **disciplina** e **série**?\n2. Qual é a estimativa de **quantas aulas/slides** você precisa trabalhar neste bimestre?\n3. Para precisão dos cálculos e evitar choques com feriados, **em quais dias da semana** você dá aula para essa turma?`
-    }]);
+    setMessages([]);
   };
 
   const loadHistoryChat = (id: string) => {
@@ -306,7 +312,7 @@ export default function LessonPlan() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [messages, isTyping, viewMode]);
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -421,117 +427,140 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-[1500px] mx-auto min-h-[calc(100vh-80px)] flex flex-col gap-6 p-4 lg:p-8"
+      className={`w-full mx-auto flex flex-col ${viewMode === 'chat' ? 'h-[calc(100vh-40px)] lg:h-[calc(100vh-48px)]' : 'max-w-[1800px] gap-4 lg:gap-6 p-4 lg:p-6 min-h-[calc(100vh-40px)] lg:min-h-[calc(100vh-48px)]'}`}
     >
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      <div className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden ${viewMode === 'chat' ? 'px-2 lg:px-4 pt-2 lg:pt-3 shrink-0' : ''}`}>
         <div>
-          <h1 className="text-2xl lg:text-3xl font-black tracking-tight text-slate-800 flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-100 text-indigo-600 rounded-xl">
-              <Book size={24} />
+          <h1 className={`${viewMode === 'chat' ? 'text-xl lg:text-2xl gap-2.5' : 'text-2xl lg:text-3xl gap-3'} font-black tracking-tight text-slate-800 flex items-center`}>
+            <div className={`${viewMode === 'chat' ? 'p-2 rounded-lg' : 'p-2.5 rounded-xl'} bg-indigo-100 text-indigo-600`}>
+              <Book size={viewMode === 'chat' ? 20 : 24} />
             </div>
             Estúdio de Planejamento
           </h1>
-          <p className="text-slate-500 font-medium ml-14">Crie, organize e estruture seus planos de aula com suporte do Jarvis.</p>
+          {viewMode !== 'chat' && <p className="text-slate-500 font-medium ml-14 mt-1">Crie, organize e estruture seus planos de aula com suporte do Jarvis.</p>}
         </div>
+
+        {viewMode !== 'dashboard' && (
+          <button 
+            onClick={() => setViewMode('dashboard')}
+            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-bold transition-colors"
+          >
+            Voltar ao Painel
+          </button>
+        )}
+        {viewMode === 'editor' && (
+          <button 
+            onClick={() => setViewMode('chat')}
+            className="flex items-center gap-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl font-bold transition-colors"
+          >
+            <Sparkles size={18} />
+            Voltar ao Chat
+          </button>
+        )}
+        {viewMode === 'chat' && (
+          <button 
+            onClick={() => setViewMode('editor')}
+            className="flex items-center gap-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl font-bold transition-colors"
+          >
+            <FolderOpen size={18} />
+            Editor de Planos
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 print:hidden">
-        <button 
-          onClick={handleBimestralClick}
-          className="flex flex-col items-start p-6 bg-white border border-indigo-100 rounded-3xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden group cursor-pointer"
-        >
-          <div className="absolute -right-8 -top-8 w-32 h-32 bg-indigo-50/80 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
-          <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl mb-4 relative z-10">
-            <CalendarDays size={24} />
-          </div>
-          <h3 className="text-lg font-black text-slate-800 mb-2 relative z-10 tracking-tight">Gerar Planejamento Bimestral</h3>
-          <p className="text-sm text-slate-500 font-medium relative z-10">Levanta todas as aulas previstas, o que dará pra realizar e introduz possíveis avaliações baseadas na matriz.</p>
-        </button>
+      {viewMode === 'dashboard' && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4 animate-in fade-in slide-in-from-bottom-4 print:hidden">
+          <button 
+            onClick={handleBimestralClick}
+            className="flex flex-col items-start p-8 bg-white border border-indigo-100 rounded-3xl shadow-sm hover:shadow-md hover:border-indigo-300 transition-all text-left relative overflow-hidden group cursor-pointer"
+          >
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-indigo-50/80 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
+            <div className="w-14 h-14 bg-indigo-100 text-indigo-600 rounded-2xl mb-6 relative z-10 flex items-center justify-center shadow-inner">
+              <CalendarDays size={28} />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 mb-3 relative z-10 tracking-tight">Gerar Planejamento Bimestral</h3>
+            <p className="text-sm text-slate-500 font-medium relative z-10 leading-relaxed">Levanta todas as aulas previstas, o que dará pra realizar e introduz possíveis avaliações baseadas na matriz.</p>
+          </button>
 
-        <button 
-          onClick={handleQuinzenalClick}
-          className="flex flex-col items-start p-6 bg-white border border-emerald-100 rounded-3xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all text-left relative overflow-hidden group cursor-pointer"
-        >
-          <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-50/80 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
-          <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl mb-4 relative z-10">
-            <ListTodo size={24} />
-          </div>
-          <h3 className="text-lg font-black text-slate-800 mb-2 relative z-10 tracking-tight">Gerar Plano Quinzenal</h3>
-          <p className="text-sm text-slate-500 font-medium relative z-10">Estrutura atividades, metodologias passo a passo considerando o modelo da sua escola.</p>
-        </button>
-      </div>
+          <button 
+            onClick={handleQuinzenalClick}
+            className="flex flex-col items-start p-8 bg-white border border-emerald-100 rounded-3xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all text-left relative overflow-hidden group cursor-pointer"
+          >
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-50/80 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
+            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl mb-6 relative z-10 flex items-center justify-center shadow-inner">
+              <ListTodo size={28} />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 mb-3 relative z-10 tracking-tight">Gerar Plano Quinzenal</h3>
+            <p className="text-sm text-slate-500 font-medium relative z-10 leading-relaxed">Estrutura atividades, metodologias passo a passo considerando o modelo da sua escola.</p>
+          </button>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[550px_1fr] gap-6 min-h-[700px] items-stretch pb-12">
-        
-        {/* Left Panel: Tabs (Chat / Documentos) */}
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-[850px] print:hidden relative">
+          <button 
+            onClick={() => { setViewMode('editor'); }}
+            className="flex flex-col items-start p-8 bg-white border border-rose-100 rounded-3xl shadow-sm hover:shadow-md hover:border-rose-300 transition-all text-left relative overflow-hidden group cursor-pointer"
+          >
+            <div className="absolute -right-8 -top-8 w-32 h-32 bg-rose-50/80 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
+            <div className="w-14 h-14 bg-rose-100 text-rose-600 rounded-2xl mb-6 relative z-10 flex items-center justify-center shadow-inner">
+              <FolderOpen size={28} />
+            </div>
+            <h3 className="text-xl font-black text-slate-800 mb-3 relative z-10 tracking-tight">Acessar Planos Salvos</h3>
+            <p className="text-sm text-slate-500 font-medium relative z-10 leading-relaxed">Visualize, edite, imprima ou exporte os planos anteriores, e organize suas pastas.</p>
+          </button>
+        </div>
+      )}
+
+      <div className={viewMode === 'chat' ? "flex-1 flex flex-col bg-slate-50 border border-slate-200 rounded-3xl shadow-sm overflow-hidden min-h-[70vh] animate-in fade-in slide-in-from-bottom-4 relative w-full print:hidden" : "hidden"}>
           
-          {/* Tabs Header */}
-          <div className="bg-slate-50/80 border-b border-slate-200 p-3 shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-1 bg-slate-200/60 p-1 rounded-xl">
-              <button
-                onClick={() => setActiveTab('chat')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'chat' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                <BotMessageSquare size={16} /> Jarvis
-              </button>
-              <button
-                onClick={() => setActiveTab('files')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                  activeTab === 'files' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
-                }`}
-              >
-                <FolderOpen size={16} /> Planos
-              </button>
+          {/* Chat Header */}
+          <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200 p-3 shrink-0 flex items-center justify-between z-10 w-full absolute top-0 left-0 right-0">
+            <div className="flex items-center gap-3 ml-2">
+              <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20">
+                <Sparkles size={14} />
+              </div>
+              <div className="mr-4">
+                <h3 className="font-bold text-indigo-950 text-sm leading-none">Copiloto IA</h3>
+                <p className="text-[10px] text-indigo-600/80 font-bold uppercase mt-1">Conectado</p>
+              </div>
+              
+              <div className="hidden sm:flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
+                <span className="text-xs font-bold text-slate-500">Destino:</span>
+                <select 
+                  value={selectedPlanId || ''}
+                  onChange={e => setSelectedPlanId(e.target.value)}
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 max-w-[200px] truncate"
+                >
+                  <option value="" disabled>Selecionar plano...</option>
+                  {appPlans.map(p => (
+                    <option key={p.id} value={p.id}>{p.title}</option>
+                  ))}
+                </select>
+                {!selectedPlanId && (
+                  <button 
+                    onClick={() => {
+                      setNewPlanData({ title: '', folder: 'Geral', newFolder: '' });
+                      setIsNewPlanModalOpen(true);
+                    }}
+                    className="text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg text-xs font-bold transition-colors"
+                  >
+                    + Novo
+                  </button>
+                )}
+              </div>
             </div>
 
-            {/* Contextual actions based on active tab */}
-            {activeTab === 'chat' ? (
-              <div className="flex items-center gap-1">
-                <button onClick={() => setIsHistoryOpen(true)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Histórico">
-                  <History size={16} />
-                </button>
-                <button onClick={handleNewChat} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Nova Conversa">
-                  <MessageSquarePlus size={16} />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  setNewPlanData({ title: '', folder: 'Geral', newFolder: '' });
-                  setIsNewPlanModalOpen(true);
-                }}
-                className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 p-2 rounded-xl transition-all flex items-center gap-1"
-                title="Novo Documento"
-              >
-                <Plus size={16} /> <span className="text-xs tracking-tight font-bold pr-1">Novo</span>
-              </button>
-            )}
-          </div>
-
-          {activeTab === 'chat' && (
-            <div className="flex bg-gradient-to-r from-indigo-50/50 to-blue-50/50 border-b border-indigo-50 p-3 shrink-0 items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-600/20">
-                  <Sparkles size={14} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-indigo-950 text-sm leading-none">Copiloto IA</h3>
-                  <p className="text-[10px] text-indigo-600/80 font-bold uppercase mt-1">Conectado</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsCalendarOpen(!isCalendarOpen)}
-                className="text-indigo-600 hover:bg-indigo-100/50 border border-transparent hover:border-indigo-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all"
-              >
+            <div className="flex items-center gap-2">
+              <button onClick={() => setIsCalendarOpen(!isCalendarOpen)} className="text-indigo-600 hover:bg-indigo-100/50 border border-transparent hover:border-indigo-200 px-3 py-2 rounded-xl text-xs font-bold transition-all">
                 Datas Especiais
               </button>
-             </div>
-          )}
-
-          {activeTab === 'chat' && isCalendarOpen && (
+              <div className="w-px h-5 bg-slate-200 mx-1"></div>
+              <button onClick={() => setIsHistoryOpen(true)} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Histórico">
+                <History size={18} />
+              </button>
+              <button onClick={handleNewChat} className="p-2 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all" title="Nova Conversa">
+                <MessageSquarePlus size={18} />
+              </button>
+            </div>
+          </div>
+          {isCalendarOpen && (
             <div className="bg-slate-50 border-b border-slate-100 p-4 text-xs text-slate-700 overflow-y-auto max-h-48 scrollbar-thin shadow-inner shrink-0">
               <h4 className="font-bold text-slate-900 mb-2 flex items-center gap-2"><CalendarDays size={14} className="text-indigo-500"/> Calendário 2026</h4>
               <ul className="space-y-1.5 ml-1">
@@ -545,74 +574,130 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
             </div>
           )}
 
-          {activeTab === 'chat' && (
-            <>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-white scrollbar-thin" ref={chatRef}>
-                {messages.map(m => (
-                  <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[90%] rounded-2xl p-3 shadow-sm ${
-                      m.role === 'user' 
-                        ? 'bg-indigo-600 text-white rounded-tr-sm' 
-                        : m.isError
-                          ? 'bg-red-50 border border-red-200 text-red-700 rounded-tl-sm'
-                          : 'bg-slate-50 border border-slate-100 text-slate-700 rounded-tl-sm'
-                    }`}>
-                      <div className="text-[13px] font-medium leading-relaxed markdown-body">
-                        <Markdown remarkPlugins={[remarkGfm]}>{m.content}</Markdown>
+          <>
+            <div className="flex-1 overflow-y-auto px-4 pt-20 pb-8 bg-slate-50 scrollbar-thin" ref={chatRef}>
+                <div className="max-w-[1000px] mx-auto w-full flex flex-col space-y-6 pb-32">
+                  {messages.length === 0 && !isTyping && (
+                    <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">
+                      <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                        <Bot size={40} className="text-indigo-400" />
                       </div>
-                      {m.role === 'model' && !m.isError && m.id !== '1' && (
-                        <button 
-                          onClick={() => appendToEditor(m.content)}
-                          className="mt-3 text-[11px] bg-white border border-slate-200 text-indigo-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-indigo-50 hover:border-indigo-200 font-bold transition-all shadow-sm"
-                        >
-                          <ArrowRight size={12} /> Inserir no Plano Ativo
-                        </button>
-                      )}
+                      <h3 className="text-xl font-bold text-slate-700 mb-2">Olá, eu sou o Jarvis</h3>
+                      <p className="text-slate-500 max-w-md mx-auto">
+                        Estou aqui para ajudar você no planejamento acadêmico. Me diga qual é a sua disciplina, quantidade de aulas e os dias que você dá aula para começarmos.
+                      </p>
                     </div>
-                  </div>
-                ))}
-                {isTyping && (
-                  <div className="flex justify-start">
-                    <div className="bg-slate-50 border border-slate-100 rounded-2xl rounded-tl-sm p-3 flex items-center gap-2 shadow-sm">
-                      <Loader2 size={14} className="animate-spin text-indigo-600" />
-                      <span className="text-xs font-bold text-indigo-600 animate-pulse">Pensando...</span>
+                  )}
+                  {messages.map(m => (
+                    <div key={m.id} className={`flex gap-3 md:gap-4 w-full ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                      <div className={`w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full flex items-center justify-center ${
+                        m.role === 'user' 
+                          ? 'bg-indigo-600 text-white' 
+                          : m.isError
+                            ? 'bg-red-100 text-red-600 border border-red-200'
+                            : 'bg-emerald-100 text-emerald-600 border border-emerald-200'
+                      }`}>
+                        {m.role === 'user' ? <div className="font-bold text-sm">P</div> : m.isError ? <X size={20} /> : <Bot size={20} />}
+                      </div>
+
+                      <div className={`flex flex-col max-w-[85%] md:max-w-[80%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                        {m.content && (
+                          <div className={`p-3 md:p-4 rounded-2xl ${
+                            m.role === 'user'
+                              ? 'bg-indigo-600 text-white rounded-tr-sm'
+                              : m.isError
+                                ? 'bg-red-50 border border-red-200 shadow-sm text-red-700 rounded-tl-sm'
+                                : 'bg-white border border-slate-200 shadow-sm text-slate-700 rounded-tl-sm'
+                          }`}>
+                            {m.role === 'model' ? (
+                              <div className="markdown-body prose prose-sm md:prose-base prose-slate max-w-none">
+                                <Markdown remarkPlugins={[remarkGfm]}>{m.content}</Markdown>
+                              </div>
+                            ) : (
+                              <p className="whitespace-pre-wrap leading-relaxed max-w-full text-sm md:text-base">{m.content}</p>
+                            )}
+                          </div>
+                        )}
+                        {m.role === 'model' && !m.isError && m.id !== '1' && (
+                          <button 
+                            onClick={() => appendToEditor(m.content)}
+                            className="mt-2 text-[12px] bg-white border border-slate-200 text-slate-600 px-3 py-1.5 rounded-lg flex items-center gap-1.5 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium"
+                          >
+                            <ArrowRight size={14} /> Inserir no Plano Ativo
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-              
-              <form onSubmit={handleSend} className="p-3 border-t border-slate-100 shrink-0 bg-white">
-                <div className="flex gap-2 items-end">
+                  ))}
+                  {isTyping && (
+                    <div className="flex gap-3 md:gap-4 w-full">
+                      <div className="w-8 h-8 md:w-10 md:h-10 shrink-0 rounded-full flex items-center justify-center bg-emerald-100 text-emerald-600 border border-emerald-200">
+                        <Bot size={20} />
+                      </div>
+                      <div className="bg-white border border-slate-200 shadow-sm px-5 py-4 rounded-2xl rounded-tl-sm flex items-center gap-2 text-slate-500">
+                        <Loader2 size={16} className="animate-spin text-emerald-500" />
+                        <span className="text-sm font-medium animate-pulse">Pensando...</span>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+            </div>
+            
+            <div className="bg-white border-t border-slate-200 p-3 md:p-4 shrink-0 z-10 w-full relative">
+              <div className="max-w-5xl mx-auto">
+                <form onSubmit={handleSend} className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-2 focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500 transition-all shadow-sm">
                   <textarea 
                     value={inputVal}
                     onChange={e => {
                       setInputVal(e.target.value);
                       e.target.style.height = 'auto';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 128) + 'px';
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
                         handleSend();
+                        e.currentTarget.style.height = 'auto';
                       }
                     }}
-                    placeholder="Como o Jarvis pode ajudar?" 
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[42px] max-h-[120px] scrollbar-thin resize-none"
-                    rows={1}
+                    placeholder="Pergunte ao Jarvis..." 
+                    className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-40 min-h-[72px] py-3 text-[15px] md:text-base scrollbar-thin overflow-y-auto px-4 focus:outline-none placeholder:text-slate-400"
+                    rows={3}
                   />
                   <button 
                     disabled={isTyping || !inputVal.trim()}
-                    type="submit" 
-                    className="bg-indigo-600 text-white w-[42px] h-[42px] rounded-xl flex items-center justify-center hover:bg-indigo-700 transition-all shadow-md shadow-indigo-600/20 disabled:opacity-50 disabled:shadow-none shrink-0"
+                    type="submit"
+                    className="p-2.5 md:p-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 transition-all shrink-0 shadow-sm self-end"
                   >
-                    <Send size={16} className={inputVal.trim() ? "translate-x-0.5 -translate-y-0.5" : ""} />
+                    <Send size={18} />
                   </button>
-                </div>
-              </form>
-            </>
-          )}
+                </form>
+              </div>
+            </div>
+          </>
+        </div>
 
-          {activeTab === 'files' && (
+      {viewMode === 'editor' && (
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 min-h-0 items-stretch pb-6 animate-in fade-in slide-in-from-bottom-4">
+          {/* Left panel: Files */}
+          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full print:hidden relative">
+            <div className="bg-slate-50/80 border-b border-slate-200 p-3 shrink-0 flex items-center justify-between">
+              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-700 font-bold">
+                <FolderOpen size={16} className="text-indigo-600" />
+                <span className="text-sm">Planos Salvos</span>
+              </div>
+              <button
+                onClick={() => {
+                  setNewPlanData({ title: '', folder: 'Geral', newFolder: '' });
+                  setIsNewPlanModalOpen(true);
+                }}
+                className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 p-2 rounded-xl transition-all flex items-center gap-1"
+                title="Novo Documento"
+              >
+                <Plus size={16} /> <span className="text-xs tracking-tight font-bold pr-1">Novo</span>
+              </button>
+            </div>
             <div className="flex-1 overflow-y-auto p-3 scrollbar-thin bg-slate-50/50">
               <div className="space-y-4">
               {folders.map(folder => {
@@ -671,7 +756,6 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                  <div className="text-center p-8 text-slate-400 text-sm font-medium italic">Nenhum documento salvo ainda.</div>
               ) : null}
             </div>
-          )}
         </div>
 
         {/* Editor */}
@@ -741,12 +825,13 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               disabled={!activePlan}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Digite seu planejamento ou peça para o Jarvis inserir o conteúdo gerado..." 
-              className="w-full max-w-[850px] min-h-[850px] bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 font-medium text-slate-700 text-[15px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300 print:shadow-none print:border-none print:p-0 resize-none"
+              className="w-full max-w-[1000px] min-h-full h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 font-medium text-slate-700 text-[15px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300 print:shadow-none print:border-none print:p-0 resize-none"
             />
           </div>
         </div>
 
       </div>
+      )}
 
       {isNewPlanModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center top-0 left-0">
@@ -909,9 +994,16 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                   <button 
                     key={h.id}
                     onClick={() => loadHistoryChat(h.id)}
-                    className="w-full text-left p-4 rounded-2xl border border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm hover:shadow-md"
+                    className="w-full text-left p-4 rounded-2xl border border-slate-200 bg-white hover:border-indigo-300 hover:bg-indigo-50/50 transition-all group shadow-sm hover:shadow-md relative"
                   >
-                    <div className="text-[11px] font-bold tracking-wider text-slate-400 mb-2 uppercase group-hover:text-indigo-500 transition-colors">
+                    <button 
+                      onClick={(e) => handleDeleteChat(h.id, e)}
+                      className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                    <div className="text-[11px] font-bold tracking-wider text-slate-400 mb-2 uppercase group-hover:text-indigo-500 transition-colors pr-6">
                       {new Date(h.date).toLocaleDateString()} • {new Date(h.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
                     <div className="text-sm text-slate-700 font-medium line-clamp-2 leading-relaxed">

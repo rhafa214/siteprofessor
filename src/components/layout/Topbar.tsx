@@ -47,28 +47,28 @@ export default function Topbar({ currentView, setIsSidebarOpen }: { currentView:
   };
 
   return (
-    <header className="h-16 lg:h-20 bg-white border-b border-slate-200 px-4 lg:px-10 flex items-center justify-between shrink-0 z-10 shadow-sm">
+    <header className="h-10 lg:h-12 bg-white border-b border-slate-200 px-4 lg:px-6 flex items-center justify-between shrink-0 z-10 shadow-sm print:hidden">
       <div className="flex items-center gap-3">
         <button 
           onClick={() => setIsSidebarOpen(true)}
-          className="p-2 lg:hidden text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+          className="p-1 lg:hidden text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
         >
-          <Menu size={24} />
+          <Menu size={18} />
         </button>
-        <h2 className="text-lg font-bold text-slate-800 tracking-tight">
+        <h2 className="text-sm font-bold text-slate-800 tracking-tight">
           {(viewTitles[currentView] || '').toUpperCase()}
         </h2>
       </div>
       
       <div className="flex items-center gap-4 lg:gap-6">
         {recessoInfo && (
-          <div className="hidden sm:flex bg-emerald-50 text-emerald-700 px-4 py-1.5 rounded-full border border-emerald-100 items-center gap-2 text-xs font-bold shadow-sm">
-            <Palmtree size={14} />
+          <div className="hidden sm:flex bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full border border-emerald-100 items-center gap-1.5 text-[11px] font-bold shadow-sm">
+            <Palmtree size={12} />
             <span>{recessoInfo.days} dias p/ {recessoInfo.nome}</span>
           </div>
         )}
         
-        <div className="hidden lg:block text-lg font-extrabold text-indigo-600 font-mono tracking-tighter w-24 text-right">
+        <div className="hidden lg:block text-sm font-bold text-indigo-600 font-mono tracking-tighter w-20 text-right">
           {time.toLocaleTimeString('pt-BR')}
         </div>
         

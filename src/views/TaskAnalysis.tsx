@@ -244,7 +244,7 @@ export default function TaskAnalysis() {
     
     classData.tasks.forEach(t => {
       const g = studentGrades[t.id];
-      if (g !== null && g !== undefined && g !== '') {
+      if (g !== null && g !== undefined && !Number.isNaN(Number(g))) {
         totalScore += Number(g);
         totalConverted += (Number(g) * 10) / 60;
         scoredTasks += 1;
@@ -538,7 +538,7 @@ export default function TaskAnalysis() {
                                   onChange={(e) => handleGradeChange(student.id, task.id, e.target.value)}
                                   onBlur={handleGradeBlur}
                                   className={`w-full bg-transparent border-b-2 px-2 py-1 text-center font-bold text-sm focus:outline-none focus:bg-white focus:rounded focus:shadow-sm transition-all ${
-                                    val === undefined || val === null || val === ''
+                                    val === undefined || val === null || String(val) === ''
                                       ? 'border-dashed border-slate-200 text-slate-400 focus:border-indigo-500' 
                                       : Number(converted) < 5 
                                         ? 'border-red-200 text-red-600 bg-red-50/50 focus:border-red-500' 
@@ -548,7 +548,7 @@ export default function TaskAnalysis() {
                                   }`}
                                   placeholder="--"
                                 />
-                                {converted !== null && converted !== undefined && val !== '' && (
+                                {converted !== null && converted !== undefined && String(val) !== '' && (
                                   <div className={`text-center font-bold text-[10px] mt-1 ${
                                     Number(converted) < 5 ? 'text-red-500' : Number(converted) < 8 ? 'text-emerald-500' : 'text-emerald-700'
                                   }`}>

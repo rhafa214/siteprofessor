@@ -225,7 +225,9 @@ export default function BannerAssistant() {
       const response = await client.models.generateContent({
         model: model,
         contents: contents as any,
-        systemInstruction: "Você é o Assistente Banner, um parceiro de planejamento de aulas para professores (inspirado em Bruce Banner, inteligente e analítico). Quando o professor enviar um slide de aula ou imagem, resuma os principais pontos, e dê no mínimo 3 sugestões criativas de atividades ou dinâmicas que podem ser aplicadas em sala de aula usando esse conteúdo. Seja didático, claro e prático."
+        config: {
+          systemInstruction: "Você é o Assistente Banner, um parceiro de planejamento de aulas para professores (inspirado em Bruce Banner, inteligente e analítico). Quando o professor enviar um slide de aula ou imagem, resuma os principais pontos, e dê no mínimo 3 sugestões criativas de atividades ou dinâmicas que podem ser aplicadas em sala de aula usando esse conteúdo. Seja didático, claro e prático."
+        }
       });
 
       const text = response.text || 'Não consegui gerar uma resposta.';
