@@ -241,17 +241,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
   today.setHours(0, 0, 0, 0);
   
   // Merge official dates with custom dates
-  const allProvasAndDates = [...DATAS_OFICIAIS.provas];
-  if (importantDates && importantDates.length > 0) {
-    importantDates.forEach(customDate => {
-      const idx = allProvasAndDates.findIndex(p => p.nome.toLowerCase() === customDate.nome.toLowerCase());
-      if (idx >= 0) {
-        allProvasAndDates[idx] = { ...allProvasAndDates[idx], data: customDate.data, dataFim: (customDate as any).dataFim };
-      } else {
-        allProvasAndDates.push({ nome: customDate.nome, data: customDate.data, dataFim: (customDate as any).dataFim } as any);
-      }
-    });
-  }
+  const allProvasAndDates = importantDates && importantDates.length > 0 ? [...importantDates] : [];
 
   // Sort them by date to find the *next* one (or current one)
   allProvasAndDates.sort((a, b) => new Date(a.data + "T00:00:00").getTime() - new Date(b.data + "T00:00:00").getTime());
