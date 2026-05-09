@@ -1,18 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, FileSpreadsheet, Save, Loader2, Info, Sparkles, Upload } from 'lucide-react';
+import { Brain, FileSpreadsheet, Save, Loader2, Info, Sparkles, Upload, Calendar, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { SP_MATH_CURRICULUM } from '../lib/spMath';
 import { SP_MATH_CURRICULUM_DETAILED } from '../lib/spMathData';
 import { extractTextFromFile } from '../lib/fileExtraction';
+import { DATAS_OFICIAIS } from '../lib/constants';
+
+interface ImportantDate {
+  id: string;
+  nome: string;
+  data: string;
+  dataFim?: string;
+}
 
 export default function KnowledgeBase() {
   const { user } = useAuth();
   const [curriculumData, setCurriculumData] = useState<string>('');
   const [schoolModelData, setSchoolModelData] = useState<string>('');
+  const [importantDates, setImportantDates] = useState<ImportantDate[]>([]);
+  const [newDateName, setNewDateName] = useState('');
+  const [newDateValue, setNewDateValue] = useState('');
+  const [newDateValueEnd, setNewDateValueEnd] = useState('');
+  
   const [isSavingCurriculum, setIsSavingCurriculum] = useState(false);
   const [isSavingModel, setIsSavingModel] = useState(false);
+  const [isSavingDates, setIsSavingDates] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
 
@@ -31,6 +45,11 @@ export default function KnowledgeBase() {
         const modDoc = await getDoc(doc(db, 'users', user.uid, 'knowledge', 'schoolModel'));
         if (modDoc.exists() && modDoc.data()?.text) {
           setSchoolModelData(modDoc.data().text);
+        }
+
+        const dashDoc = await getDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'));
+        if (dashDoc.exists() && dashDoc.data()?.importantDates) {
+          setImportantDates(dashDoc.data().importantDates);
         }
       } catch (err) {
         console.error("Error loading knowledge", err);
@@ -71,6 +90,44 @@ export default function KnowledgeBase() {
     } finally {
       setIsSavingModel(false);
     }
+  };
+
+  const saveDates = async (datesToSave: ImportantDate[]) => {
+    if (!user) return;
+    setIsSavingDates(true);
+    try {
+      await setDoc(doc(db, 'users', user.uid, 'settings', 'dashboard'), { importantDates: datesToSave }, { merge: true });
+      setToastMessage('Datas salvas com sucesso!');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch (error) {
+      console.error(error);
+      setToastMessage('Erro ao salvar Datas Importantes.');
+      setTimeout(() => setToastMessage(''), 3000);
+    } finally {
+      setIsSavingDates(false);
+    }
+  };
+
+  const handleAddDate = () => {
+    if (!newDateName.trim() || !newDateValue) return;
+    const newDate: ImportantDate = {
+      id: Date.now().toString(),
+      nome: newDateName.trim(),
+      data: newDateValue,
+      ...(newDateValueEnd ? { dataFim: newDateValueEnd } : {})
+    };
+    const updated = [...importantDates, newDate];
+    setImportantDates(updated);
+    setNewDateName('');
+    setNewDateValue('');
+    setNewDateValueEnd('');
+    saveDates(updated);
+  };
+
+  const handleRemoveDate = (id: string) => {
+    const updated = importantDates.filter(d => d.id !== id);
+    setImportantDates(updated);
+    saveDates(updated);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
@@ -239,6 +296,88 @@ export default function KnowledgeBase() {
             {isSavingModel ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
             Salvar Modelo da Escola
           </button>
+        </div>
+      </div>
+
+      {/* Datas Importantes */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+              <Calendar size={20} />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Datas Importantes</h2>
+          </div>
+        </div>
+
+        <div className="mb-6 text-sm text-slate-600 space-y-2">
+           <p className="flex gap-2 items-start bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-emerald-800">
+             <Info size={16} className="mt-0.5 shrink-0" />
+             <span>Adicione datas de provas (ex: "Prova Paulista - 1º Bim") ou outros eventos importantes. O Jarvis vai usá-las para atualizar automaticamente sua contagem no Dashboard.</span>
+           </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+          <input
+            type="text"
+            value={newDateName}
+            onChange={(e) => setNewDateName(e.target.value)}
+            placeholder="Nome do Evento (ex: Prova Paulista - 1º Bim)"
+            className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors"
+          />
+          <div className="flex gap-2">
+            <input
+              type="date"
+              value={newDateValue}
+              onChange={(e) => setNewDateValue(e.target.value)}
+              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors text-slate-700"
+              title="Data Início"
+            />
+            <input
+              type="date"
+              value={newDateValueEnd}
+              onChange={(e) => setNewDateValueEnd(e.target.value)}
+              className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-colors text-slate-700"
+              title="Data Fim (Opcional)"
+            />
+          </div>
+          <button
+            onClick={handleAddDate}
+            className="flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+            disabled={!newDateName.trim() || !newDateValue || isSavingDates}
+          >
+            {isSavingDates ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18} />}
+            Adicionar
+          </button>
+        </div>
+
+        <div className="bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
+          {importantDates.length === 0 ? (
+            <div className="p-6 text-center text-slate-500 text-sm">
+              Nenhuma data importante adicionada ainda.
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-200">
+              {importantDates.map((date) => (
+                <li key={date.id} className="p-4 flex items-center justify-between group hover:bg-white transition-colors">
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">{date.nome}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {new Date(date.data + 'T00:00:00').toLocaleDateString('pt-BR')}
+                      {date.dataFim && ` a ${new Date(date.dataFim + 'T00:00:00').toLocaleDateString('pt-BR')}`}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveDate(date.id)}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Remover data"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 

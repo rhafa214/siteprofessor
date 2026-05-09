@@ -77,6 +77,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     '8°A - Matemática',
     'Itinerário 1° e 2°'
   ]);
+  const [importantDates, setImportantDates] = useState<{ id: string, nome: string, data: string }[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -118,6 +119,9 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
             const data = snap.data();
             if (data.reminders) {
               setReminders(data.reminders);
+            }
+            if (data.importantDates) {
+              setImportantDates(data.importantDates);
             }
             if (data.efapeDoneAt) {
               const doneAt = new Date(data.efapeDoneAt);
@@ -235,11 +239,44 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
   let nextProva = null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  for (let p of DATAS_OFICIAIS.provas) {
-    let dp = new Date(p.data + "T00:00:00");
-    if (dp >= today) { nextProva = p; break; }
+  
+  // Merge official dates with custom dates
+  const allProvasAndDates = [...DATAS_OFICIAIS.provas];
+  if (importantDates && importantDates.length > 0) {
+    importantDates.forEach(customDate => {
+      const idx = allProvasAndDates.findIndex(p => p.nome.toLowerCase() === customDate.nome.toLowerCase());
+      if (idx >= 0) {
+        allProvasAndDates[idx] = { ...allProvasAndDates[idx], data: customDate.data, dataFim: (customDate as any).dataFim };
+      } else {
+        allProvasAndDates.push({ nome: customDate.nome, data: customDate.data, dataFim: (customDate as any).dataFim } as any);
+      }
+    });
   }
-  const diffP = nextProva ? Math.ceil((new Date(nextProva.data + "T00:00:00").getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : -1;
+
+  // Sort them by date to find the *next* one (or current one)
+  allProvasAndDates.sort((a, b) => new Date(a.data + "T00:00:00").getTime() - new Date(b.data + "T00:00:00").getTime());
+
+  let isHappeningNow = false;
+  for (let p of allProvasAndDates) {
+    let dp = new Date(p.data + "T00:00:00");
+    let dpFim = (p as any).dataFim ? new Date((p as any).dataFim + "T00:00:00") : dp;
+    
+    // If we are before the end date, this is our target
+    if (dpFim >= today) { 
+      nextProva = p; 
+      if (today >= dp && today <= dpFim) {
+        isHappeningNow = true;
+      }
+      break; 
+    }
+  }
+  
+  let diffP = -1;
+  if (nextProva) {
+    let dp = new Date(nextProva.data + "T00:00:00");
+    diffP = Math.ceil((dp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffP < 0) diffP = 0; // It's currently happening
+  }
 
   const handleChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,12 +338,15 @@ Bimestres escolares:
 
       const curPrompt = curriculum ? `\n\n[MATRIZ CURRICULAR (ESTADO)]: \n${curriculum}\nUtilize essa matriz quando for planejar algo específico do currículo.` : '';
       const modPrompt = schoolModel ? `\n\n[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nUtilize este modelo de plano de aula sempre que criar planejamentos estruturados.` : '';
+      const impDatesPrompt = importantDates && importantDates.length > 0 
+        ? `\n\n[DATAS IMPORTANTES (Professor/a)]:\nEstas são anotações de datas cruciais do professor (que atualizam sua contagem regressiva):\n` + importantDates.map(d => `- ${d.nome}: ${d.data}` + ((d as any).dataFim ? ` até ${(d as any).dataFim}` : '')).join('\n')
+        : '';
 
       const responseStream = await ai.models.generateContentStream({
         model: 'gemini-2.5-flash',
         contents,
         config: {
-          systemInstruction: basePrompt + curPrompt + modPrompt,
+          systemInstruction: basePrompt + impDatesPrompt + curPrompt + modPrompt,
           tools: [{
             functionDeclarations: [
               {
@@ -415,7 +455,7 @@ Bimestres escolares:
           </p>
           {nextProva && (
             <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold border border-blue-100">
-              {diffP === 0 ? "🚀 Hoje tem Prova Paulista!" : `🎯 Faltam ${diffP} dias para a próxima ${nextProva.nome}`}
+              {isHappeningNow ? `🚀 Está acontecendo: ${nextProva.nome}!` : `🎯 Faltam ${diffP} dias para: ${nextProva.nome}`}
             </div>
           )}
         </div>
@@ -601,17 +641,23 @@ Bimestres escolares:
 
         {/* Prova Paulista Monitor - SHRUNK */}
         <div className="bg-amber-50 border border-amber-100 rounded-3xl p-6 flex flex-col justify-center items-center shadow-sm text-center">
-          <div className="text-[10px] font-bold text-amber-800/60 uppercase tracking-widest mb-3">Monitor SEDUC</div>
+          <div className="text-[10px] font-bold text-amber-800/60 uppercase tracking-widest mb-3">Monitor de Eventos</div>
           <div className="flex items-center justify-center gap-4">
             <div className="w-14 h-14 shrink-0 bg-amber-500 text-white rounded-2xl flex items-center justify-center text-xl font-black shadow-md shadow-amber-500/30">
-              {diffP > 0 ? diffP : (diffP === 0 ? "🚀" : "--")}
+              {isHappeningNow ? "🚀" : (diffP >= 0 ? diffP : "--")}
             </div>
             <div className="text-left">
               <h3 className="text-base font-bold text-amber-900 leading-tight">
-                {nextProva ? nextProva.nome : 'Sem provas agendadas'}
+                {nextProva ? nextProva.nome : 'Sem eventos'}
               </h3>
               <p className="text-amber-700/80 text-xs mt-1 font-medium">
-                {nextProva ? `Inicia em ${new Date(nextProva.data + "T00:00:00").toLocaleDateString('pt-BR')}` : 'Calendário livre'}
+                {nextProva 
+                  ? (isHappeningNow 
+                      ? ((nextProva as any).dataFim ? `Até ${new Date((nextProva as any).dataFim + "T00:00:00").toLocaleDateString('pt-BR')}` : `Acontecendo hoje!`)
+                      : `Inicia em ${new Date(nextProva.data + "T00:00:00").toLocaleDateString('pt-BR')}`
+                    ) 
+                  : 'Calendário livre'
+                }
               </p>
             </div>
           </div>
