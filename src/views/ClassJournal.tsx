@@ -129,15 +129,23 @@ export default function ClassJournal() {
 
   const handleAddTurma = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!novaTurma.trim() || turmasList.includes(novaTurma.trim())) return;
-    setTurmasList([...turmasList, novaTurma.trim()]);
+    const nova = novaTurma.trim();
+    if (!nova) return;
+    setTurmasList((current: string[]) => {
+      const list = Array.isArray(current) ? current : [];
+      if (list.includes(nova)) return list;
+      return [...list, nova];
+    });
     setNovaTurma('');
   };
 
   const handleRemoveTurma = (e: React.MouseEvent, t: string) => {
     e.stopPropagation();
     if (confirm(`Tem certeza que deseja excluir a turma "${t}" do registro de aulas?`)) {
-      setTurmasList(turmasList.filter(item => item !== t));
+      setTurmasList((current: string[]) => {
+        const list = Array.isArray(current) ? current : [];
+        return list.filter(item => item !== t);
+      });
     }
   };
 
