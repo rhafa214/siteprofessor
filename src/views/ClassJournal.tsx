@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { Plus, Trash2, Users, Save, ChevronLeft, CalendarClock, BookOpen, Clock, AlertCircle, MonitorPlay, CheckSquare, Square, NotebookPen } from 'lucide-react';
+import { Plus, Trash2, Users, Save, ChevronLeft, CalendarClock, BookOpen, Clock, AlertCircle, MonitorPlay, CheckSquare, Square, NotebookPen, Edit2 } from 'lucide-react';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
@@ -50,6 +50,7 @@ export default function ClassJournal() {
   const [formResumo, setFormResumo] = useState('');
   const [formLembretes, setFormLembretes] = useState('');
   const [novaTurma, setNovaTurma] = useState('');
+  const [editingLogId, setEditingLogId] = useState<number | null>(null);
 
   useEffect(() => {
     const navTurma = localStorage.getItem('nav_class_journal_turma');
@@ -95,6 +96,34 @@ export default function ClassJournal() {
     }
   };
 
+  const handleEditLog = (log: ClassLog) => {
+    setEditingLogId(log.id);
+    
+    // Parse data to set formDate
+    try {
+      const parts = log.data.split('/');
+      if (parts.length === 3) {
+        setFormDate(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+      }
+    } catch(e) {}
+    
+    // Convert '1ª, 2ª' back to matching exact strings if possible, 
+    // but log.aulaNumero is '1ª, 2ª' (just the prefix), 
+    // while we save '1ª aula - 07:00 às 07:50'... wait! 
+    // Let's check how we stored it... In handleSave: formHorarios.map(h => h.split(' - ')[0]).join(', ')
+    // It is just the prefix. We need to match it against horariosDeAula.
+    const prefixes = log.aulaNumero.split(', ');
+    const matchedHorarios = horariosDeAula.filter(h => prefixes.includes(h.split(' - ')[0]));
+    setFormHorarios(matchedHorarios);
+    
+    setFormAulaTitulo(log.aulaTitulo || '');
+    setFormTrabalhouSlide(log.trabalhouSlide || false);
+    setFormResumo(log.progresso);
+    setFormLembretes(log.lembretes || '');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTurma || !formResumo.trim() || formHorarios.length === 0) {
@@ -105,27 +134,49 @@ export default function ClassJournal() {
     // Format date string to display
     const dataObj = new Date(formDate + 'T12:00:00');
     
-    const newLog: ClassLog = {
-      id: Date.now(),
-      data: dataObj.toLocaleDateString('pt-BR'),
-      aulaNumero: formHorarios.map(h => h.split(' - ')[0]).join(', '),
-      turma: selectedTurma,
-      aulaTitulo: formAulaTitulo.trim(),
-      trabalhouSlide: formTrabalhouSlide,
-      progresso: formResumo.trim(),
-      lembretes: formLembretes.trim()
-    };
+    if (editingLogId) {
+      const updatedLogs = logs.map(log => 
+        log.id === editingLogId ? {
+          ...log,
+          data: dataObj.toLocaleDateString('pt-BR'),
+          aulaNumero: formHorarios.map(h => h.split(' - ')[0]).join(', '),
+          aulaTitulo: formAulaTitulo.trim(),
+          trabalhouSlide: formTrabalhouSlide,
+          progresso: formResumo.trim(),
+          lembretes: formLembretes.trim()
+        } : log
+      );
+      setLogs(updatedLogs);
+      if (user) {
+        const updatedLog = updatedLogs.find(l => l.id === editingLogId)!;
+        setDoc(doc(db, 'users', user.uid, 'classLogs', editingLogId.toString()), updatedLog).catch(e => console.error(e));
+      }
+      setEditingLogId(null);
+    } else {
+      const newLog: ClassLog = {
+        id: Date.now(),
+        data: dataObj.toLocaleDateString('pt-BR'),
+        aulaNumero: formHorarios.map(h => h.split(' - ')[0]).join(', '),
+        turma: selectedTurma,
+        aulaTitulo: formAulaTitulo.trim(),
+        trabalhouSlide: formTrabalhouSlide,
+        progresso: formResumo.trim(),
+        lembretes: formLembretes.trim()
+      };
+      
+      setLogs([newLog, ...logs]);
+      if (user) {
+        setDoc(doc(db, 'users', user.uid, 'classLogs', newLog.id.toString()), newLog).catch(e => console.error(e));
+      }
+    }
     
-    setLogs([newLog, ...logs]);
     setFormResumo('');
     setFormAulaTitulo('');
     setFormLembretes('');
     setFormHorarios([]);
     setFormTrabalhouSlide(false);
-    if (user) {
-      setDoc(doc(db, 'users', user.uid, 'classLogs', newLog.id.toString()), newLog).catch(e => console.error(e));
-    }
   };
+
 
   const handleAddTurma = (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +282,16 @@ export default function ClassJournal() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
-            onClick={() => setSelectedTurma(null)}
+            onClick={() => {
+              setSelectedTurma(null);
+              setEditingLogId(null);
+              setFormResumo('');
+              setFormAulaTitulo('');
+              setFormLembretes('');
+              setFormHorarios([]);
+              setFormTrabalhouSlide(false);
+              setFormDate(todayDateStr);
+            }}
             className="p-2 border border-slate-200 rounded-xl bg-white text-slate-700 hover:bg-slate-50 hover:text-[#1a73e8] transition-colors"
           >
             <ChevronLeft size={20} />
@@ -338,9 +398,28 @@ export default function ClassJournal() {
               />
             </div>
 
-            <button type="submit" className="w-full bg-[#1a73e8] text-white rounded-xl px-6 py-4 font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50">
-              <Save size={18} /> Salvar
-            </button>
+            <div className="flex gap-4">
+              {editingLogId && (
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setEditingLogId(null);
+                    setFormResumo('');
+                    setFormAulaTitulo('');
+                    setFormLembretes('');
+                    setFormHorarios([]);
+                    setFormTrabalhouSlide(false);
+                    setFormDate(todayDateStr);
+                  }}
+                  className="w-1/3 bg-slate-100 text-slate-600 rounded-xl px-6 py-4 font-bold hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+              )}
+              <button type="submit" className="flex-1 bg-[#1a73e8] text-white rounded-xl px-6 py-4 font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50">
+                <Save size={18} /> {editingLogId ? 'Atualizar' : 'Salvar'}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -361,13 +440,22 @@ export default function ClassJournal() {
             ) : (
               currentTurmaLogs.map((log) => (
                 <div key={log.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm relative group hover:border-[#1a73e8]/30 transition-all tracking-tight">
-                  <button 
-                    onClick={() => handleDeleteLog(log.id)}
-                    className="absolute top-4 right-4 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                    title="Excluir"
-                  >
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => handleEditLog(log)}
+                      className="p-1.5 text-slate-400 hover:text-[#1a73e8] hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteLog(log.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Excluir"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                   
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-md flex items-center gap-1"><CalendarClock size={14} /> {log.data}</span>
