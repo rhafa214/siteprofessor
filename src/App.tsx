@@ -21,6 +21,7 @@ import LessonPlan from "./views/LessonPlan";
 import Tasks from "./views/Tasks";
 import KnowledgeBase from "./views/KnowledgeBase";
 import TaskAnalysis from "./views/TaskAnalysis";
+import MatificAnalysis from "./views/MatificAnalysis";
 import StudentsDatabase from "./views/StudentsDatabase";
 import BannerAssistant from "./views/BannerAssistant";
 import Apostilas from "./views/Apostilas";
@@ -269,6 +270,7 @@ function App() {
             {currentView === "plano" && <LessonPlan />}
             {currentView === "tarefas" && <Tasks />}
             {currentView === "controle-tarefas" && <TaskAnalysis />}
+            {currentView === "matific" && <MatificAnalysis />}
             {currentView === "alunos" && <StudentsDatabase />}
             {currentView === "conhecimento" && <KnowledgeBase />}
             {currentView === "banner" && <BannerAssistant />}

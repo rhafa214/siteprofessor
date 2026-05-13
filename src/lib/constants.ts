@@ -7,6 +7,7 @@ export type ViewType =
   | "tarefas"
   | "conhecimento"
   | "controle-tarefas"
+  | "matific"
   | "alunos"
   | "banner"
   | "apostilas";

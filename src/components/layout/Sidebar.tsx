@@ -16,6 +16,7 @@ import {
   LogOut,
   Bot,
   Library,
+  Gamepad2,
 } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
@@ -60,6 +61,12 @@ export default function Sidebar({
       id: "controle-tarefas",
       label: "Controle de Tarefas",
       icon: ClipboardCheck,
+      group: "Principal",
+    },
+    {
+      id: "matific",
+      label: "Controle Matific",
+      icon: Gamepad2, // Changed from ClipboardCheck to Gamepad2
       group: "Principal",
     },
     { id: "banner", label: "Assistente Banner", icon: Bot, group: "Principal" },
