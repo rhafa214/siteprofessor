@@ -36,6 +36,7 @@ interface Apostila {
   title: string;
   pdfUrl?: string; // The universal URL property
   color: string;
+  category?: "apostila" | "documento";
   createdAt: number;
 }
 
@@ -102,6 +103,8 @@ export default function Apostilas() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
+  const [newCategory, setNewCategory] = useState<"apostila" | "documento">("apostila");
+  const [activeTab, setActiveTab] = useState<"apostila" | "documento">("apostila");
 
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedApostila, setSelectedApostila] = useState<Apostila | null>(
@@ -163,6 +166,7 @@ export default function Apostilas() {
     setSelectedFile(null);
     setSelectedColor(COLORS[0]);
     setIsFormOpen(true);
+    setNewCategory(activeTab);
   };
 
   const openEditForm = (e: React.MouseEvent, apo: Apostila) => {
@@ -173,6 +177,7 @@ export default function Apostilas() {
     setSelectedFile(null);
     setSelectedColor(apo.color || COLORS[0]);
     setIsFormOpen(true);
+    setNewCategory(apo.category || "apostila");
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -199,6 +204,7 @@ export default function Apostilas() {
         const dataToUpdate: any = {
           title: newTitle.trim(),
           color: selectedColor,
+          category: newCategory,
         };
         if (finalPdfUrl) dataToUpdate.pdfUrl = finalPdfUrl;
 
@@ -210,6 +216,7 @@ export default function Apostilas() {
         const dataToAdd: any = {
           title: newTitle.trim(),
           color: selectedColor,
+          category: newCategory,
           createdAt: Date.now(),
         };
         if (finalPdfUrl) dataToAdd.pdfUrl = finalPdfUrl;
@@ -255,6 +262,10 @@ export default function Apostilas() {
     }
   };
 
+  const filteredApostilas = apostilas.filter(
+    (a) => (a.category || "apostila") === activeTab
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -268,10 +279,10 @@ export default function Apostilas() {
           </div>
           <div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight">
-              Estante de Apostilas
+              Estante de Arquivos
             </h1>
             <p className="text-slate-500 font-medium">
-              Suas apostilas do Google Drive ou em PDF sempre à mão.
+              Suas apostilas e documentos importantes sempre à mão.
             </p>
           </div>
         </div>
@@ -279,12 +290,27 @@ export default function Apostilas() {
           onClick={openAddForm}
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 shadow-sm"
         >
-          <Plus size={18} /> Adicionar Apostila
+          <Plus size={18} /> Adicionar
+        </button>
+      </div>
+
+      <div className="flex gap-4 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab("apostila")}
+          className={`pb-3 font-bold px-2 border-b-2 transition-colors ${activeTab === "apostila" ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+        >
+          Apostilas
+        </button>
+        <button
+          onClick={() => setActiveTab("documento")}
+          className={`pb-3 font-bold px-2 border-b-2 transition-colors ${activeTab === "documento" ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-500 hover:text-slate-800"}`}
+        >
+          Documentos Importantes
         </button>
       </div>
 
       <div className="flex-1 bg-slate-100/50 rounded-3xl p-6 border border-slate-200 overflow-y-auto">
-        {apostilas.length === 0 ? (
+        {filteredApostilas.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
             <div className="w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center mb-4">
               <BookMarked size={40} className="text-slate-400" />
@@ -293,13 +319,12 @@ export default function Apostilas() {
               Sua estante está vazia
             </h3>
             <p className="text-slate-500 max-w-sm">
-              Adicione o link do Google Drive das suas apostilas ou envie um PDF
-              para visualizá-las aqui rapidamente.
+              Adicione o link ou envie o arquivo para visualizá-lo aqui rapidamente.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {apostilas.map((apo) => (
+            {filteredApostilas.map((apo) => (
               <motion.div
                 layoutId={`apo-${apo.id}`}
                 key={apo.id}
@@ -370,6 +395,11 @@ export default function Apostilas() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !isUploading) {
+                setIsFormOpen(false);
+              }
+            }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
@@ -385,13 +415,27 @@ export default function Apostilas() {
               </button>
               <h2 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
                 <BookMarked className="text-indigo-500" />{" "}
-                {editingId ? "Editar Apostila" : "Nova Apostila"}
+                {editingId ? "Editar Arquivo" : "Novo Arquivo"}
               </h2>
 
               <form onSubmit={handleSave} className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                    Título da Apostila
+                    Categoria
+                  </label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as "apostila" | "documento")}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all cursor-pointer"
+                  >
+                    <option value="apostila">Apostila</option>
+                    <option value="documento">Documento Importante</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                    Título do Arquivo
                   </label>
                   <input
                     type="text"
@@ -489,10 +533,10 @@ export default function Apostilas() {
                     {editingId
                       ? isUploading
                         ? "Atualizando..."
-                        : "Atualizar Apostila"
+                        : "Atualizar Arquivo"
                       : isUploading
                         ? "Salvando..."
-                        : "Salvar na Estante"}
+                        : "Salvar Arquivo"}
                   </span>
                 </button>
               </form>
