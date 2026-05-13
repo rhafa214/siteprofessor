@@ -226,7 +226,9 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
   const zoomIn = () => setScale((prev) => Math.min(prev + 0.2, 3));
   const zoomOut = () => setScale((prev) => Math.max(prev - 0.2, 0.5));
 
-  const [optimalHeight, setOptimalHeight] = useState(800);
+  const [optimalHeight, setOptimalHeight] = useState(
+    typeof window !== "undefined" ? Math.max(400, window.innerHeight - 120) : 800
+  );
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -235,7 +237,8 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
     const updateHeight = () => {
       if (wrapperRef.current) {
         // Leave room for toolbars and padding
-        setOptimalHeight(Math.max(400, wrapperRef.current.clientHeight - 80));
+        const newHeight = Math.max(400, wrapperRef.current.clientHeight - 80);
+        setOptimalHeight((prev) => Math.abs(prev - newHeight) > 10 ? newHeight : prev);
       }
     };
     
@@ -255,7 +258,7 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="flex flex-col h-full bg-[#1e1e1e] overflow-hidden relative">
+    <div ref={wrapperRef} className="flex flex-col h-full min-h-0 bg-[#1e1e1e] overflow-hidden relative">
       {useDriveIframe ? (
         <div className="flex flex-col w-full h-full relative">
           <div className="p-2 bg-amber-500/20 text-amber-200 text-xs text-center border-b border-amber-500/30 z-10 backdrop-blur-md shrink-0">
@@ -348,7 +351,7 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
                     )}
                   </AnimatePresence>
 
-                  <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                  <AnimatePresence mode="wait" initial={false} custom={direction}>
                     <motion.div
                       key={pageNumber}
                       custom={direction}

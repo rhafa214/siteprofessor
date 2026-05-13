@@ -505,17 +505,17 @@ export default function Apostilas() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className={`fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 sm:py-8 bg-black/80 backdrop-blur-2xl transition-all duration-300 ${isFullscreen ? "p-0 sm:p-0 sm:py-0" : ""}`}
+            className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-0 sm:p-4 sm:py-8 bg-black/80 backdrop-blur-2xl transition-all duration-300 ${isFullscreen ? "p-0 sm:p-0 sm:py-0" : ""}`}
           >
             <motion.div
               layoutId={`apo-${selectedApostila.id}`}
-              className={`bg-[#1e1e1e] flex flex-col w-full h-full ${isFullscreen ? "max-w-none rounded-none" : "max-w-7xl rounded-none sm:rounded-2xl border border-white/5"} shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden relative transition-all duration-300`}
+              className={`bg-[#1e1e1e] flex flex-col w-full h-full min-h-0 ${isFullscreen ? "max-w-none rounded-none" : "max-w-7xl rounded-none sm:rounded-2xl border border-white/5"} shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden relative transition-all duration-300`}
             >
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.2 }}
-                className="flex flex-col w-full h-full"
+                className="flex flex-col w-full h-full min-h-0"
               >
                 <div
                   className={`p-3 px-5 flex items-center justify-between shrink-0 bg-[#252525] ${isFullscreen ? "absolute top-0 left-0 right-0 z-[60] bg-black/80 backdrop-blur-md opacity-0 hover:opacity-100 transition-opacity border-b border-white/10" : "border-b border-white/5 z-10"}`}
@@ -570,7 +570,7 @@ export default function Apostilas() {
                   </div>
                 </div>
 
-                <div className="flex-1 w-full relative bg-[#1e1e1e]">
+                <div className="flex-1 min-h-0 w-full relative bg-[#1e1e1e]">
                   <PdfViewer
                     url={selectedApostila.pdfUrl}
                     fileData={localPdfBlob}
