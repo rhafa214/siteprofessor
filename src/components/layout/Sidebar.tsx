@@ -17,10 +17,13 @@ import {
   Bot,
   Library,
   Gamepad2,
+  Moon,
+  Sun,
 } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../contexts/AuthContext";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
 
 interface SidebarProps {
   currentView: ViewType;
@@ -37,6 +40,15 @@ export default function Sidebar({
 }: SidebarProps) {
   const { user, loginWithGoogle, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useLocalStorage("darkMode", false);
+
+  if (typeof document !== "undefined") {
+    if (isDarkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }
 
   const navItems = [
     {
@@ -107,13 +119,23 @@ export default function Sidebar({
         <X size={24} />
       </button>
 
-      <div className="flex items-center gap-3 mb-8 px-2 mt-2 lg:mt-0">
-        <div className="bg-indigo-500 p-2 rounded-xl text-white flex items-center justify-center">
-          <GraduationCap size={24} />
+      <div className="flex items-center justify-between mb-8 px-2 mt-2 lg:mt-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-500 p-2 rounded-xl text-white flex items-center justify-center">
+            <GraduationCap size={24} />
+          </div>
+          <div className="text-xl font-extrabold tracking-tight">
+            EduPlanner<span className="text-indigo-400">.</span>
+          </div>
         </div>
-        <div className="text-xl font-extrabold tracking-tight">
-          EduPlanner<span className="text-indigo-400">.</span>
-        </div>
+        
+        <button
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          title="Alternar tema escuro"
+        >
+          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
       </div>
 
       <div className="relative mb-6">
@@ -132,7 +154,7 @@ export default function Sidebar({
                   "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"
                 }
                 alt="Professor"
-                className="w-full h-full rounded-full border-2 border-indigo-500 object-cover"
+                className="w-full h-full rounded-full border-2 border-indigo-500 object-cover keep-colors"
               />
             </div>
             <div className="flex flex-col min-w-0">

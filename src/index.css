@@ -1,6 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --color-primary: #6366f1;
@@ -9,6 +11,48 @@
 body {
   background-color: #f8fafc;
   color: #0f172a;
+}
+
+/* Clever Dark Mode CSS */
+html.dark {
+  background-color: #0f172a;
+  color: #f8fafc;
+  
+  /* Swap slate shades to invert gray scaling */
+  --color-slate-50: #1e293b;
+  --color-slate-100: #334155;
+  --color-slate-200: #475569;
+  --color-slate-300: #64748b;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #cbd5e1;
+  --color-slate-600: #e2e8f0;
+  --color-slate-700: #f1f5f9;
+  --color-slate-800: #f8fafc;
+  --color-slate-900: #ffffff;
+  --color-slate-950: #020617; /* sidebar keep dark */
+  
+  --color-blue-50: #172554;
+  --color-blue-100: #1e3a8a;
+  --color-blue-200: #1e40af;
+  --color-blue-800: #bfdbfe;
+  --color-blue-900: #dbeafe;
+}
+
+html.dark .bg-white {
+  background-color: #0f172a;
+}
+html.dark .bg-slate-50 {
+  background-color: #1e293b;
+}
+html.dark .border-slate-200 {
+  border-color: #334155;
+}
+html.dark .border-slate-100 {
+  border-color: #1e293b;
+}
+html.dark input.bg-white, html.dark textarea.bg-white, html.dark select.bg-white {
+  background-color: #1e293b;
+  color: white;
 }
 
 /* Custom Scrollbar */
@@ -25,6 +69,12 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+html.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 /* Markdown styling in chat */

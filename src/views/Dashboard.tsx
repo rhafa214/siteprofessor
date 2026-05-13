@@ -86,7 +86,9 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
   >("eduChatCurrent", [
     {
       role: "bot",
-      text: `Olá, ${user?.displayName?.split(" ")[0] || "educador"}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`,
+      text: new Date().getHours() >= 18 || new Date().getHours() < 6 
+        ? `Fazendo hora extra, professor?! Hora de descansar, hein! Mas já que estamos aqui... Eu sou Jarvis 🤖, seu assistente. No que posso te ajudar com sua rotina maluca hoje?`
+        : `Olá! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`,
     },
   ]);
   const [chatHistory, setChatHistory] = useLocalStorage<
@@ -116,10 +118,18 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
 
   useEffect(() => {
     if (user && chatMessages.length === 1 && chatMessages[0].role === "bot") {
+      const currentHour = new Date().getHours();
+      const userName = user.displayName?.split(" ")[0] || "educador";
+      let greetingDesc = `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`;
+      
+      if (currentHour >= 18 || currentHour < 6) {
+        greetingDesc = `Fazendo hora extra, professor ${userName}?! Hora de descansar, hein! Mas já que estamos aqui... Eu sou Jarvis 🤖. No que posso te ajudar com essa rotina maluca?`;
+      }
+      
       setChatMessages([
         {
           role: "bot",
-          text: `Olá, ${user.displayName?.split(" ")[0] || "educador"}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`,
+          text: greetingDesc,
         },
       ]);
     }
