@@ -37,6 +37,7 @@ interface Apostila {
   pdfUrl?: string; // The universal URL property
   color: string;
   category?: "apostila" | "documento";
+  bimester?: string;
   createdAt: number;
 }
 
@@ -104,7 +105,9 @@ export default function Apostilas() {
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [newCategory, setNewCategory] = useState<"apostila" | "documento">("apostila");
+  const [newBimester, setNewBimester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"apostila" | "documento">("apostila");
+  const [filterBimester, setFilterBimester] = useState<string>("all");
   const [itemToDelete, setItemToDelete] = useState<Apostila | null>(null);
 
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
@@ -168,6 +171,7 @@ export default function Apostilas() {
     setSelectedColor(COLORS[0]);
     setIsFormOpen(true);
     setNewCategory(activeTab);
+    setNewBimester("");
   };
 
   const openEditForm = (e: React.MouseEvent, apo: Apostila) => {
@@ -179,6 +183,7 @@ export default function Apostilas() {
     setSelectedColor(apo.color || COLORS[0]);
     setIsFormOpen(true);
     setNewCategory(apo.category || "apostila");
+    setNewBimester(apo.bimester || "");
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -206,6 +211,7 @@ export default function Apostilas() {
           title: newTitle.trim(),
           color: selectedColor,
           category: newCategory,
+          bimester: newCategory === "apostila" ? newBimester : "",
         };
         if (finalPdfUrl) dataToUpdate.pdfUrl = finalPdfUrl;
 
@@ -218,6 +224,7 @@ export default function Apostilas() {
           title: newTitle.trim(),
           color: selectedColor,
           category: newCategory,
+          bimester: newCategory === "apostila" ? newBimester : "",
           createdAt: Date.now(),
         };
         if (finalPdfUrl) dataToAdd.pdfUrl = finalPdfUrl;
@@ -227,6 +234,7 @@ export default function Apostilas() {
       setIsFormOpen(false);
       setNewTitle("");
       setNewUrl("");
+      setNewBimester("");
       setSelectedFile(null);
       setEditingId(null);
     } catch (e: any) {
@@ -269,7 +277,13 @@ export default function Apostilas() {
   };
 
   const filteredApostilas = apostilas.filter(
-    (a) => (a.category || "apostila") === activeTab
+    (a) => {
+      if ((a.category || "apostila") !== activeTab) return false;
+      if (activeTab === "apostila" && filterBimester !== "all") {
+        if (a.bimester !== filterBimester) return false;
+      }
+      return true;
+    }
   );
 
   return (
@@ -315,6 +329,41 @@ export default function Apostilas() {
         </button>
       </div>
 
+      {activeTab === "apostila" && (
+        <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+          <button
+            onClick={() => setFilterBimester("all")}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${filterBimester === "all" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"}`}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setFilterBimester("1")}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${filterBimester === "1" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"}`}
+          >
+            1º Bimestre
+          </button>
+          <button
+            onClick={() => setFilterBimester("2")}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${filterBimester === "2" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"}`}
+          >
+            2º Bimestre
+          </button>
+          <button
+            onClick={() => setFilterBimester("3")}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${filterBimester === "3" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"}`}
+          >
+            3º Bimestre
+          </button>
+          <button
+            onClick={() => setFilterBimester("4")}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${filterBimester === "4" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700"}`}
+          >
+            4º Bimestre
+          </button>
+        </div>
+      )}
+
       <div className="flex-1 bg-slate-100/50 rounded-3xl p-6 border border-slate-200 overflow-y-auto">
         {filteredApostilas.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-60">
@@ -350,6 +399,11 @@ export default function Apostilas() {
                   <div className="absolute inset-x-0 bottom-0 top-1/2 bg-gradient-to-t from-black/80 to-transparent pointer-events-none z-10"></div>
                   <h3 className="text-white font-bold text-sm text-center drop-shadow-md z-20 break-words line-clamp-3 max-w-full px-2 pb-3 absolute bottom-0 w-full pointer-events-none">
                     {apo.title}
+                    {apo.bimester && (
+                      <span className="block text-xs font-medium text-white/80 mt-1">
+                        {apo.bimester}º Bimestre
+                      </span>
+                    )}
                   </h3>
 
                   <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all z-20">
@@ -438,6 +492,25 @@ export default function Apostilas() {
                     <option value="documento">Documento Importante</option>
                   </select>
                 </div>
+
+                {newCategory === "apostila" && (
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                      Bimestre (Opcional)
+                    </label>
+                    <select
+                      value={newBimester}
+                      onChange={(e) => setNewBimester(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all cursor-pointer"
+                    >
+                      <option value="">Geral / Nenhum</option>
+                      <option value="1">1º Bimestre</option>
+                      <option value="2">2º Bimestre</option>
+                      <option value="3">3º Bimestre</option>
+                      <option value="4">4º Bimestre</option>
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-1.5">

@@ -17,6 +17,7 @@ interface NewsItem {
   title: string;
   link: string;
   thumbnail: string | null;
+  thumbnailAttempted?: boolean;
   source: string;
   publishedDate?: string;
   category: (typeof CATEGORIES)[0];
@@ -25,7 +26,7 @@ interface NewsItem {
 const CATEGORIES = [
   {
     id: "seduc",
-    title: "SEDUC-SP",
+    title: "Radar Educação",
     icon: <Newspaper size={14} />,
     color: "text-indigo-600",
     bg: "bg-indigo-50",
