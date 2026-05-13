@@ -1,8 +1,25 @@
-import { useState } from 'react';
-import { GraduationCap, LayoutDashboard, Book, CalendarDays, FolderTree, PenTool, ListTodo, X, Database, ClipboardCheck, Users, ChevronDown, ChevronUp, LogOut, Bot } from 'lucide-react';
-import type { ViewType } from '../../lib/constants';
-import { cn } from '../../lib/utils';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState } from "react";
+import {
+  GraduationCap,
+  LayoutDashboard,
+  Book,
+  CalendarDays,
+  FolderTree,
+  PenTool,
+  ListTodo,
+  X,
+  Database,
+  ClipboardCheck,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  LogOut,
+  Bot,
+  Library,
+} from "lucide-react";
+import type { ViewType } from "../../lib/constants";
+import { cn } from "../../lib/utils";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface SidebarProps {
   currentView: ViewType;
@@ -11,29 +28,72 @@ interface SidebarProps {
   setIsOpen: (isOpen: boolean) => void;
 }
 
-export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen }: SidebarProps) {
+export default function Sidebar({
+  currentView,
+  setCurrentView,
+  isOpen,
+  setIsOpen,
+}: SidebarProps) {
   const { user, loginWithGoogle, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, group: 'Principal' },
-    { id: 'diario', label: 'Registro de Aulas', icon: Book, group: 'Principal' },
-    { id: 'agenda', label: 'Agenda Estratégica', icon: CalendarDays, group: 'Principal' },
-    { id: 'controle-tarefas', label: 'Controle de Tarefas', icon: ClipboardCheck, group: 'Principal' },
-    { id: 'banner', label: 'Assistente Banner', icon: Bot, group: 'Principal' },
-    { id: 'arquivos', label: 'Explorador Drive', icon: FolderTree, group: 'Recursos' },
-    { id: 'plano', label: 'Plano de Aula', icon: PenTool, group: 'Recursos' },
-    { id: 'tarefas', label: 'Checklist', icon: ListTodo, group: 'Recursos' },
-    { id: 'alunos', label: 'Banco de Alunos', icon: Users, group: 'Recursos' },
-    { id: 'conhecimento', label: 'Base do Jarvis', icon: Database, group: 'Recursos' },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      icon: LayoutDashboard,
+      group: "Principal",
+    },
+    {
+      id: "diario",
+      label: "Registro de Aulas",
+      icon: Book,
+      group: "Principal",
+    },
+    {
+      id: "agenda",
+      label: "Agenda Estratégica",
+      icon: CalendarDays,
+      group: "Principal",
+    },
+    {
+      id: "controle-tarefas",
+      label: "Controle de Tarefas",
+      icon: ClipboardCheck,
+      group: "Principal",
+    },
+    { id: "banner", label: "Assistente Banner", icon: Bot, group: "Principal" },
+    {
+      id: "apostilas",
+      label: "Minhas Apostilas",
+      icon: Library,
+      group: "Recursos",
+    },
+    {
+      id: "arquivos",
+      label: "Explorador Drive",
+      icon: FolderTree,
+      group: "Recursos",
+    },
+    { id: "plano", label: "Plano de Aula", icon: PenTool, group: "Recursos" },
+    { id: "tarefas", label: "Checklist", icon: ListTodo, group: "Recursos" },
+    { id: "alunos", label: "Banco de Alunos", icon: Users, group: "Recursos" },
+    {
+      id: "conhecimento",
+      label: "Base do Jarvis",
+      icon: Database,
+      group: "Recursos",
+    },
   ] as const;
 
   return (
-    <aside className={cn(
-      "fixed inset-y-0 left-0 z-50 h-full w-72 bg-slate-950 text-white flex flex-col py-6 px-4 shrink-0 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:shadow-xl",
-      isOpen ? "translate-x-0" : "-translate-x-full"
-    )}>
-      <button 
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 h-full w-72 bg-slate-950 text-white flex flex-col py-6 px-4 shrink-0 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:shadow-xl",
+        isOpen ? "translate-x-0" : "-translate-x-full",
+      )}
+    >
+      <button
         onClick={() => setIsOpen(false)}
         className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white lg:hidden"
       >
@@ -50,30 +110,39 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       </div>
 
       <div className="relative mb-6">
-        <button 
-          onClick={() => user ? setIsProfileOpen(!isProfileOpen) : null}
+        <button
+          onClick={() => (user ? setIsProfileOpen(!isProfileOpen) : null)}
           className={cn(
             "w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl transition-colors text-left",
-            user ? "hover:bg-white/10 cursor-pointer" : "cursor-default"
+            user ? "hover:bg-white/10 cursor-pointer" : "cursor-default",
           )}
         >
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-10 h-10 shrink-0">
-              <img 
-                src={user?.photoURL || "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"} 
-                alt="Professor" 
+              <img
+                src={
+                  user?.photoURL ||
+                  "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"
+                }
+                alt="Professor"
                 className="w-full h-full rounded-full border-2 border-indigo-500 object-cover"
               />
             </div>
             <div className="flex flex-col min-w-0">
               <span className="text-sm font-bold truncate">
-                {user ? `Professor ${user.displayName?.split(' ')[0] || ''}` : 'Visitante'}
+                {user
+                  ? `Professor ${user.displayName?.split(" ")[0] || ""}`
+                  : "Visitante"}
               </span>
             </div>
           </div>
           {user && (
             <div className="text-slate-400 shrink-0">
-              {isProfileOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              {isProfileOpen ? (
+                <ChevronUp size={18} />
+              ) : (
+                <ChevronDown size={18} />
+              )}
             </div>
           )}
         </button>
@@ -83,7 +152,7 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
             <div className="px-3 py-2 text-xs font-medium text-slate-400 border-b border-slate-800/50 mb-1 truncate">
               {user.email}
             </div>
-            <button 
+            <button
               onClick={() => {
                 logout();
                 setIsProfileOpen(false);
@@ -98,7 +167,7 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
       </div>
 
       <nav className="flex-1 overflow-y-auto scrollbar-thin">
-        {['Principal', 'Recursos'].map((group) => (
+        {["Principal", "Recursos"].map((group) => (
           <div key={group} className="mb-4">
             <div className="text-[10px] uppercase font-extrabold text-slate-500 tracking-wider mb-2 ml-3">
               {group}
@@ -114,12 +183,15 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
                     onClick={() => setCurrentView(item.id as ViewType)}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition-all duration-200 text-sm font-medium",
-                      isActive 
-                        ? "bg-indigo-600 text-white shadow-md" 
-                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                      isActive
+                        ? "bg-indigo-600 text-white shadow-md"
+                        : "text-slate-400 hover:text-white hover:bg-white/5",
                     )}
                   >
-                    <Icon size={18} className={cn(isActive ? "text-white" : "text-slate-400")} />
+                    <Icon
+                      size={18}
+                      className={cn(isActive ? "text-white" : "text-slate-400")}
+                    />
                     {item.label}
                   </button>
                 );
@@ -130,7 +202,7 @@ export default function Sidebar({ currentView, setCurrentView, isOpen, setIsOpen
 
       <div className="mt-auto pt-4">
         {!user && (
-          <button 
+          <button
             onClick={loginWithGoogle}
             className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"
           >

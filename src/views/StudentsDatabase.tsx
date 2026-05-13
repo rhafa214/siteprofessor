@@ -1,10 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Users, Search, Book, ChevronRight, ChevronDown, GraduationCap, Loader2, Trash2, Upload, FileText } from 'lucide-react';
-import { db } from '../lib/firebase';
-import { useAuth } from '../contexts/AuthContext';
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { extractTextFromFile } from '../lib/fileExtraction';
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  Users,
+  Search,
+  Book,
+  ChevronRight,
+  ChevronDown,
+  GraduationCap,
+  Loader2,
+  Trash2,
+  Upload,
+  FileText,
+} from "lucide-react";
+import { db } from "../lib/firebase";
+import { useAuth } from "../contexts/AuthContext";
+import {
+  collection,
+  getDocs,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { extractTextFromFile } from "../lib/fileExtraction";
 
 interface StudentData {
   id: string;
@@ -15,27 +34,33 @@ interface StudentData {
 export default function StudentsDatabase() {
   const { user } = useAuth();
   const [students, setStudents] = useState<StudentData[]>([]);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  
-  const [expandedTurmas, setExpandedTurmas] = useState<Record<string, boolean>>({});
-  
+
+  const [expandedTurmas, setExpandedTurmas] = useState<Record<string, boolean>>(
+    {},
+  );
+
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [importTargetTurma, setImportTargetTurma] = useState<string | null>(null);
-  const [importText, setImportText] = useState('');
+  const [importTargetTurma, setImportTargetTurma] = useState<string | null>(
+    null,
+  );
+  const [importText, setImportText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchStudents = async () => {
     setIsLoading(true);
     if (user) {
       try {
-        const snap = await getDocs(collection(db, 'users', user.uid, 'taskAnalysis'));
+        const snap = await getDocs(
+          collection(db, "users", user.uid, "taskAnalysis"),
+        );
         const allStudents: StudentData[] = [];
-        
-        snap.forEach(d => {
+
+        snap.forEach((d) => {
           const turmaName = d.id;
           const data = d.data();
-          
+
           if (data && data.students) {
             data.students.forEach((s: any) => {
               allStudents.push({
@@ -46,11 +71,11 @@ export default function StudentsDatabase() {
             });
           }
         });
-        
+
         allStudents.sort((a, b) => a.name.localeCompare(b.name));
         setStudents(allStudents);
       } catch (e) {
-        console.error('Error fetching students', e);
+        console.error("Error fetching students", e);
       }
     }
     setIsLoading(false);
@@ -62,54 +87,65 @@ export default function StudentsDatabase() {
 
   const handleDeleteTurma = async (turmaId: string) => {
     if (!user) return;
-    if (confirm(`Tem certeza que deseja excluir a turma "${turmaId}" e TODOS os seus alunos e notas?`)) {
+    if (
+      confirm(
+        `Tem certeza que deseja excluir a turma "${turmaId}" e TODOS os seus alunos e notas?`,
+      )
+    ) {
       try {
-        await deleteDoc(doc(db, 'users', user.uid, 'taskAnalysis', turmaId));
-        setStudents(prev => prev.filter(s => s.turma !== turmaId));
-        
+        await deleteDoc(doc(db, "users", user.uid, "taskAnalysis", turmaId));
+        setStudents((prev) => prev.filter((s) => s.turma !== turmaId));
+
         try {
-           const stored = window.localStorage.getItem('classTurmasList');
-           if (stored) {
-              const list = JSON.parse(stored);
-              if (Array.isArray(list)) {
-                 const updated = list.filter(t => t !== turmaId);
-                 window.localStorage.setItem('classTurmasList', JSON.stringify(updated));
-                 window.dispatchEvent(new Event('local-storage'));
-              }
-           }
-        } catch(e){}
+          const stored = window.localStorage.getItem("classTurmasList");
+          if (stored) {
+            const list = JSON.parse(stored);
+            if (Array.isArray(list)) {
+              const updated = list.filter((t) => t !== turmaId);
+              window.localStorage.setItem(
+                "classTurmasList",
+                JSON.stringify(updated),
+              );
+              window.dispatchEvent(new Event("local-storage"));
+            }
+          }
+        } catch (e) {}
       } catch (e) {
-        console.error('Error deleting turma:', e);
-        alert('Erro ao excluir turma.');
+        console.error("Error deleting turma:", e);
+        alert("Erro ao excluir turma.");
       }
     }
   };
 
   const removeStudent = async (turmaId: string, studentId: string) => {
-    if (!confirm('Tem certeza que deseja remover este aluno da turma?')) return;
-    
+    if (!confirm("Tem certeza que deseja remover este aluno da turma?")) return;
+
     if (user) {
       try {
-        const docRef = doc(db, 'users', user.uid, 'taskAnalysis', turmaId);
+        const docRef = doc(db, "users", user.uid, "taskAnalysis", turmaId);
         const snap = await getDoc(docRef);
         if (snap.exists()) {
           const data = snap.data();
-          const newStudents = data.students.filter((s: any) => s.id !== studentId);
+          const newStudents = data.students.filter(
+            (s: any) => s.id !== studentId,
+          );
           const newGrades = { ...data.grades };
           delete newGrades[studentId];
           await updateDoc(docRef, { students: newStudents, grades: newGrades });
-          
-          setStudents(prev => prev.filter(s => !(s.id === studentId && s.turma === turmaId)));
+
+          setStudents((prev) =>
+            prev.filter((s) => !(s.id === studentId && s.turma === turmaId)),
+          );
         }
       } catch (e) {
-        console.error('Error removing student', e);
+        console.error("Error removing student", e);
       }
     }
   };
 
   const handleOpenImport = (turma: string) => {
     setImportTargetTurma(turma);
-    setImportText('');
+    setImportText("");
     setIsImportModalOpen(true);
   };
 
@@ -129,79 +165,104 @@ export default function StudentsDatabase() {
 
   const handleReplaceStudents = async () => {
     if (!importTargetTurma || !user) return;
-    
-    const rows = importText.split('\n').map(r => r.trim()).filter(r => r);
+
+    const rows = importText
+      .split("\n")
+      .map((r) => r.trim())
+      .filter((r) => r);
     const extractedNames: string[] = [];
-    
+
     for (const row of rows) {
-      if (row.toLowerCase().includes('situação') || row.toLowerCase().includes('nº de chamada')) {
+      if (
+        row.toLowerCase().includes("situação") ||
+        row.toLowerCase().includes("nº de chamada")
+      ) {
         continue; // Cabeçalho
       }
-      
-      if (row.includes(';')) {
-        const parts = row.split(';');
+
+      if (row.includes(";")) {
+        const parts = row.split(";");
         if (parts.length >= 2) {
           const name = parts[1].trim();
-          const status = parts.length >= 3 ? parts[2].trim().toLowerCase() : 'ativo';
-          if (name && isNaN(Number(name)) && status === 'ativo') {
+          const status =
+            parts.length >= 3 ? parts[2].trim().toLowerCase() : "ativo";
+          if (name && isNaN(Number(name)) && status === "ativo") {
             extractedNames.push(name);
           }
         }
       } else {
-         if (row.length > 2) {
-            extractedNames.push(row);
-         }
+        if (row.length > 2) {
+          extractedNames.push(row);
+        }
       }
     }
-    
+
     try {
-      const docRef = doc(db, 'users', user.uid, 'taskAnalysis', importTargetTurma);
+      const docRef = doc(
+        db,
+        "users",
+        user.uid,
+        "taskAnalysis",
+        importTargetTurma,
+      );
       const snap = await getDoc(docRef);
-      
-      let classData = { students: [] as any[], tasks: [] as any[], grades: {} as Record<string, any> };
+
+      let classData = {
+        students: [] as any[],
+        tasks: [] as any[],
+        grades: {} as Record<string, any>,
+      };
       if (snap.exists()) {
         classData = snap.data() as any;
       }
-      
-      const newStudentsList = extractedNames.map(name => {
-          const existing = classData.students?.find((s:any) => s.name === name);
-          if (existing) return existing;
-          return { id: crypto.randomUUID(), name };
+
+      const newStudentsList = extractedNames.map((name) => {
+        const existing = classData.students?.find((s: any) => s.name === name);
+        if (existing) return existing;
+        return { id: crypto.randomUUID(), name };
       });
-      
+
       const newGrades = { ...classData.grades };
-      Object.keys(newGrades).forEach(studentId => {
-         if (!newStudentsList.find(s => s.id === studentId)) {
-             delete newGrades[studentId];
-         }
+      Object.keys(newGrades).forEach((studentId) => {
+        if (!newStudentsList.find((s) => s.id === studentId)) {
+          delete newGrades[studentId];
+        }
       });
-      
-      await setDoc(docRef, { ...classData, students: newStudentsList, grades: newGrades });
-      
+
+      await setDoc(docRef, {
+        ...classData,
+        students: newStudentsList,
+        grades: newGrades,
+      });
+
       setIsImportModalOpen(false);
       await fetchStudents();
-    } catch(e) {
-      console.error('Error replacing students', e);
-      alert('Houve um erro ao substituir a lista.');
+    } catch (e) {
+      console.error("Error replacing students", e);
+      alert("Houve um erro ao substituir a lista.");
     }
   };
 
   const toggleTurma = (turma: string) => {
-    setExpandedTurmas(prev => ({ ...prev, [turma]: !prev[turma] }));
+    setExpandedTurmas((prev) => ({ ...prev, [turma]: !prev[turma] }));
   };
 
-  const filteredStudents = students.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
-    s.turma.toLowerCase().includes(search.toLowerCase())
+  const filteredStudents = students.filter(
+    (s) =>
+      s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.turma.toLowerCase().includes(search.toLowerCase()),
   );
 
-  const groupedStudents = filteredStudents.reduce((acc, student) => {
-    if (!acc[student.turma]) {
-      acc[student.turma] = [];
-    }
-    acc[student.turma].push(student);
-    return acc;
-  }, {} as Record<string, StudentData[]>);
+  const groupedStudents = filteredStudents.reduce(
+    (acc, student) => {
+      if (!acc[student.turma]) {
+        acc[student.turma] = [];
+      }
+      acc[student.turma].push(student);
+      return acc;
+    },
+    {} as Record<string, StudentData[]>,
+  );
 
   // Determine Turmas to display, even empty ones if search is empty, but we only have students.
   // We'll just show what's in groupedStudents.
@@ -218,23 +279,30 @@ export default function StudentsDatabase() {
             <div className="p-3 bg-blue-100 text-blue-700 rounded-2xl shadow-sm">
               <Users size={28} />
             </div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Banco de Alunos</h1>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+              Banco de Alunos
+            </h1>
           </div>
-          <p className="text-slate-500 font-medium">Cadastros e turmas organizados de forma simples e rápida.</p>
+          <p className="text-slate-500 font-medium">
+            Cadastros e turmas organizados de forma simples e rápida.
+          </p>
         </div>
       </div>
 
       <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-[500px]">
         <div className="p-4 md:p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:max-w-md">
-            <input 
+            <input
               type="text"
               placeholder="Buscar aluno por nome ou turma..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm text-sm"
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              size={18}
+            />
           </div>
           <div className="text-sm font-bold text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
             <GraduationCap size={16} className="text-blue-600" />
@@ -251,83 +319,111 @@ export default function StudentsDatabase() {
           ) : Object.keys(groupedStudents).length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">
               <Users className="mb-4 opacity-20" size={64} />
-              <p className="text-lg font-bold text-slate-600 mb-2">Nenhum aluno encontrado</p>
-              <p className="text-sm">Abra a janela de "Controle de Tarefas" para cadastrar alunos das turmas.</p>
+              <p className="text-lg font-bold text-slate-600 mb-2">
+                Nenhum aluno encontrado
+              </p>
+              <p className="text-sm">
+                Abra a janela de "Controle de Tarefas" para cadastrar alunos das
+                turmas.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {Object.entries(groupedStudents).sort(([a], [b]) => a.localeCompare(b)).map(([turma, turmaStudents]) => {
-                const isExpanded = expandedTurmas[turma] || search.length > 0;
-                return (
-                  <div key={turma} className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                    <div 
-                      className={`p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? 'bg-slate-50 border-b border-slate-100' : ''}`}
-                      onClick={() => toggleTurma(turma)}
+              {Object.entries(groupedStudents)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([turma, turmaStudents]) => {
+                  const isExpanded = expandedTurmas[turma] || search.length > 0;
+                  return (
+                    <div
+                      key={turma}
+                      className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg transition-colors ${isExpanded ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-500'}`}>
-                          <Book size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-slate-800">{turma}</h2>
-                        <span className="text-xs font-bold text-slate-500 bg-slate-200/50 px-2.5 py-1 rounded-lg">
-                          {turmaStudents.length} {turmaStudents.length === 1 ? 'aluno' : 'alunos'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {isExpanded && (
-                          <>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleOpenImport(turma); }}
-                              className="bg-white text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-50 shadow-sm flex items-center gap-2 transition-colors mr-1"
-                              title="Substituir todos os alunos da turma"
-                            >
-                              <Upload size={16} /> Substituir Lista
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleDeleteTurma(turma); }}
-                              className="bg-white text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-50 shadow-sm flex items-center gap-2 transition-colors mr-2"
-                              title="Excluir Turma"
-                            >
-                              <Trash2 size={16} /> Excluir
-                            </button>
-                          </>
-                        )}
-                        <div className={`text-slate-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                          <ChevronDown size={24} />
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50/30">
-                            {turmaStudents.map(student => (
-                              <div key={student.id} className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between shadow-sm group">
-                                <span className="font-semibold text-slate-700 uppercase text-sm leading-tight group-hover:text-blue-700 transition-colors">
-                                  {student.name}
-                                </span>
-                                <button 
-                                  onClick={() => removeStudent(turma, student.id)}
-                                  className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                  title="Remover Aluno"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            ))}
+                      <div
+                        className={`p-4 flex items-center justify-between cursor-pointer hover:bg-slate-50 transition-colors ${isExpanded ? "bg-slate-50 border-b border-slate-100" : ""}`}
+                        onClick={() => toggleTurma(turma)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-lg transition-colors ${isExpanded ? "bg-blue-100 text-blue-600" : "bg-slate-100 text-slate-500"}`}
+                          >
+                            <Book size={20} />
                           </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
+                          <h2 className="text-lg font-bold text-slate-800">
+                            {turma}
+                          </h2>
+                          <span className="text-xs font-bold text-slate-500 bg-slate-200/50 px-2.5 py-1 rounded-lg">
+                            {turmaStudents.length}{" "}
+                            {turmaStudents.length === 1 ? "aluno" : "alunos"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {isExpanded && (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenImport(turma);
+                                }}
+                                className="bg-white text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-indigo-50 shadow-sm flex items-center gap-2 transition-colors mr-1"
+                                title="Substituir todos os alunos da turma"
+                              >
+                                <Upload size={16} /> Substituir Lista
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteTurma(turma);
+                                }}
+                                className="bg-white text-red-600 border border-red-200 px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-red-50 shadow-sm flex items-center gap-2 transition-colors mr-2"
+                                title="Excluir Turma"
+                              >
+                                <Trash2 size={16} /> Excluir
+                              </button>
+                            </>
+                          )}
+                          <div
+                            className={`text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                          >
+                            <ChevronDown size={24} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 bg-slate-50/30">
+                              {turmaStudents.map((student) => (
+                                <div
+                                  key={student.id}
+                                  className="bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between shadow-sm group"
+                                >
+                                  <span className="font-semibold text-slate-700 uppercase text-sm leading-tight group-hover:text-blue-700 transition-colors">
+                                    {student.name}
+                                  </span>
+                                  <button
+                                    onClick={() =>
+                                      removeStudent(turma, student.id)
+                                    }
+                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                    title="Remover Aluno"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>
@@ -336,16 +432,27 @@ export default function StudentsDatabase() {
       <AnimatePresence>
         {isImportModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center pt-20 pb-4 px-4">
-            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm" onClick={() => setIsImportModalOpen(false)}></div>
-            <motion.div 
+            <div
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setIsImportModalOpen(false)}
+            ></div>
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full relative z-10 flex flex-col max-h-[85vh]"
             >
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Importar / Substituir Turma</h2>
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
+                Importar / Substituir Turma
+              </h2>
               <p className="text-slate-500 mb-6 font-medium leading-relaxed">
-                Cole a lista de nomes abaixo ou faça upload de um CSV/PDF. <strong className="text-amber-600">Atenção:</strong> Isso irá substituir a lista de alunos atual da turma <span className="bg-slate-100 px-2 rounded">{importTargetTurma}</span>. Alunos com o mesmo nome manterão suas notas.
+                Cole a lista de nomes abaixo ou faça upload de um CSV/PDF.{" "}
+                <strong className="text-amber-600">Atenção:</strong> Isso irá
+                substituir a lista de alunos atual da turma{" "}
+                <span className="bg-slate-100 px-2 rounded">
+                  {importTargetTurma}
+                </span>
+                . Alunos com o mesmo nome manterão suas notas.
               </p>
 
               <div className="flex-1 overflow-y-auto pr-2 mb-6 min-h-[250px]">
@@ -358,27 +465,27 @@ export default function StudentsDatabase() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  onChange={handleFileUpload} 
-                  className="hidden" 
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
                   accept=".csv,.txt,.pdf,.docx"
                 />
-                <button 
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 border border-slate-200"
                 >
                   <FileText size={18} /> Carregar Arquivo
                 </button>
                 <div className="flex-1"></div>
-                <button 
+                <button
                   onClick={() => setIsImportModalOpen(false)}
                   className="px-6 py-3 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={handleReplaceStudents}
                   disabled={!importText.trim()}
                   className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
@@ -393,4 +500,3 @@ export default function StudentsDatabase() {
     </motion.div>
   );
 }
-
