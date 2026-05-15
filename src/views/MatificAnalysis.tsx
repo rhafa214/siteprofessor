@@ -14,6 +14,8 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { collection, doc, setDoc, getDoc } from "firebase/firestore";
@@ -59,6 +61,7 @@ export default function MatificAnalysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [studentMode, setStudentMode] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { confirm } = useConfirm();
 
   useEffect(() => {
@@ -378,7 +381,7 @@ export default function MatificAnalysis() {
           )}
         </div>
       ) : (
-        <>
+        <div className={isFullscreen ? "fixed inset-0 z-[100] bg-slate-50 overflow-y-auto p-4 md:p-8 flex flex-col gap-4" : "flex flex-col gap-4"}>
           <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3">
               <button
@@ -391,17 +394,30 @@ export default function MatificAnalysis() {
               <h2 className="text-xl font-bold text-slate-800">{selectedTurma}</h2>
             </div>
             
-            {/* Student Mode Toggle */}
-            <button
-              onClick={() => setStudentMode(!studentMode)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors border ${studentMode ? "bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
-            >
-              {studentMode ? (
-                <><EyeOff size={16} /> Ocultar Notas (Modo Aluno ON)</>
-              ) : (
-                <><Eye size={16} /> Mostrar como Aluno (Modo Emojis)</>
+            {/* Student Mode Toggle and Fullscreen */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => {
+                  if (studentMode) setIsFullscreen(false);
+                  setStudentMode(!studentMode);
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors border ${studentMode ? "bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200" : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+              >
+                {studentMode ? (
+                  <><EyeOff size={16} /> Ocultar Notas (Modo Aluno ON)</>
+                ) : (
+                  <><Eye size={16} /> Mostrar como Aluno (Modo Emojis)</>
+                )}
+              </button>
+              {studentMode && (
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm shadow-sm transition-colors border bg-white border-slate-200 text-slate-700 hover:bg-slate-50`}
+                >
+                  {isFullscreen ? <><Minimize size={16} /> Sair da Tela Cheia</> : <><Maximize size={16} /> Tela Cheia</>}
+                </button>
               )}
-            </button>
+            </div>
           </div>
 
           {isLoading ? (
@@ -492,16 +508,16 @@ export default function MatificAnalysis() {
                     <h3 className="text-xl font-bold text-slate-700 mb-2">Nenhum aluno cadastrado</h3>
                   </div>
                 ) : (
-                  <table className="w-full text-left border-collapse min-w-[800px]">
+                  <table className={`w-full text-left border-collapse ${studentMode ? "table-fixed" : "min-w-[800px]"}`}>
                     <thead>
                       <tr className="bg-white border-b-2 border-slate-200 sticky top-0 z-10 shadow-sm">
-                        <th className="p-4 font-bold text-slate-800 sticky left-0 bg-white z-20 shadow-[1px_0_0_#e2e8f0] w-12 text-center">#</th>
-                        <th className="p-4 font-bold text-slate-800 sticky left-[48px] bg-white z-20 shadow-[1px_0_0_#e2e8f0] min-w-[200px]">Nome do Aluno</th>
+                        <th className={`p-2 lg:p-4 font-bold text-slate-800 sticky left-0 bg-white z-20 shadow-[1px_0_0_#e2e8f0] ${studentMode ? "w-10" : "w-12"} text-center`}>#</th>
+                        <th className={`p-2 lg:p-4 font-bold text-slate-800 sticky left-[40px] md:left-[48px] bg-white z-20 shadow-[1px_0_0_#e2e8f0] ${studentMode ? "w-1/4" : "min-w-[200px]"}`}>Nome</th>
                         {classData.weeks.map((week) => (
-                          <th key={week.id} className="p-4 border-l border-slate-100 bg-slate-50 min-w-[140px] text-center">
-                            <div className="flex flex-col items-center gap-1 relative group">
-                              <span className="text-sm font-bold text-blue-900 border-b border-blue-200 pb-1 mb-1 truncate" title={week.title}>{week.title}</span>
-                              <span className="text-[10px] text-slate-500">{new Date(week.date + "T12:00:00").toLocaleDateString("pt-BR")}</span>
+                          <th key={week.id} className={`p-1 lg:p-2 border-l border-slate-100 bg-slate-50 text-center ${studentMode ? "w-[8%]" : "min-w-[140px]"}`}>
+                            <div className="flex flex-col items-center gap-1 relative group w-full overflow-hidden">
+                              <span className={`font-bold text-blue-900 border-b border-blue-200 pb-1 mb-1 truncate w-full ${studentMode ? "text-[10px] lg:text-xs" : "text-sm"}`} title={week.title}>{week.title}</span>
+                              <span className={`${studentMode ? "text-[8px] lg:text-[10px]" : "text-[10px]"} text-slate-500`}>{new Date(week.date + "T12:00:00").toLocaleDateString("pt-BR", {month: "numeric", day: "numeric"})}</span>
                               {!studentMode && (
                                 <button onClick={() => removeWeek(week.id)} className="absolute -top-2 -right-2 text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 bg-white p-1 rounded-full shadow-sm">
                                   <Trash2 size={12} />
@@ -510,8 +526,8 @@ export default function MatificAnalysis() {
                             </div>
                           </th>
                         ))}
-                        <th className="p-4 font-bold text-blue-900 border-l-2 border-blue-100 bg-blue-50/50 w-24 text-center">
-                          Média<br/><span className="text-[10px] font-normal opacity-70">(0 a 10)</span>
+                        <th className={`p-2 lg:p-4 font-bold text-blue-900 border-l-2 border-blue-100 bg-blue-50/50 text-center ${studentMode ? "w-[12%]" : "w-24"}`}>
+                          Média<br/><span className={`${studentMode ? "hidden" : "text-[10px]"} font-normal opacity-70`}>(0 a 10)</span>
                         </th>
                         {!studentMode && <th className="p-4 w-12 text-center text-slate-400"><Trash2 size={16} className="mx-auto" /></th>}
                       </tr>
@@ -521,8 +537,8 @@ export default function MatificAnalysis() {
                         const stats = calculateMedia(student.id);
                         return (
                           <tr key={student.id} className={`border-b border-slate-100 transition-colors group ${studentMode ? "" : "hover:bg-slate-50"}`}>
-                            <td className={`p-4 text-sm text-slate-400 font-mono text-center sticky left-0 z-10 shadow-[1px_0_0_#e2e8f0] ${studentMode ? "bg-white" : "bg-white group-hover:bg-slate-50"}`}>{idx + 1}</td>
-                            <td className={`p-4 text-sm font-bold text-slate-700 truncate max-w-[200px] sticky left-[48px] z-10 shadow-[1px_0_0_#e2e8f0] ${studentMode ? "bg-white" : "bg-white group-hover:bg-slate-50"}`}>
+                            <td className={`p-2 lg:p-4 text-sm text-slate-400 font-mono text-center sticky left-0 z-10 shadow-[1px_0_0_#e2e8f0] ${studentMode ? "bg-white" : "bg-white group-hover:bg-slate-50"}`}>{idx + 1}</td>
+                            <td className={`p-2 lg:p-4 text-xs lg:text-sm font-bold text-slate-700 truncate sticky left-[40px] md:left-[48px] z-10 shadow-[1px_0_0_#e2e8f0] ${studentMode ? "bg-white max-w-[120px] lg:max-w-[200px]" : "bg-white group-hover:bg-slate-50 max-w-[200px]"}`}>
                               {studentMode ? student.name.split(" ")[0] + "..." : student.name}
                             </td>
                             {classData.weeks.map((week) => {
@@ -531,7 +547,7 @@ export default function MatificAnalysis() {
                               
                               if (studentMode) {
                                 return (
-                                  <td key={week.id} className="p-3 border-l border-slate-100 text-center text-2xl" title={val ? `${val} minutos` : "Sem dados"}>
+                                  <td key={week.id} className="p-1 lg:p-3 border-l border-slate-100 text-center text-xl lg:text-2xl" title={val ? `${val} minutos` : "Sem dados"}>
                                     {getEmojiForMinutes(val)}
                                   </td>
                                 );
@@ -558,14 +574,16 @@ export default function MatificAnalysis() {
                                 </td>
                               );
                             })}
-                            <td className="p-4 font-black border-l-2 border-blue-100 bg-blue-50/30 text-center flex flex-col justify-center h-full gap-1 items-center">
-                              {studentMode ? (
-                                <span className={`text-2xl`}>{getEmojiForMinutes(stats.final > 0 ? (stats.final/10)*30 : null) !== "➖" ? (stats.final >= 8 ? "🤩" : stats.final >= 5 ? "🙂" : stats.final > 0 ? "😐" : "😢") : "➖"}</span>
-                              ) : (
-                                <span className={`text-lg ${stats.scoredWeeks === 0 ? "text-slate-300" : stats.final < 5 ? "text-red-600" : stats.final < 8 ? "text-blue-500" : "text-blue-700"}`}>
-                                  {stats.final.toFixed(1)}
-                                </span>
-                              )}
+                            <td className="p-2 lg:p-4 font-black border-l-2 border-blue-100 bg-blue-50/30 text-center h-full">
+                              <div className="flex flex-col justify-center items-center h-full gap-1">
+                                {studentMode ? (
+                                  <span className="text-xl lg:text-2xl">{getEmojiForMinutes(stats.final > 0 ? (stats.final/10)*30 : null) !== "➖" ? (stats.final >= 8 ? "🤩" : stats.final >= 5 ? "🙂" : stats.final > 0 ? "😐" : "😢") : "➖"}</span>
+                                ) : (
+                                  <span className={`text-lg ${stats.scoredWeeks === 0 ? "text-slate-300" : stats.final < 5 ? "text-red-600" : stats.final < 8 ? "text-blue-500" : "text-blue-700"}`}>
+                                    {stats.final.toFixed(1)}
+                                  </span>
+                                )}
+                              </div>
                             </td>
                             {!studentMode && (
                               <td className="p-4 text-center">
@@ -583,7 +601,7 @@ export default function MatificAnalysis() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </motion.div>
   );

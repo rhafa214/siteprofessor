@@ -29,7 +29,6 @@ export default function ConfirmModal({
       if (e.key === "Enter") {
         e.preventDefault();
         onConfirm();
-        onCancel();
       } else if (e.key === "Escape") {
         e.preventDefault();
         onCancel();
@@ -98,10 +97,7 @@ export default function ConfirmModal({
                   {cancelText}
                 </button>
                 <button
-                  onClick={() => {
-                    onConfirm();
-                    onCancel();
-                  }}
+                  onClick={onConfirm}
                   className={`px-6 py-2.5 rounded-xl text-sm font-bold shadow-sm transition-colors focus:ring-4 outline-none w-full sm:w-auto ${
                     isDestructive
                       ? "bg-rose-500 text-white hover:bg-rose-600 focus:ring-rose-500/20"
