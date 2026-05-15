@@ -225,7 +225,7 @@ export default function KnowledgeBase() {
                 <FileSpreadsheet size={20} />
               </div>
               <h2 className="text-lg font-bold text-slate-800 tracking-tight">
-                O que ensinar? (Matriz)
+                O que ensinar? (Matriz / Escopo-Sequência)
               </h2>
             </div>
 
@@ -262,7 +262,7 @@ export default function KnowledgeBase() {
               <Info size={16} className="mt-0.5 shrink-0" />
               <span>
                 Cole aqui o conteúdo da planilha do Estado (Currículo Paulista,
-                habilidades, materiais). Pode copiar as células da planilha e
+                habilidades, materiais) ou anexe o PDF do Escopo-Sequência. Pode copiar as células da planilha e
                 colar direto aqui.
               </span>
             </p>
@@ -271,7 +271,7 @@ export default function KnowledgeBase() {
           <div className="flex-1 min-h-0 mb-4">
             <textarea
               className="w-full h-full p-4 text-sm border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono"
-              placeholder="Cole os dados da planilha aqui...&#10;Ex:&#10;Habilidade: EF06LP01&#10;Objeto de conhecimento: Reconstrução das condições de produção e recepção de textos..."
+              placeholder="Cole os dados da planilha/escopo aqui...&#10;Ex:&#10;Habilidade: EF06LP01&#10;Objeto de conhecimento: Reconstrução das condições de produção e recepção de textos..."
               value={curriculumData}
               onChange={(e) => setCurriculumData(e.target.value)}
             />

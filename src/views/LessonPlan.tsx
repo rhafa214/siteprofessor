@@ -106,6 +106,9 @@ export default function LessonPlan() {
     newFolder: "",
   });
 
+  const [isSemanalClassesModalOpen, setIsSemanalClassesModalOpen] = useState(false);
+  const [selectedSemanalClasses, setSelectedSemanalClasses] = useState<string[]>([]);
+
   useEffect(() => {
     if (user) {
       const fetchPlans = async () => {
@@ -279,11 +282,15 @@ export default function LessonPlan() {
     }
   }, [user]);
 
-  const handleQuinzenalClick = () => {
+  const handleSemanalClick = () => {
     setViewMode("chat");
-    setInputVal(
-      "Preciso de um planejamento QUINZENAL detalhado para minhas aulas. Baseado na matriz curricular e no modelo estruturado, descreva aula a aula para as próximas duas semanas. Por favor, me faça as perguntas necessárias para começarmos, como: tema/habilidade foco destas semanas, ano/série, etc.",
-    );
+    setIsSemanalClassesModalOpen(false);
+    handleNewChat();
+    
+    // We use a timeout to avoid react state batching overriding the messages immediately
+    setTimeout(() => {
+      handleSend(undefined, `Quero um planejamento SEMANAL para as seguintes turmas: ${selectedSemanalClasses.join(", ")}. Por favor, me pergunte qual(is) aula(s) eu vou trabalhar (por exemplo: "aula 1 do segundo bimestre", "aulas 2 e 3", etc.). Quando eu responder com as aulas, você DEVE procurar OBRIGATORIAMENTE no seu material base (escopo/sequência/matriz curricular) e me mostrar as Habilidades, Aprendizagens Essenciais, Objetivos e os Conteúdos exatos da aula antes de seguirmos para o plano.`);
+    }, 100);
   };
 
   const handleBimestralClick = () => {
@@ -425,12 +432,13 @@ export default function LessonPlan() {
     scrollToBottom();
   }, [messages, isTyping, viewMode]);
 
-  const handleSend = async (e?: React.FormEvent) => {
+  const handleSend = async (e?: React.FormEvent, overrideMessage?: string) => {
     if (e) e.preventDefault();
-    if (!inputVal.trim() || isTyping) return;
+    const messageToSend = overrideMessage || inputVal;
+    if (!messageToSend.trim() || isTyping) return;
 
-    const userMsg = inputVal.trim();
-    setInputVal("");
+    const userMsg = messageToSend.trim();
+    if (!overrideMessage) setInputVal("");
     setMessages((prev) => [
       ...prev,
       { id: Date.now().toString(), role: "user", content: userMsg },
@@ -642,7 +650,10 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
           </button>
 
           <button
-            onClick={handleQuinzenalClick}
+            onClick={() => {
+              setSelectedSemanalClasses([]);
+              setIsSemanalClassesModalOpen(true);
+            }}
             className="flex flex-col items-start p-8 bg-white border border-emerald-100 rounded-3xl shadow-sm hover:shadow-md hover:border-emerald-300 transition-all text-left relative overflow-hidden group cursor-pointer"
           >
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-emerald-50/80 rounded-full group-hover:scale-150 transition-transform duration-500 ease-out z-0"></div>
@@ -650,11 +661,10 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               <ListTodo size={28} />
             </div>
             <h3 className="text-xl font-black text-slate-800 mb-3 relative z-10 tracking-tight">
-              Gerar Plano Quinzenal
+              Gerar Plano Semanal
             </h3>
             <p className="text-sm text-slate-500 font-medium relative z-10 leading-relaxed">
-              Estrutura atividades, metodologias passo a passo considerando o
-              modelo da sua escola.
+              Escolha suas turmas e estruture as aulas semanais extraindo habilidades e objetivos diretamente do escopo sequência.
             </p>
           </button>
 
@@ -1236,6 +1246,69 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                 className="flex-1 bg-indigo-600 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50"
               >
                 Criar Documento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isSemanalClassesModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center top-0 left-0">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setIsSemanalClassesModalOpen(false)}
+          ></div>
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative z-10 m-4 flex flex-col max-h-[90vh]">
+            <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 shrink-0">
+              <ListTodo size={24} />
+            </div>
+            <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">
+              Plano Semanal
+            </h3>
+            <p className="text-sm font-medium text-slate-500 mb-6 shrink-0">
+              Selecione as turmas para as quais você deseja planejar a semana.
+            </p>
+            
+            <div className="space-y-3 overflow-y-auto pr-2 mb-6 scrollbar-thin flex-1">
+              {turmasList.length === 0 ? (
+                <p className="text-sm text-slate-500 italic">Nenhuma turma cadastrada no diário.</p>
+              ) : (
+                turmasList.map((turma) => (
+                  <label key={turma} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-colors group">
+                    <div className="relative flex items-center justify-center">
+                      <input 
+                        type="checkbox" 
+                        className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-emerald-500 checked:border-emerald-500 transition-colors"
+                        checked={selectedSemanalClasses.includes(turma)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedSemanalClasses((prev) => [...prev, turma]);
+                          } else {
+                            setSelectedSemanalClasses((prev) => prev.filter(t => t !== turma));
+                          }
+                        }}
+                      />
+                      <CheckCircle2 size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 placeholder-events-none transition-opacity" />
+                    </div>
+                    <span className="font-bold text-slate-700 group-hover:text-emerald-800 transition-colors">{turma}</span>
+                  </label>
+                ))
+              )}
+            </div>
+
+            <div className="flex gap-3 shrink-0">
+              <button
+                onClick={() => setIsSemanalClassesModalOpen(false)}
+                className="flex-1 bg-white border border-slate-200 text-slate-600 px-4 py-3.5 rounded-2xl font-bold hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                disabled={selectedSemanalClasses.length === 0}
+                onClick={handleSemanalClick}
+                className="flex-1 bg-emerald-500 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-emerald-600 transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Bot size={18} /> Iniciar com Jarvis
               </button>
             </div>
           </div>
