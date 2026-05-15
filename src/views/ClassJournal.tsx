@@ -26,6 +26,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 
 interface ClassLog {
   id: number;
@@ -50,6 +51,7 @@ const horariosDeAula = [
 
 export default function ClassJournal() {
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const [logs, setLogs] = useLocalStorage<ClassLog[]>("classLogs", []);
   const [turmasList, setTurmasList] = useLocalStorage<string[]>(
     "classTurmasList",
@@ -124,8 +126,8 @@ export default function ClassJournal() {
     }
   }, [user]);
 
-  const handleDeleteLog = (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este registro?")) {
+  const handleDeleteLog = async (id: number) => {
+    if (await confirm({ title: "Excluir Registro", message: "Tem certeza que deseja excluir este registro?", isDestructive: true })) {
       setLogs(logs.filter((log) => log.id !== id));
       if (user) {
         deleteDoc(doc(db, "users", user.uid, "classLogs", id.toString())).catch(
@@ -242,12 +244,14 @@ export default function ClassJournal() {
     setNovaTurma("");
   };
 
-  const handleRemoveTurma = (e: React.MouseEvent, t: string) => {
+  const handleRemoveTurma = async (e: React.MouseEvent, t: string) => {
     e.stopPropagation();
     if (
-      confirm(
-        `Tem certeza que deseja excluir a turma "${t}" do registro de aulas?`,
-      )
+      await confirm({
+        title: "Excluir Turma",
+        message: `Tem certeza que deseja excluir a turma "${t}" do registro de aulas?`,
+        isDestructive: true,
+      })
     ) {
       setTurmasList((current: string[]) => {
         const list = Array.isArray(current) ? current : [];

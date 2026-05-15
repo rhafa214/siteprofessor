@@ -17,6 +17,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 import { extractTextFromFile } from "../lib/fileExtraction";
 
 interface Student {
@@ -42,6 +43,7 @@ const defaultClassData: ClassData = { students: [], tasks: [], grades: {} };
 
 export default function TaskAnalysis() {
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const [turmasList, setTurmasList] = useLocalStorage<string[]>(
     "classTurmasList",
     [
@@ -214,11 +216,13 @@ export default function TaskAnalysis() {
     }
   };
 
-  const removeStudent = (id: string) => {
+  const removeStudent = async (id: string) => {
     if (
-      confirm(
-        "Tem certeza que deseja remover este aluno e todas as suas notas?",
-      )
+      await confirm({
+        title: "Remover Aluno",
+        message: "Tem certeza que deseja remover este aluno e todas as suas notas?",
+        isDestructive: true,
+      })
     ) {
       const newStudents = classData.students.filter((s) => s.id !== id);
       const newGrades = { ...classData.grades };
@@ -257,11 +261,13 @@ export default function TaskAnalysis() {
     });
   };
 
-  const removeTask = (id: string) => {
+  const removeTask = async (id: string) => {
     if (
-      confirm(
-        "Tem certeza que deseja remover esta tarefa? Todas as notas associadas serão apagadas.",
-      )
+      await confirm({
+        title: "Remover Tarefa",
+        message: "Tem certeza que deseja remover esta tarefa? Todas as notas associadas serão apagadas.",
+        isDestructive: true,
+      })
     ) {
       const newTasks = classData.tasks.filter((t) => t.id !== id);
       const newGrades = { ...classData.grades };
@@ -329,12 +335,14 @@ export default function TaskAnalysis() {
     };
   };
 
-  const handleDeleteTurma = (e: React.MouseEvent, turma: string) => {
+  const handleDeleteTurma = async (e: React.MouseEvent, turma: string) => {
     e.stopPropagation();
     if (
-      confirm(
-        `Tem certeza que deseja excluir a turma "${turma}" permanentemente? Isso apagará todas as tarefas e notas associadas.`,
-      )
+      await confirm({
+        title: "Excluir Turma",
+        message: `Tem certeza que deseja excluir a turma "${turma}" permanentemente? Isso apagará todas as tarefas e notas associadas.`,
+        isDestructive: true,
+      })
     ) {
       const newList = (turmasList || []).filter((t) => t !== turma);
       setTurmasList(newList);

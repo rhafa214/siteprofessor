@@ -86,17 +86,6 @@ function timeAgo(dateString?: string) {
   return "agora";
 }
 
-function normalizeImageUrl(url: string) {
-  if (!url) return null;
-  if (
-    url.includes("news.google.com/api/attachments") ||
-    url.includes("-w200-h200")
-  ) {
-    return url.replace(/=-w\d+-h\d+.*$/, "=-w800-h600-p-df");
-  }
-  return url;
-}
-
 export default function NewsCarousel() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,18 +106,11 @@ export default function NewsCarousel() {
 
             if (data.status === "ok") {
               return data.items.map((item: any, idx: number) => {
-                let imgUrl = item.thumbnail || item.enclosure?.link;
-                if (!imgUrl) {
-                  const match = item.description?.match(
-                    /<img[^>]+src="([^">]+)"/,
-                  );
-                  if (match) imgUrl = match[1];
-                }
                 return {
                   id: `${cat.id}-${idx}`,
                   title: item.title.split(" - ")[0],
                   link: item.link,
-                  thumbnail: imgUrl ? normalizeImageUrl(imgUrl) : null,
+                  thumbnail: null,
                   source: item.title.split(" - ").pop() || "Notícias",
                   publishedDate: item.pubDate,
                   category: cat,

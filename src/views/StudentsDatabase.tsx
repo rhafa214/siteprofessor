@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 import {
   collection,
   getDocs,
@@ -33,6 +34,7 @@ interface StudentData {
 
 export default function StudentsDatabase() {
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const [students, setStudents] = useState<StudentData[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -88,9 +90,10 @@ export default function StudentsDatabase() {
   const handleDeleteTurma = async (turmaId: string) => {
     if (!user) return;
     if (
-      confirm(
-        `Tem certeza que deseja excluir a turma "${turmaId}" e TODOS os seus alunos e notas?`,
-      )
+      await confirm({
+        title: "Excluir Turma",
+        message: `Tem certeza que deseja excluir a turma "${turmaId}" e TODOS os seus alunos e notas?`,
+      })
     ) {
       try {
         await deleteDoc(doc(db, "users", user.uid, "taskAnalysis", turmaId));
@@ -118,7 +121,7 @@ export default function StudentsDatabase() {
   };
 
   const removeStudent = async (turmaId: string, studentId: string) => {
-    if (!confirm("Tem certeza que deseja remover este aluno da turma?")) return;
+    if (!(await confirm({ title: "Remover Aluno", message: "Tem certeza que deseja remover este aluno da turma?" }))) return;
 
     if (user) {
       try {

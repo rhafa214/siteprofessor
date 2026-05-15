@@ -418,6 +418,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
 Ajude o/a professor/a ${user?.displayName?.split(" ")[0] || ""} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
 
 Se o usuário pedir para ser lembrado de algo, DEVE SEMPRE usar a função \`addReminder\`.
+Se o usuário pedir para adicionar semanas ao controle do Matific, DEVE SEMPRE usar a função \`addMatificWeeks\`. Tente identificar a turma mais próxima na lista se a informada for parecida. Turmas cadastradas: ["6°A - Orientação de estudos", "6°B - Matemática", "6°C - Matemática", "7°C - Matemática", "8°A - Matemática", "Itinerário 1° e 2°"].
 
 Para sua referência, as datas do calendário escolar de 2026 são:
 - Início do ano letivo: 02/02/2026
@@ -478,6 +479,24 @@ Bimestres escolares:
                     required: ["task"],
                   },
                 },
+                {
+                  name: "addMatificWeeks",
+                  description: "Adiciona uma quantidade de semanas ao controle estrutural do Matific de uma turma escolhida.",
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      turma: {
+                        type: Type.STRING,
+                        description: "Nome (ou parte do nome mais próxima da lista) da turma (Ex: '6°B - Matemática')."
+                      },
+                      qtdSemanas: {
+                        type: Type.INTEGER,
+                        description: "Quantidade de semanas a adicionar."
+                      }
+                    },
+                    required: ["turma", "qtdSemanas"],
+                  }
+                }
               ],
             },
           ],
@@ -502,6 +521,73 @@ Bimestres escolares:
               {
                 role: "bot",
                 text: `Entendido. Adicionado o lembrete: "${args.task}" à sua agenda pessoal, senhor.`,
+              },
+            ]);
+            functionCalled = true;
+            break;
+          } else if (call.name === "addMatificWeeks") {
+            const args = call.args as { turma: string, qtdSemanas: number };
+            const { turma, qtdSemanas } = args;
+            
+            // Lógica para adicionar semanas ao controle Matific
+            let classData = { students: [], weeks: [], minutes: {} };
+            let foundData = false;
+            
+            // Try to load from localStorage first or fetch from firestore if possible
+            const localDataStr = localStorage.getItem(`matificAnalysis_${turma}`);
+            if (localDataStr) {
+               classData = JSON.parse(localDataStr);
+               foundData = true;
+            } else if (user) {
+               // We will try fetching since local wasn't found
+            }
+
+            // Create new weeks
+            const currentWeeks = classData.weeks ? classData.weeks.length : 0;
+            const newWeeks = [];
+            for(let i = 0; i < qtdSemanas; i++) {
+               const weekNum = currentWeeks + i + 1;
+               newWeeks.push({ id: `jarvis-${Date.now()}-${i}`, title: `Semana ${weekNum}`, date: new Date().toLocaleDateString('pt-BR') });
+            }
+            
+            classData.weeks = [...(classData.weeks || []), ...newWeeks];
+
+            // Initialize minutes for new weeks for all students
+            if(classData.students && Array.isArray(classData.students)) {
+               classData.students.forEach((s: any) => {
+                  if(!classData.minutes) classData.minutes = {};
+                  if(!classData.minutes[s.id]) classData.minutes[s.id] = {};
+                  newWeeks.forEach(nw => {
+                     classData.minutes[s.id][nw.id] = null;
+                  });
+               });
+            }
+
+            localStorage.setItem(`matificAnalysis_${turma}`, JSON.stringify(classData));
+
+            // Also try saving to firestore but do it detached so it doesn't block
+            if (user) {
+               getDoc(doc(db, "users", user.uid, "matificAnalysis", turma)).then(snap => {
+                  let fbData = snap.exists() ? snap.data() : { students: [], weeks: [], minutes: {} };
+                  fbData.weeks = [...(fbData.weeks || []), ...newWeeks];
+                  if(fbData.students && Array.isArray(fbData.students)) {
+                     fbData.students.forEach((s: any) => {
+                        if(!fbData.minutes) fbData.minutes = {};
+                        if(!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
+                        newWeeks.forEach(nw => {
+                           fbData.minutes[s.id][nw.id] = null;
+                        });
+                     });
+                  }
+                  setDoc(doc(db, "users", user.uid, "matificAnalysis", turma), fbData).catch(console.error);
+               }).catch(console.error);
+            }
+
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                role: "bot",
+                text: `Pronto! Adicionei ${qtdSemanas} nova(s) semana(s) ao controle do Matific da turma ${turma}, como solicitado. Você já pode conferir lá no Controle Matific.`,
               },
             ]);
             functionCalled = true;

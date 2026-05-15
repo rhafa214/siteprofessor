@@ -38,6 +38,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 
 import { useJarvisKnowledge } from "../hooks/useJarvisKnowledge";
 
@@ -71,6 +72,7 @@ interface Plan {
 
 export default function LessonPlan() {
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const { curriculum, schoolModel } = useJarvisKnowledge();
   const [oldContent, setOldContent] = useLocalStorage<string>("eduPlan", "");
   const [plansDict, setPlansDict] = useLocalStorage<Record<string, string>>(
@@ -364,24 +366,28 @@ export default function LessonPlan() {
     window.print();
   };
 
-  const handleClearText = () => {
+  const handleClearText = async () => {
     if (!activePlan) return;
     if (
-      window.confirm(
-        "Tem certeza que deseja apagar todo o texto deste plano? Esta ação não pode ser desfeita.",
-      )
+      await confirm({
+        title: "Apagar Texto",
+        message: "Tem certeza que deseja apagar todo o texto deste plano? Esta ação não pode ser desfeita.",
+        isDestructive: true,
+      })
     ) {
       setContent("");
       setMessages([]);
     }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     if (!activePlan) return;
     if (
-      window.confirm(
-        "Tem certeza que deseja excluir ESTE ARQUIVO inteiro? Esta ação não pode ser desfeita.",
-      )
+      await confirm({
+        title: "Excluir Arquivo",
+        message: "Tem certeza que deseja excluir ESTE ARQUIVO inteiro? Esta ação não pode ser desfeita.",
+        isDestructive: true,
+      })
     ) {
       deletePlan(activePlan.id);
       setMessages([]);
@@ -1017,9 +1023,9 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                                 <Move size={12} />
                               </button>
                               <button
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  if (window.confirm("Excluir plano?"))
+                                  if (await confirm({ title: "Excluir Plano", message: "Excluir plano?", isDestructive: true }))
                                     deletePlan(plan.id);
                                 }}
                                 className="p-1.5 hover:bg-white rounded-lg text-rose-600"

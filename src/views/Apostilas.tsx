@@ -23,6 +23,7 @@ import {
   doc,
 } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 import PdfViewer, { PdfThumbnail } from "../components/PdfViewer";
 import {
   savePdfLocal,
@@ -99,6 +100,7 @@ function ThumbnailRenderer({ url }: { url: string }) {
 
 export default function Apostilas() {
   const { user } = useAuth();
+  const { confirm } = useConfirm();
   const [apostilas, setApostilas] = useState<Apostila[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -108,7 +110,6 @@ export default function Apostilas() {
   const [newBimester, setNewBimester] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"apostila" | "documento">("apostila");
   const [filterBimester, setFilterBimester] = useState<string>("all");
-  const [itemToDelete, setItemToDelete] = useState<Apostila | null>(null);
 
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [selectedApostila, setSelectedApostila] = useState<Apostila | null>(
@@ -245,24 +246,20 @@ export default function Apostilas() {
     }
   };
 
-  const handleDelete = (e: React.MouseEvent, apo: Apostila) => {
+  const handleDelete = async (e: React.MouseEvent, apo: Apostila) => {
     e.stopPropagation();
-    setItemToDelete(apo);
-  };
-
-  const confirmDelete = async () => {
-    if (!user || !itemToDelete) return;
-    try {
-      await deleteDoc(doc(db, "users", user.uid, "apostilas", itemToDelete.id));
-      if (itemToDelete.pdfUrl && itemToDelete.pdfUrl.startsWith("local:")) {
-        await deletePdfLocal(itemToDelete.id);
+    if (!user) return;
+    if (await confirm({ title: "Excluir arquivo?", message: `Tem certeza que deseja remover ${apo.title}? Essa ação não poderá ser desfeita.`, isDestructive: true })) {
+      try {
+        await deleteDoc(doc(db, "users", user.uid, "apostilas", apo.id));
+        if (apo.pdfUrl && apo.pdfUrl.startsWith("local:")) {
+          await deletePdfLocal(apo.id);
+        }
+        if (selectedApostila?.id === apo.id) setSelectedApostila(null);
+      } catch (e) {
+        console.error(e);
+        alert("Erro ao remover o arquivo.");
       }
-      if (selectedApostila?.id === itemToDelete.id) setSelectedApostila(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao remover o arquivo.");
-    } finally {
-      setItemToDelete(null);
     }
   };
 
@@ -700,54 +697,6 @@ export default function Apostilas() {
                   />
                 </div>
               </motion.div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Delete Confirmation Modal */}
-      <AnimatePresence>
-        {itemToDelete && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setItemToDelete(null);
-              }
-            }}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
-            >
-              <div className="p-6">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                  <Trash2 className="text-red-600" size={24} />
-                </div>
-                <h2 className="text-xl font-bold text-slate-800 mb-2">Excluir arquivo?</h2>
-                <p className="text-slate-600">
-                  Tem certeza que deseja remover <strong>{itemToDelete.title}</strong>? Essa ação não poderá ser desfeita.
-                </p>
-                <div className="flex justify-end gap-3 mt-6">
-                  <button
-                    onClick={() => setItemToDelete(null)}
-                    className="px-4 py-2 font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={confirmDelete}
-                    className="px-4 py-2 font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors shadow-sm"
-                  >
-                    Excluir
-                  </button>
-                </div>
-              </div>
             </motion.div>
           </motion.div>
         )}

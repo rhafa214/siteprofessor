@@ -19,6 +19,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { useConfirm } from "../contexts/ConfirmContext";
 import { extractTextFromFile } from "../lib/fileExtraction";
 
 interface Student {
@@ -58,6 +59,7 @@ export default function MatificAnalysis() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [studentMode, setStudentMode] = useState(false);
+  const { confirm } = useConfirm();
 
   useEffect(() => {
     if (!selectedTurma) return;
@@ -213,8 +215,8 @@ export default function MatificAnalysis() {
     }
   };
 
-  const removeStudent = (id: string) => {
-    if (confirm("Tem certeza que deseja remover este aluno?")) {
+  const removeStudent = async (id: string) => {
+    if (await confirm({ title: "Remover Aluno", message: "Tem certeza que deseja remover este aluno?" })) {
       const newStudents = classData.students.filter((s) => s.id !== id);
       const newMinutes = { ...classData.minutes };
       delete newMinutes[id];
@@ -238,8 +240,8 @@ export default function MatificAnalysis() {
     setNewWeek({ title: "", date: new Date().toISOString().split("T")[0] });
   };
 
-  const removeWeek = (id: string) => {
-    if (confirm("Tem certeza que deseja remover esta semana?")) {
+  const removeWeek = async (id: string) => {
+    if (await confirm({ title: "Remover Semana", message: "Tem certeza que deseja remover esta semana?" })) {
       const newWeeks = classData.weeks.filter((w) => w.id !== id);
       const newMinutes = { ...classData.minutes };
       Object.keys(newMinutes).forEach((sId) => {
@@ -289,9 +291,9 @@ export default function MatificAnalysis() {
     };
   };
 
-  const handleDeleteTurma = (e: React.MouseEvent, turma: string) => {
+  const handleDeleteTurma = async (e: React.MouseEvent, turma: string) => {
     e.stopPropagation();
-    if (confirm(`Tem certeza que deseja excluir a turma "${turma}" permanentemente?`)) {
+    if (await confirm({ title: "Excluir Turma", message: `Tem certeza que deseja excluir a turma "${turma}" permanentemente?` })) {
       const newList = (turmasList || []).filter((t) => t !== turma);
       setTurmasList(newList);
       localStorage.removeItem(`matificAnalysis_${turma}`);
