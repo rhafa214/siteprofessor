@@ -418,7 +418,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
 Ajude o/a professor/a ${user?.displayName?.split(" ")[0] || ""} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
 
 Se o usuário pedir para ser lembrado de algo, DEVE SEMPRE usar a função \`addReminder\`.
-Se o usuário pedir para adicionar, editar ou excluir semanas ao controle do Matific, DEVE SEMPRE usar a função \`manageMatificWeeks\`. Para novas semanas o nome da semana deve vir com o período de dias, por exemplo '11 a 15 de maio', usando seu conhecimento de calendário. Tente identificar a turma mais próxima na lista. Turmas cadastradas: ["6°A - Orientação de estudos", "6°B - Matemática", "6°C - Matemática", "7°C - Matemática", "8°A - Matemática", "Itinerário 1° e 2°"].
+Se o usuário pedir para adicionar, editar ou excluir semanas ao controle do Matific, DEVE SEMPRE usar a função \`manageMatificWeeks\`. Para novas semanas o nome da semana deve vir com o período de dias, por exemplo '11 a 15 de maio', usando seu conhecimento de calendário. Tente identificar a turma mais próxima na lista. Turmas cadastradas: ${JSON.stringify(turmasList)}.
 
 Para sua referência, as datas do calendário escolar de 2026 são:
 - Início do ano letivo: 02/02/2026
