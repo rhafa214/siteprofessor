@@ -418,7 +418,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
 Ajude o/a professor/a ${user?.displayName?.split(" ")[0] || ""} com dicas de metodologias ativas, planos de aula, ideias de engajamento e dúvidas gerais de forma clara, amigável e concisa (use no máximo 3 a 4 frases curtas por resposta). Dirija-se a ele/ela pelo nome.
 
 Se o usuário pedir para ser lembrado de algo, DEVE SEMPRE usar a função \`addReminder\`.
-Se o usuário pedir para adicionar semanas ao controle do Matific, DEVE SEMPRE usar a função \`addMatificWeeks\`. Tente identificar a turma mais próxima na lista se a informada for parecida. Turmas cadastradas: ["6°A - Orientação de estudos", "6°B - Matemática", "6°C - Matemática", "7°C - Matemática", "8°A - Matemática", "Itinerário 1° e 2°"].
+Se o usuário pedir para adicionar, editar ou excluir semanas ao controle do Matific, DEVE SEMPRE usar a função \`manageMatificWeeks\`. Para novas semanas o nome da semana deve vir com o período de dias, por exemplo '11 a 15 de maio', usando seu conhecimento de calendário. Tente identificar a turma mais próxima na lista. Turmas cadastradas: ["6°A - Orientação de estudos", "6°B - Matemática", "6°C - Matemática", "7°C - Matemática", "8°A - Matemática", "Itinerário 1° e 2°"].
 
 Para sua referência, as datas do calendário escolar de 2026 são:
 - Início do ano letivo: 02/02/2026
@@ -480,21 +480,26 @@ Bimestres escolares:
                   },
                 },
                 {
-                  name: "addMatificWeeks",
-                  description: "Adiciona uma quantidade de semanas ao controle estrutural do Matific de uma turma escolhida.",
+                  name: "manageMatificWeeks",
+                  description: "Adiciona, edita ou exclui semanas ao controle do Matific de uma turma.",
                   parameters: {
                     type: Type.OBJECT,
                     properties: {
                       turma: {
                         type: Type.STRING,
-                        description: "Nome (ou parte do nome mais próxima da lista) da turma (Ex: '6°B - Matemática')."
+                        description: "Nome da turma (Ex: '6°B - Matemática')."
                       },
-                      qtdSemanas: {
-                        type: Type.INTEGER,
-                        description: "Quantidade de semanas a adicionar."
+                      action: {
+                        type: Type.STRING,
+                        description: "'add', 'edit' ou 'delete'."
+                      },
+                      semanas: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                        description: "Nomes das semanas. Para 'add': novas semanas (ex: ['11 a 15 de maio']). Para 'delete': nome exato ou aproximado das semanas a deletar. Para 'edit': no formato 'antigo|novo' (ex: '11 a 15 de maio|12 a 16 de maio')."
                       }
                     },
-                    required: ["turma", "qtdSemanas"],
+                    required: ["turma", "action", "semanas"],
                   }
                 }
               ],
@@ -525,60 +530,93 @@ Bimestres escolares:
             ]);
             functionCalled = true;
             break;
-          } else if (call.name === "addMatificWeeks") {
-            const args = call.args as { turma: string, qtdSemanas: number };
-            const { turma, qtdSemanas } = args;
+          } else if (call.name === "manageMatificWeeks") {
+            const args = call.args as { turma: string, action: string, semanas: string[] };
+            const { turma, action, semanas } = args;
             
-            // Lógica para adicionar semanas ao controle Matific
+            // Lógica para controle Matific
             let classData = { students: [], weeks: [], minutes: {} };
-            let foundData = false;
             
-            // Try to load from localStorage first or fetch from firestore if possible
             const localDataStr = localStorage.getItem(`matificAnalysis_${turma}`);
             if (localDataStr) {
                classData = JSON.parse(localDataStr);
-               foundData = true;
-            } else if (user) {
-               // We will try fetching since local wasn't found
             }
 
-            // Create new weeks
-            const currentWeeks = classData.weeks ? classData.weeks.length : 0;
-            const newWeeks = [];
-            for(let i = 0; i < qtdSemanas; i++) {
-               const weekNum = currentWeeks + i + 1;
-               newWeeks.push({ id: `jarvis-${Date.now()}-${i}`, title: `Semana ${weekNum}`, date: new Date().toLocaleDateString('pt-BR') });
-            }
-            
-            classData.weeks = [...(classData.weeks || []), ...newWeeks];
+            let responseMsg = "";
 
-            // Initialize minutes for new weeks for all students
-            if(classData.students && Array.isArray(classData.students)) {
-               classData.students.forEach((s: any) => {
-                  if(!classData.minutes) classData.minutes = {};
-                  if(!classData.minutes[s.id]) classData.minutes[s.id] = {};
-                  newWeeks.forEach(nw => {
-                     classData.minutes[s.id][nw.id] = null;
-                  });
-               });
+            if (action === "add") {
+              const newWeeks = semanas.map((title, i) => ({
+                id: `jarvis-${Date.now()}-${i}`,
+                title: title,
+                date: new Date().toLocaleDateString('pt-BR')
+              }));
+              classData.weeks = [...(classData.weeks || []), ...newWeeks];
+
+              if(classData.students && Array.isArray(classData.students)) {
+                 classData.students.forEach((s: any) => {
+                    if(!classData.minutes) classData.minutes = {};
+                    if(!classData.minutes[s.id]) classData.minutes[s.id] = {};
+                    newWeeks.forEach(nw => {
+                       classData.minutes[s.id][nw.id] = null;
+                    });
+                 });
+              }
+              responseMsg = `Pronto! Adicionei a(s) semana(s) solicitada(s) ao controle do Matific da turma ${turma}, como solicitado.`;
+            } else if (action === "edit") {
+              semanas.forEach(s => {
+                const [oldTitle, newTitle] = s.split("|").map(x => x?.trim());
+                if(oldTitle && newTitle && classData.weeks) {
+                  const weekIdx = classData.weeks.findIndex((w: any) => w.title.toLowerCase().includes(oldTitle.toLowerCase()));
+                  if (weekIdx !== -1) {
+                    classData.weeks[weekIdx].title = newTitle;
+                  }
+                }
+              });
+              responseMsg = `Entendido! Alerei a(s) semana(s) no controle do Matific da turma ${turma}.`;
+            } else if (action === "delete") {
+              semanas.forEach(s => {
+                if(classData.weeks) {
+                  const weekIdx = classData.weeks.findIndex((w: any) => w.title.toLowerCase().includes(s.toLowerCase()));
+                  if (weekIdx !== -1) {
+                    const weekId = classData.weeks[weekIdx].id;
+                    classData.weeks.splice(weekIdx, 1);
+                    if (classData.minutes) {
+                      Object.keys(classData.minutes).forEach(studentId => {
+                        delete classData.minutes[studentId][weekId];
+                      });
+                    }
+                  }
+                }
+              });
+              responseMsg = `As semanas foram removidas do controle do Matific da turma ${turma}.`;
             }
 
             localStorage.setItem(`matificAnalysis_${turma}`, JSON.stringify(classData));
 
-            // Also try saving to firestore but do it detached so it doesn't block
             if (user) {
                getDoc(doc(db, "users", user.uid, "matificAnalysis", turma)).then(snap => {
                   let fbData = snap.exists() ? snap.data() : { students: [], weeks: [], minutes: {} };
-                  fbData.weeks = [...(fbData.weeks || []), ...newWeeks];
-                  if(fbData.students && Array.isArray(fbData.students)) {
-                     fbData.students.forEach((s: any) => {
-                        if(!fbData.minutes) fbData.minutes = {};
-                        if(!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
-                        newWeeks.forEach(nw => {
-                           fbData.minutes[s.id][nw.id] = null;
-                        });
-                     });
+                  if (action === "add") {
+                    const newWeeks = semanas.map((title, i) => ({
+                      id: `jarvis-${Date.now()}-${i}`,
+                      title: title,
+                      date: new Date().toLocaleDateString('pt-BR')
+                    }));
+                    fbData.weeks = [...(fbData.weeks || []), ...newWeeks];
+                    if(fbData.students && Array.isArray(fbData.students)) {
+                       fbData.students.forEach((s: any) => {
+                          if(!fbData.minutes) fbData.minutes = {};
+                          if(!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
+                          newWeeks.forEach(nw => {
+                             fbData.minutes[s.id][nw.id] = null;
+                          });
+                       });
+                    }
+                  } else {
+                     // simplified update for edit/delete; just copy from local because they are in sync
+                     fbData = classData;
                   }
+                  
                   setDoc(doc(db, "users", user.uid, "matificAnalysis", turma), fbData).catch(console.error);
                }).catch(console.error);
             }
@@ -587,7 +625,7 @@ Bimestres escolares:
               ...prev,
               {
                 role: "bot",
-                text: `Pronto! Adicionei ${qtdSemanas} nova(s) semana(s) ao controle do Matific da turma ${turma}, como solicitado. Você já pode conferir lá no Controle Matific.`,
+                text: responseMsg,
               },
             ]);
             functionCalled = true;
