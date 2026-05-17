@@ -58,13 +58,21 @@ export default function CurriculumView() {
         body: formData,
       });
       
+      const responseText = await response.text();
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to parse PDF");
+          let errorMessage = "Erro na extração.";
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorMessage;
+          } catch(e) {
+            errorMessage = responseText.substring(0, 100);
+          }
+          throw new Error(errorMessage);
       }
       
       setUploadStatus("Salvando aulas analisadas...");
-      const parsedData: CurriculumItem[] = await response.json();
+      const parsedData: CurriculumItem[] = JSON.parse(responseText);
       
       if (parsedData && Array.isArray(parsedData) && parsedData.length > 0) {
         // Merge the newly parsed data with existing data, ignoring duplicates

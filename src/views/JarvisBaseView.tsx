@@ -70,12 +70,20 @@ export default function JarvisBaseView() {
           body: formData,
         });
         
+        const responseText = await response.text();
+        
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to parse file");
+          let errorMessage = "Erro na resposta do servidor.";
+          try {
+            const errorData = JSON.parse(responseText);
+            errorMessage = errorData.error || errorMessage;
+          } catch(e) {
+            errorMessage = responseText.substring(0, 100);
+          }
+          throw new Error(errorMessage);
         }
         
-        const parsedData = await response.json();
+        const parsedData = JSON.parse(responseText);
         
         if (parsedData.text) {
           const newDoc: KnowledgeDoc = {
