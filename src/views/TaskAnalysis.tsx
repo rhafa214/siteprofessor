@@ -438,8 +438,8 @@ export default function TaskAnalysis() {
           )}
         </div>
       ) : (
-        <>
-          <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex flex-col h-full min-h-0 gap-4">
+          <div className="flex-none flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setSelectedTurma(null)}
@@ -459,7 +459,7 @@ export default function TaskAnalysis() {
               <Loader2 className="animate-spin text-emerald-600" size={32} />
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col">
+            <div className="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-0">
               {/* Header Controls */}
               <div className="p-4 md:p-6 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
                 <div className="flex items-center gap-3">
@@ -611,7 +611,7 @@ export default function TaskAnalysis() {
               </AnimatePresence>
 
               {/* Main Grid */}
-              <div className="overflow-x-auto">
+              <div className="overflow-auto flex-1 h-0">
                 {classData.students.length === 0 ? (
                   <div className="p-16 text-center">
                     <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
@@ -790,7 +790,7 @@ export default function TaskAnalysis() {
               </div>
             </div>
           )}
-        </>
+        </div>
       )}
     </motion.div>
   );
