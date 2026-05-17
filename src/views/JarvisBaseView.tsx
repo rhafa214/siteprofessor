@@ -159,23 +159,37 @@ export default function JarvisBaseView() {
                   onChange={handleFileUpload}
                   disabled={isUploading}
                 />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-70"
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      {uploadStatus || "Processando..."}
-                    </>
-                  ) : (
-                    <>
-                      <UploadCloud size={18} />
-                      Adicionar Documento
-                    </>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      if(confirm("Tem certeza que deseja apagar TODOS os documentos base do Jarvis? Essa ação não pode ser desfeita.")) {
+                        saveDocs([]);
+                      }
+                    }}
+                    disabled={docs.length === 0 || isUploading}
+                    className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 px-3 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                  >
+                    <Trash2 size={18} />
+                    Limpar
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex-[2] flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm font-bold transition-all disabled:opacity-70"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        {uploadStatus || "Processando..."}
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud size={18} />
+                        Adicionar Documento
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -42,8 +42,8 @@ export function useJarvisKnowledge() {
         const baseDoc = await getDoc(
           doc(db, "users", user.uid, "knowledge", "jarvisBase"),
         );
-        if (baseDoc.exists() && baseDoc.data()?.documents) {
-          setJarvisDocs(baseDoc.data().documents);
+        if (baseDoc.exists() && baseDoc.data()?.docs) {
+          setJarvisDocs(baseDoc.data().docs);
         }
       } catch (err) {
         console.error("Error loading jarvis knowledge", err);

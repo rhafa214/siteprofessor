@@ -51,7 +51,7 @@ interface DashboardProps {
 
 export default function Dashboard({ setCurrentView }: DashboardProps) {
   const { user, loginWithGoogle } = useAuth();
-  const { curriculum, schoolModel } = useJarvisKnowledge();
+  const { curriculum, schoolModel, jarvisDocs } = useJarvisKnowledge();
   const {
     events: calendarEvents,
     isLoading: isCalendarLoading,
@@ -442,6 +442,9 @@ Bimestres escolares:
       const modPrompt = schoolModel
         ? `\n\n[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nUtilize este modelo de plano de aula sempre que criar planejamentos estruturados.`
         : "";
+      const jarvisDocsPrompt = jarvisDocs && jarvisDocs.length > 0
+        ? `\n\n[DOCUMENTOS BASE DA IA (BASE DO JARVIS)]: \nVocê tem acesso aos arquivos da base de conhecimento do professor listados abaixo. Se o usuário fizer qualquer tipo de pergunta técnica ou pedir um material focado em um currículo, sua PRIMEIRA tarefa é consultar estes documentos listados aqui abaixo, encontrando o exato contexto para responder.\n\nLista de documentos base:\n${jarvisDocs.map((d: any) => `\n========== INÍCIO DO DOC: [${d.title}] ==========\n${d.content}\n========== FIM DO DOC: [${d.title}] ==========\n`).join("\n")}` 
+        : "";
       const impDatesPrompt =
         importantDates && importantDates.length > 0
           ? `\n\n[DATAS IMPORTANTES (Professor/a)]:\nEstas são anotações de datas cruciais do professor (que atualizam sua contagem regressiva):\n` +
@@ -459,7 +462,7 @@ Bimestres escolares:
         contents,
         config: {
           systemInstruction:
-            basePrompt + impDatesPrompt + curPrompt + modPrompt,
+            basePrompt + impDatesPrompt + curPrompt + modPrompt + jarvisDocsPrompt,
           tools: [
             {
               functionDeclarations: [
