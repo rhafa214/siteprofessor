@@ -6,11 +6,13 @@ export type ViewType =
   | "plano"
   | "tarefas"
   | "conhecimento"
+  | "jarvis"
   | "controle-tarefas"
   | "matific"
   | "alunos"
   | "banner"
-  | "apostilas";
+  | "apostilas"
+  | "curriculo";
 
 export const DATAS_OFICIAIS = {
   provas: [

@@ -25,6 +25,7 @@ import {
   CalendarDays,
   ListTodo,
   Bot,
+  Calendar
 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { GoogleGenAI } from "@google/genai";
@@ -70,10 +71,12 @@ interface Plan {
   content: string;
 }
 
+import { curriculumData } from "../data/curriculumData";
+
 export default function LessonPlan() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
-  const { curriculum, schoolModel } = useJarvisKnowledge();
+  const { curriculum, schoolModel, jarvisDocs } = useJarvisKnowledge();
   const [oldContent, setOldContent] = useLocalStorage<string>("eduPlan", "");
   const [plansDict, setPlansDict] = useLocalStorage<Record<string, string>>(
     "eduPlansRecord",
@@ -108,6 +111,10 @@ export default function LessonPlan() {
 
   const [isSemanalClassesModalOpen, setIsSemanalClassesModalOpen] = useState(false);
   const [selectedSemanalClasses, setSelectedSemanalClasses] = useState<string[]>([]);
+
+  const [isBimestralModalOpen, setIsBimestralModalOpen] = useState(false);
+  const [selectedBimestralAno, setSelectedBimestralAno] = useState<string>("6");
+  const [selectedBimestralBimestre, setSelectedBimestralBimestre] = useState<string>("1");
 
   useEffect(() => {
     if (user) {
@@ -294,10 +301,49 @@ export default function LessonPlan() {
   };
 
   const handleBimestralClick = () => {
+    setIsBimestralModalOpen(true);
+  };
+
+  const handleBimestralSubmit = () => {
     setViewMode("chat");
-    setInputVal(
-      "Preciso de um planejamento BIMESTRAL detalhado. Calcule todas as aulas que teremos no bimestre selecionado, a quantidade de aulas previstas, quantas realmente darão para realizar (considerando feriados e o calendário estadual), a quantidade de slides/materiais necessários e sugira possíveis avaliações e instrumentos avaliativos. Por favor, me faça as perguntas necessárias para começarmos, como: bimestre, ano/série, quantidade de aulas semanais.",
-    );
+    setIsBimestralModalOpen(false);
+    handleNewChat();
+    
+    // We use a timeout to avoid react state batching overriding the messages immediately
+    setTimeout(() => {
+      handleSend(undefined, `Preciso de um GUIA DE APRENDIZAGEM / PLANEJAMENTO BIMESTRAL EXTREMAMENTE DETALHADO referente ao **${selectedBimestralAno}º Ano**, **${selectedBimestralBimestre}º Bimestre**.
+
+Use como estrutura e agrupamento as informações abaixo (baseadas no formato P.E.I. E.E. Prof.ª Maria Elisa de Oliveira):
+
+**1. Cabeçalho:**
+- Componente Curricular: Matemática
+- Ano/Turma: ${selectedBimestralAno}º Ano
+- Bimestre: ${selectedBimestralBimestre}º
+
+**2. Aulas previstas:**
+Calcule e informe a quantidade total de aulas previstas para o bimestre (ex: 35 aulas ou o que for previsto no calendário normal). 
+
+**3. Tabela Principal (Coração do Guia):**
+Divida rigorosamente as aulas do bimestre em **blocos de aulas** baseados nas matrizes/escopo-sequência fornecidas. Não invente conteúdos, extraia-os exclusivamente do JSON/Matriz Curricular do ${selectedBimestralAno}º Ano, ${selectedBimestralBimestre}º Bimestre. 
+Para cada bloco construa as colunas:
+- **Aula & Conteúdos (O que vou aprender?)**: Exemplo: "Aula 1 a 5: AE1 - [Descrição da Aprendizagem Essencial/Conteúdo]"
+- **Objetivos de Aprendizagem (O que devo saber?)**: Exemplo: "Identificar... Compor ou decompor..." Detalhe com base nas Habilidades.
+
+Faça isso percorrendo TODAS as aulas (ex: Aula 1 a 5, Aula 6 a 10... até as últimas aulas designadas para Revisão).
+
+**4. Critérios de Avaliação (Como serei avaliado?):**
+Obrigatório incluir os exatos critérios e pesos abaixo:
+- Matific: 10%
+- Tarefas de Casa/SP: 10%
+- Prova Paulista: 30%
+- Prova Escrita (Bimestral): 30%
+- Participação e Atividades em Aula: 20%
+
+**5. Referências e fontes (Material Digital, etc):**
+Inclua os links do Material Digital, Tarefas (CMSP/Matific), Livro impresso e canais Youtube.
+
+Traga a resposta inteiramente formatada em Markdown, usando tabelas se possível ou blocos destrinchados que sigam o cabeçalho, a organização por blocos de aula e as demais sessões.`);
+    }, 100);
   };
 
   const handleDeleteChat = async (id: string, e: React.MouseEvent) => {
@@ -485,7 +531,8 @@ Bimestres escolares:
 - 3º bimestre: 24/07 a 02/10
 - 4º bimestre: 05/10 a 18/12
 
-${curriculum ? `[MATRIZ CURRICULAR (ESTADO)]: \n${curriculum}\nCRÍTICO: Utilize essa matriz como guia fundamental e ÚNICO dos conteúdos, habilidades e objetivos. Sempre que for propor o conteúdo das aulas, extraia exatamente as informações da matriz fornecida acima.` : ""}
+${curriculum ? `[MATRIZ/ESCOPO CURRICULAR DO USUÁRIO]: \n\`\`\`\n${curriculum}\n\`\`\`\nCRÍTICO: Utilize essas informações curriculares do usuário como guia fundamental e ÚNICO dos conteúdos, habilidades e objetivos para a aula. Extraia exatamente as informações da matriz (se houver correspondência com a Aula/Ano/Bimestre pedido). O formato pode estar em JSON.` : `[ESCOPO-SEQUÊNCIA OFICIAL (FALLBACK)]: \n\`\`\`json\n${JSON.stringify(curriculumData)}\n\`\`\`\nCRÍTICO: O JSON acima contém aulas, habilidades essenciais, e conteúdos. Se couber ao pedido, use as informações daqui extraindo de forma inteligente.`}
+${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE DA IA (BASE DO JARVIS)]: \nVocê DEVE consultar as centenas de páginas extraídas dos arquivos fornecidos abaixo pelo usuário. Você usará isso como a verdadeira e única base do plano. Documentos fornecidos:\n${jarvisDocs.map(d => `\n--- INÍCIO DO DOC: ${d.title} ---\n${d.content}\n--- FIM DO DOC ---\n`).join("\n")}` : ""}
 ${schoolModel ? `[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nCRÍTICO: Este é o modelo exato exigido pela escola! Ao escrever o documento final de planejamento de aula para o usuário, você DEVE, OBRIGATORIAMENTE, replicar os tópicos, a estrutura e cada um dos campos presentes neste formato, preenchendo-os por completo de forma rica e detalhada com os dados da matriz. O professor tem que estar pronto para apenas copiar a sua saída e entregar à coordenação.` : ""}
 
 Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Quando for gerar o plano de aula real a pedido do usuário (seja bimestral, quinzenal ou aula a aula), respeite os modelos anexos integralmente!
@@ -1246,6 +1293,75 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                 className="flex-1 bg-indigo-600 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-indigo-700 transition-colors shadow-md disabled:opacity-50"
               >
                 Criar Documento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isBimestralModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center top-0 left-0">
+          <div
+            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setIsBimestralModalOpen(false)}
+          ></div>
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative z-10 m-4 flex flex-col max-h-[90vh]">
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shrink-0">
+              <Calendar size={24} />
+            </div>
+            <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">
+              Plano Bimestral
+            </h3>
+            <p className="text-sm font-medium text-slate-500 mb-6 shrink-0">
+              Selecione o ano escolar e o bimestre para o plano.
+            </p>
+            
+            <div className="space-y-4 mb-6 flex-1">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                  Ano Escolar
+                </label>
+                <select 
+                  value={selectedBimestralAno}
+                  onChange={(e) => setSelectedBimestralAno(e.target.value)}
+                  className="w-full bg-slate-100 border-none px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+                >
+                  <option value="6">6º Ano</option>
+                  <option value="7">7º Ano</option>
+                  <option value="8">8º Ano</option>
+                  <option value="9">9º Ano</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                  Bimestre
+                </label>
+                <select 
+                  value={selectedBimestralBimestre}
+                  onChange={(e) => setSelectedBimestralBimestre(e.target.value)}
+                  className="w-full bg-slate-100 border-none px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
+                >
+                  <option value="1">1º Bimestre</option>
+                  <option value="2">2º Bimestre</option>
+                  <option value="3">3º Bimestre</option>
+                  <option value="4">4º Bimestre</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 shrink-0">
+              <button
+                onClick={() => setIsBimestralModalOpen(false)}
+                className="flex-1 bg-white border border-slate-200 text-slate-600 px-4 py-3.5 rounded-2xl font-bold hover:bg-slate-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleBimestralSubmit}
+                className="flex-1 bg-blue-600 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50"
+              >
+                Gerar Plano
               </button>
             </div>
           </div>

@@ -25,6 +25,8 @@ import MatificAnalysis from "./views/MatificAnalysis";
 import StudentsDatabase from "./views/StudentsDatabase";
 import BannerAssistant from "./views/BannerAssistant";
 import Apostilas from "./views/Apostilas";
+import CurriculumView from "./views/CurriculumView";
+import JarvisBaseView from "./views/JarvisBaseView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -273,8 +275,10 @@ function App() {
             {currentView === "matific" && <MatificAnalysis />}
             {currentView === "alunos" && <StudentsDatabase />}
             {currentView === "conhecimento" && <KnowledgeBase />}
+            {currentView === "jarvis" && <JarvisBaseView />}
             {currentView === "banner" && <BannerAssistant />}
             {currentView === "apostilas" && <Apostilas />}
+            {currentView === "curriculo" && <CurriculumView />}
           </div>
         </div>
       </main>

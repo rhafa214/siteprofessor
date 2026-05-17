@@ -2,5 +2,5 @@
   "name": "Edupllaner",
   "description": "Assistant for educators with Gemini AI",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
