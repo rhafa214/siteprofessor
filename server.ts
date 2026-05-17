@@ -88,6 +88,72 @@ async function startServer() {
     }
   });
 
+  app.post("/api/parse-curriculum-text", async (req, res) => {
+    try {
+      const { textContext, ano = "6", bimestre = "1" } = req.body;
+      if (!textContext) {
+        res.status(400).json({ error: "Nenhum texto de contexto enviado." });
+        return;
+      }
+      
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: {
+          parts: [
+            { text: textContext },
+            {
+              text: `Extraia TODAS as aulas descritas nestes documentos de referência. EXTRAIA EXCLUSIVAMENTE AS AULAS DO ${ano}º ANO do ${bimestre}º BIMESTRE. Ignore os outros anos ou bimestres. Mapeie todos os campos da tabela para o array JSON. Garanta que todas as aulas extraídas tenham ano=${ano} e bimestre=${bimestre}.`,
+            },
+          ],
+        },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+             type: Type.ARRAY,
+             items: {
+               type: Type.OBJECT,
+               properties: {
+                 ano: { type: Type.INTEGER, description: "O ano escolar (ex: 6, 7, 8, 9)" },
+                 bimestre: { type: Type.INTEGER, description: "O bimestre (ex: 1, 2, 3, 4)" },
+                 aula: { type: Type.STRING, description: "O número da aula (ex: '1', '2', 'Aula de verificação')" },
+                 titulo: { type: Type.STRING, description: "O título ou tema da aula" },
+                 conteudo: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de conteúdos abordados" },
+                 objetivos: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de objetivos de aprendizagem" },
+                 habilidades: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Lista de códigos de habilidades BNCC/Paulista (ex: EF06MA01)" },
+                 aprendizagem: { type: Type.STRING, description: "O texto completo da Aprendizagem Essencial esperada" }
+               },
+               required: ["ano", "bimestre", "aula", "titulo", "conteudo", "objetivos", "habilidades", "aprendizagem"]
+             }
+          }
+        },
+      });
+
+      const extractedText = response.text;
+      if (!extractedText) {
+        res.status(500).json({ error: "A resposta do modelo veio vazia." });
+        return;
+      }
+      
+      const jsonData = JSON.parse(extractedText.trim());
+      res.json(jsonData);
+
+    } catch (e: any) {
+      console.error(e);
+      res.status(500).json({ error: "Erro ao processar texto: " + e.message });
+    }
+  });
+
   app.post("/api/extract-text", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {

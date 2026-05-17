@@ -96,12 +96,6 @@ export default function Sidebar({
       group: "Recursos",
     },
     { id: "plano", label: "Plano de Aula", icon: PenTool, group: "Recursos" },
-    {
-      id: "curriculo",
-      label: "Escopo-Sequência",
-      icon: BookOpen,
-      group: "Recursos",
-    },
     { id: "tarefas", label: "Checklist", icon: ListTodo, group: "Recursos" },
     { id: "alunos", label: "Banco de Alunos", icon: Users, group: "Recursos" },
     {

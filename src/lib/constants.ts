@@ -11,8 +11,7 @@ export type ViewType =
   | "matific"
   | "alunos"
   | "banner"
-  | "apostilas"
-  | "curriculo";
+  | "apostilas";
 
 export const DATAS_OFICIAIS = {
   provas: [
