@@ -51,52 +51,59 @@ export default function JarvisBaseView() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0 || !user) return;
     
     setIsUploading(true);
-    setUploadStatus("Extraindo dados com IA...");
+    let successfullyUploaded: KnowledgeDoc[] = [];
     
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadStatus(`Extraindo dados com IA... (${i + 1}/${files.length})`);
       
-      const response = await fetch("/api/extract-text", {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to parse PDF");
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const response = await fetch("/api/extract-text", {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to parse file");
+        }
+        
+        const parsedData = await response.json();
+        
+        if (parsedData.text) {
+          const newDoc: KnowledgeDoc = {
+            id: Date.now().toString() + "-" + i,
+            title: file.name,
+            content: parsedData.text,
+            uploadedAt: Date.now()
+          };
+          successfullyUploaded.push(newDoc);
+        } else {
+          console.error(`A IA não conseguiu extrair informações do documento ${file.name}.`);
+        }
+      } catch (err: any) {
+        console.error(`Erro ao importar ${file.name}:`, err);
+        alert(`Erro ao importar ${file.name}: ${err.message}`);
       }
-      
-      setUploadStatus("Salvando documento...");
-      const parsedData = await response.json();
-      
-      if (parsedData.text) {
-        const newDoc: KnowledgeDoc = {
-          id: Date.now().toString(),
-          title: file.name,
-          content: parsedData.text,
-          uploadedAt: Date.now()
-        };
-        const newDocs = [newDoc, ...docs];
-        await saveDocs(newDocs);
-      } else {
-        throw new Error("A IA não conseguiu extrair informações deste documento.");
-      }
-      
-      setUploadStatus("");
-    } catch (err: any) {
-      console.error(err);
-      alert("Erro ao importar: " + err.message);
-      setUploadStatus("");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    }
+    
+    if (successfullyUploaded.length > 0) {
+      setUploadStatus("Salvando documentos...");
+      const newDocs = [...successfullyUploaded, ...docs];
+      await saveDocs(newDocs);
+    }
+    
+    setUploadStatus("");
+    setIsUploading(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -137,6 +144,7 @@ export default function JarvisBaseView() {
               <div className="relative">
                 <input 
                   type="file" 
+                  multiple
                   accept="application/pdf,image/*,.docx" 
                   className="hidden" 
                   ref={fileInputRef}
