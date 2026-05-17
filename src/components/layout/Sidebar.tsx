@@ -71,15 +71,9 @@ export default function Sidebar({
       group: "Principal",
     },
     {
-      id: "controle-tarefas",
-      label: "Controle de Tarefas",
+      id: "avaliacoes",
+      label: "Avaliações",
       icon: ClipboardCheck,
-      group: "Principal",
-    },
-    {
-      id: "matific",
-      label: "Controle Matific",
-      icon: Gamepad2, // Changed from ClipboardCheck to Gamepad2
       group: "Principal",
     },
     { id: "banner", label: "Assistente Banner", icon: Bot, group: "Principal" },

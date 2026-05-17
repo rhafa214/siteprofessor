@@ -169,4 +169,37 @@ export const config = {
   },
 };
 
+app.post("/api/generate-eval-report", async (req, res) => {
+  try {
+    const { turma, tarefas, matific, provaPaulista } = req.body;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+      return;
+    }
+
+    const ai = new GoogleGenAI({ 
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+    
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: {
+        parts: [
+          { text: `Gere um relatório consolidado da turma ${turma} avaliando a evolução/regresso através dos seguintes dados de notas:\n\nTarefas JSON: ${JSON.stringify(tarefas)}\n\nMatific JSON: ${JSON.stringify(matific)}\n\nProva Paulista JSON: ${JSON.stringify(provaPaulista)}` },
+          {
+            text: `Crie um relatório curto, porém analítico. Divida em Panorama Geral da turma, Alunos em Destaque (mostrando evolução e constância), e Alunos Precisam de Atenção (mostrar regresso ou notas baixas). Formate em HTML com tags <h3>, <p>, <ul>, <li>, <strong> para ser exibido e estilizado facilmente, adicione quebras de linhas se for necessário.`,
+          },
+        ],
+      },
+    });
+
+    res.json({ report: response.text });
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao processar texto: " + e.message });
+  }
+});
+
 export default app;

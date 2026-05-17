@@ -8,7 +8,7 @@ export type ViewType =
   | "conhecimento"
   | "jarvis"
   | "controle-tarefas"
-  | "matific"
+  | "avaliacoes"
   | "alunos"
   | "banner"
   | "apostilas";

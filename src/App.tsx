@@ -25,6 +25,7 @@ import MatificAnalysis from "./views/MatificAnalysis";
 import StudentsDatabase from "./views/StudentsDatabase";
 import BannerAssistant from "./views/BannerAssistant";
 import Apostilas from "./views/Apostilas";
+import EvaluationsView from "./views/EvaluationsView";
 import JarvisBaseView from "./views/JarvisBaseView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
@@ -270,8 +271,7 @@ function App() {
             {currentView === "arquivos" && <DriveExplorer />}
             {currentView === "plano" && <LessonPlan />}
             {currentView === "tarefas" && <Tasks />}
-            {currentView === "controle-tarefas" && <TaskAnalysis />}
-            {currentView === "matific" && <MatificAnalysis />}
+            {currentView === "avaliacoes" && <EvaluationsView />}
             {currentView === "alunos" && <StudentsDatabase />}
             {currentView === "conhecimento" && <KnowledgeBase />}
             {currentView === "jarvis" && <JarvisBaseView />}
