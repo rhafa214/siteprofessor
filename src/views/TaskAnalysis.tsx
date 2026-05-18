@@ -129,36 +129,52 @@ export default function TaskAnalysis() {
   // ----------------------------------------
   // STUDENTS MANAGEMENT
   // ----------------------------------------
-  const [isAddingStudents, setIsAddingStudents] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [studentNamesInput, setStudentNamesInput] = useState("");
 
-  const handleAddStudents = () => {
+  const handleImportStudents = (mode: "replace" | "merge") => {
     if (!studentNamesInput.trim()) return;
 
     const lines = studentNamesInput
       .split("\n")
       .map((l) => l.trim())
       .filter((l) => l);
-    const newStudents = [...classData.students];
+    
+    let newStudents = mode === "replace" ? [] : [...classData.students];
     const newGrades = { ...classData.grades };
 
-    for (const name of lines) {
-      // Basic check to see if student already exists by name
-      if (
-        !newStudents.some((s) => s.name.toLowerCase() === name.toLowerCase())
-      ) {
-        const newId = `st_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        newStudents.push({ id: newId, name });
-        newGrades[newId] = {};
+    // If replace, prune grades of removed students
+    if (mode === "replace") {
+      const existingStudents = classData.students || [];
+      lines.forEach(name => {
+         const existing = existingStudents.find((s: any) => s.name === name);
+         if (existing) {
+             newStudents.push(existing);
+         } else {
+             newStudents.push({ id: `st_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`, name });
+         }
+      });
+      // Purge grades of students no longer there
+      Object.keys(newGrades).forEach(studentId => {
+         if (!newStudents.find((s: any) => s.id === studentId)) {
+             delete newGrades[studentId];
+         }
+      });
+    } else {
+      // Merge mode
+      for (const name of lines) {
+        if (!newStudents.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
+          const newId = `st_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          newStudents.push({ id: newId, name });
+          newGrades[newId] = {};
+        }
       }
     }
 
-    // Sort students alphabetically
     newStudents.sort((a, b) => a.name.localeCompare(b.name));
-
     saveClassData({ ...classData, students: newStudents, grades: newGrades });
     setStudentNamesInput("");
-    setIsAddingStudents(false);
+    setIsImportModalOpen(false);
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -464,10 +480,10 @@ export default function TaskAnalysis() {
               <div className="p-4 md:p-6 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => setIsAddingStudents(!isAddingStudents)}
-                    className={`flex items-center gap-2 px-4 py-2 bg-white border rounded-xl font-bold text-sm shadow-sm transition-colors ${isAddingStudents ? "border-emerald-500 text-emerald-700" : "border-slate-200 text-slate-700 hover:bg-slate-50"}`}
+                    onClick={() => setIsImportModalOpen(true)}
+                    className={`flex items-center gap-2 px-4 py-2 bg-white border rounded-xl font-bold text-sm shadow-sm transition-colors border-slate-200 text-slate-700 hover:bg-slate-50`}
                   >
-                    <Users size={16} /> Adicionar Alunos
+                    <Users size={16} /> Alunos da Turma
                   </button>
                   <button
                     onClick={() => setIsAddingTask(!isAddingTask)}
@@ -493,61 +509,6 @@ export default function TaskAnalysis() {
 
               {/* Adding Panels */}
               <AnimatePresence>
-                {isAddingStudents && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="border-b border-slate-100 bg-white overflow-hidden"
-                  >
-                    <div className="p-6">
-                      <div className="flex items-end justify-between mb-4">
-                        <h3 className="font-bold text-slate-800">
-                          Cadastro Rápido de Alunos
-                        </h3>
-                        <div className="flex gap-2">
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept=".csv,.txt,.docx"
-                            onChange={handleFileUpload}
-                          />
-                          <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-2 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg transition-colors border border-emerald-200"
-                          >
-                            <Upload size={14} /> Importar (CSV, TXT, DOCX)
-                          </button>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-500 mb-3">
-                        Cole a lista de nomes dos alunos abaixo (um por linha):
-                      </p>
-                      <textarea
-                        className="w-full h-32 p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm resize-none mb-3"
-                        value={studentNamesInput}
-                        onChange={(e) => setStudentNamesInput(e.target.value)}
-                        placeholder="Nome do Aluno 1&#10;Nome do Aluno 2&#10;..."
-                      />
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => setIsAddingStudents(false)}
-                          className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          onClick={handleAddStudents}
-                          className="px-4 py-2 text-sm font-bold bg-slate-900 text-white hover:bg-slate-800 rounded-xl flex items-center gap-2"
-                        >
-                          <Save size={16} /> Salvar Lista
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
                 {isAddingTask && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
@@ -792,6 +753,80 @@ export default function TaskAnalysis() {
           )}
         </div>
       )}
+
+      <AnimatePresence>
+        {isImportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center pt-20 pb-4 px-4">
+            <div
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => setIsImportModalOpen(false)}
+            ></div>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full relative z-10 flex flex-col max-h-[85vh]"
+            >
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
+                Atualizar Lista de Alunos
+              </h2>
+              <p className="text-slate-500 mb-6 font-medium leading-relaxed">
+                Cole a lista de nomes abaixo ou faça upload de um CSV/TXT para a turma{" "}
+                <span className="bg-slate-100 px-2 rounded">
+                  {selectedTurma}
+                </span>
+                . Você pode optar por adicionar apenas os novos ou substituir a lista inteira.
+              </p>
+
+              <div className="flex-1 overflow-y-auto pr-2 mb-6 min-h-[250px]">
+                <textarea
+                  value={studentNamesInput}
+                  onChange={(e) => setStudentNamesInput(e.target.value)}
+                  className="w-full h-full min-h-[250px] p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-none whitespace-pre"
+                  placeholder={`Maria da Silva\nJoão Souza\n...`}
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 flex-wrap">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  accept=".csv,.txt,.pdf,.docx"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 border border-slate-200"
+                >
+                  <Upload size={18} /> Carregar Arquivo
+                </button>
+                <div className="flex-1 hidden md:block"></div>
+                <button
+                  onClick={() => setIsImportModalOpen(false)}
+                  className="px-4 py-3 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleImportStudents("merge")}
+                  disabled={!studentNamesInput.trim()}
+                  className="px-4 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
+                >
+                  Adicionar Novos
+                </button>
+                <button
+                  onClick={() => handleImportStudents("replace")}
+                  disabled={!studentNamesInput.trim()}
+                  className="px-4 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
+                >
+                  Substituir Lista
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
