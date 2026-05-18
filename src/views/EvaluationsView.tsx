@@ -139,7 +139,37 @@ function MediaView() {
 }
 
 export default function EvaluationsView() {
-  const [activeTab, setActiveTab] = useState<"tarefas" | "matific" | "paulista" | "media">("tarefas");
+  const [activeTab, setActiveTab] = useState<"tarefas" | "matific" | "paulista" | "media" | null>(null);
+
+  if (activeTab) {
+    return (
+      <div className="h-full flex flex-col bg-slate-50/50">
+        <div className="bg-white border-b border-slate-200 p-4 shrink-0 flex items-center gap-4">
+          <button
+            onClick={() => setActiveTab(null)}
+            className="p-2 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
+            title="Voltar para módulos"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">
+              {activeTab === "tarefas" && "Controle de Tarefas"}
+              {activeTab === "matific" && "Matific"}
+              {activeTab === "paulista" && "Prova Paulista"}
+              {activeTab === "media" && "Médias e Relatório"}
+            </h1>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto relative p-4 md:p-6 pb-24">
+          {activeTab === "tarefas" && <TaskAnalysis />}
+          {activeTab === "matific" && <MatificAnalysis />}
+          {activeTab === "paulista" && <ProvaPaulistaAnalysis />}
+          {activeTab === "media" && <MediaView />}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-slate-50/50">
@@ -155,62 +185,70 @@ export default function EvaluationsView() {
             </p>
           </div>
         </div>
-
-        {/* Custom Tabs */}
-        <div className="max-w-7xl mx-auto mt-6 flex overflow-x-auto gap-2 pb-1 scrollbar-hide">
-          <button
-            onClick={() => setActiveTab("tarefas")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-              activeTab === "tarefas"
-                ? "bg-slate-900 text-white shadow-md"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <ClipboardCheck size={18} />
-            Tarefas
-          </button>
-          <button
-            onClick={() => setActiveTab("matific")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-              activeTab === "matific"
-                ? "bg-slate-900 text-white shadow-md"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <Calculator size={18} />
-            Matific
-          </button>
-          <button
-            onClick={() => setActiveTab("paulista")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-              activeTab === "paulista"
-                ? "bg-slate-900 text-white shadow-md"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <FileText size={18} />
-            Prova Paulista
-          </button>
-          <button
-            onClick={() => setActiveTab("media")}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-              activeTab === "media"
-                ? "bg-slate-900 text-white shadow-md"
-                : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
-            }`}
-          >
-            <BarChart size={18} />
-            Média & Relatório
-          </button>
-        </div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto relative p-4 md:p-6 pb-24">
-        {activeTab === "tarefas" && <TaskAnalysis />}
-        {activeTab === "matific" && <MatificAnalysis />}
-        {activeTab === "paulista" && <ProvaPaulistaAnalysis />}
-        {activeTab === "media" && <MediaView />}
+      {/* Cards */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
+            onClick={() => setActiveTab("tarefas")}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <ClipboardCheck size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-emerald-600 transition-colors">
+              Tarefas
+            </h3>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
+            onClick={() => setActiveTab("matific")}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+              <Calculator size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors">
+              Matific
+            </h3>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
+            onClick={() => setActiveTab("paulista")}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+              <FileText size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+              Prova Paulista
+            </h3>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
+            onClick={() => setActiveTab("media")}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+              <BarChart size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-purple-600 transition-colors">
+              Médias e Relatório
+            </h3>
+          </motion.div>
+        </div>
       </div>
     </div>
   );

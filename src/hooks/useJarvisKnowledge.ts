@@ -47,7 +47,11 @@ export function useJarvisKnowledge() {
         }
       } catch (err: any) {
         if (err?.message?.includes("Missing or insufficient permissions")) {
-          handleFirestoreError(err, OperationType.GET, `users/${user.uid}/knowledge`);
+          try {
+            handleFirestoreError(err, OperationType.GET, `users/${user.uid}/knowledge`);
+          } catch (e) {
+            console.error("Firestore rules are blocking access to Jarvis knowledge. Please update your Firebase Security Rules.");
+          }
         } else {
           console.error("Error loading jarvis knowledge", err);
         }
