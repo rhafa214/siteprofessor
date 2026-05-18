@@ -48,7 +48,7 @@ export default function EscopoSequencia({ ano }: { ano: number }) {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Timeline */}
-        <div className={cn("flex-1 overflow-y-auto pr-4 scrollbar-thin transition-all", selectedAula ? "lg:w-1/2" : "w-full")}>
+        <div className="w-full flex-1 overflow-y-auto pr-2 sm:pr-4 scrollbar-thin transition-all">
           <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
             {aulas.length === 0 ? (
                <div className="text-center py-12 text-slate-500 relative z-10">
@@ -67,7 +67,7 @@ export default function EscopoSequencia({ ano }: { ano: number }) {
                       "w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex flex-col",
                       selectedAula?.numero === aula.numero 
                         ? "bg-indigo-50 border-indigo-500 shadow-md" 
-                        : "bg-white border-slate-200 hover:border-indigo-300"
+                        : "bg-white border-slate-200 hover:border-indigo-300 hover:shadow-md"
                     )}
                   >
                     <div className="flex justify-between items-start mb-2">
@@ -91,104 +91,82 @@ export default function EscopoSequencia({ ano }: { ano: number }) {
             )}
           </div>
         </div>
-
-        {/* Side Panel for Detail */}
-        <AnimatePresence>
-          {selectedAula && (
-            <motion.div
-              initial={{ opacity: 0, x: 50, width: 0 }}
-              animate={{ opacity: 1, x: 0, width: "50%" }}
-              exit={{ opacity: 0, x: 50, width: 0 }}
-              className="hidden lg:block border-l border-slate-200 pl-6 ml-6 overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-slate-800">
-                  <span className="text-indigo-600 mr-2 text-lg">Aula {selectedAula.numero}</span>
-                  {selectedAula.titulo && <span className="text-slate-900 block mt-1">{selectedAula.titulo}</span>}
-                </h3>
-                <button onClick={() => setSelectedAula(null)} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-500 mb-2">Conteúdo</h4>
-                  <p className="text-lg font-bold text-slate-800 bg-white border border-slate-200 shadow-sm p-4 rounded-xl">{selectedAula.conteudo}</p>
-                </div>
-                
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-500 mb-2">Objetivos de Aprendizagem</h4>
-                  <p className="text-slate-600 leading-relaxed bg-white border border-slate-200 shadow-sm p-4 rounded-xl">{selectedAula.objetivos}</p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl">
-                    <h4 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Habilidades</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedAula.habilidades.split(',').map(h => (
-                         <span key={h.trim()} className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md">{h.trim()}</span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="bg-white border border-slate-200 shadow-sm p-4 rounded-xl">
-                    <h4 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Aprendizagem Essencial</h4>
-                    <p className="text-sm font-bold text-indigo-600">{selectedAula.aprendizagemEssencial}</p>
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-200">
-                  <button className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-xl font-bold transition-all shadow-md active:scale-[0.98]">
-                    <CheckCircle2 size={20} />
-                    Marcar Aula como Concluída
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {/* Mobile Modal Fallback */}
+      {/* Modal / Janela Details */}
       <AnimatePresence>
         {selectedAula && (
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm lg:hidden flex items-end sm:items-center justify-center p-4"
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-end sm:items-center justify-center p-4"
             onClick={() => setSelectedAula(null)}
           >
             <motion.div 
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+              initial={{ y: "100%", opacity: 0, scale: 0.95 }} 
+              animate={{ y: 0, opacity: 1, scale: 1 }} 
+              exit={{ y: "100%", opacity: 0, scale: 0.95 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
               onClick={e => e.stopPropagation()}
-              className="bg-white border border-slate-200 w-full rounded-2xl p-6 max-h-[85vh] overflow-y-auto"
+              className="bg-white border border-slate-200 w-full max-w-2xl rounded-3xl p-6 md:p-8 max-h-[90vh] overflow-y-auto shadow-2xl relative"
             >
-              <div className="flex justify-between items-start mb-6">
-                <h3 className="text-xl font-bold text-slate-800">
-                  <span className="text-indigo-600 mr-2 text-lg">Aula {selectedAula.numero}</span>
-                  {selectedAula.titulo && <span className="text-slate-900 block mt-1">{selectedAula.titulo}</span>}
+              <button 
+                onClick={() => setSelectedAula(null)} 
+                className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 transition-colors rounded-full text-slate-500"
+              >
+                <X size={20}/>
+              </button>
+              
+              <div className="flex flex-col mb-6 pt-2">
+                <h3 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
+                    {selectedAula.numero}
+                  </div>
+                  {selectedAula.titulo ? (
+                     <span className="text-slate-900 block">{selectedAula.titulo}</span>
+                  ) : (
+                     <span>Aula {selectedAula.numero}</span>
+                  )}
                 </h3>
-                <button onClick={() => setSelectedAula(null)} className="p-2 bg-slate-100 rounded-full text-slate-500"><X size={20}/></button>
               </div>
+              
               <div className="space-y-6">
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-500 mb-2">Conteúdo</h4>
-                  <p className="text-lg font-bold text-slate-800 bg-slate-50 p-4 rounded-xl border border-slate-200">{selectedAula.conteudo}</p>
+                  <h4 className="text-sm font-bold text-slate-500 mb-2 tracking-wide uppercase">Conteúdo</h4>
+                  <p className="text-lg font-medium text-slate-800 bg-slate-50 p-5 rounded-2xl border border-slate-200 leading-relaxed shadow-sm">
+                    {selectedAula.conteudo}
+                  </p>
                 </div>
+                
                 <div>
-                  <h4 className="text-sm font-semibold text-slate-500 mb-2">Objetivos de Aprendizagem</h4>
-                  <p className="text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200">{selectedAula.objetivos}</p>
+                  <h4 className="text-sm font-bold text-slate-500 mb-2 tracking-wide uppercase">Objetivos de Aprendizagem</h4>
+                  <p className="text-slate-600 leading-relaxed bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    {selectedAula.objetivos}
+                  </p>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <h4 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Habilidades</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedAula.habilidades.split(',').map(h => (
-                        <span key={h.trim()} className="text-xs font-mono bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md border border-indigo-100">{h.trim()}</span>
-                    ))}
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
+                    <h4 className="text-xs font-bold text-slate-500 mb-3 uppercase tracking-wider">Habilidades</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedAula.habilidades.split(',').map(h => (
+                          <span key={h.trim()} className="text-xs font-mono bg-indigo-100 text-indigo-800 px-3 py-1.5 rounded-lg border border-indigo-200 shadow-sm">{h.trim()}</span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
+                    <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Aprendizagem Essencial</h4>
+                    <p className="text-sm font-extrabold text-indigo-600">{selectedAula.aprendizagemEssencial}</p>
                   </div>
                 </div>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <h4 className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">Aprendizagem Essencial</h4>
-                  <p className="text-sm font-bold text-indigo-600">{selectedAula.aprendizagemEssencial}</p>
+
+                <div className="pt-6 border-t border-slate-200 mt-4">
+                  <button className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-2xl font-bold transition-all shadow-md active:scale-[0.98]">
+                    <CheckCircle2 size={20} className="shrink-0" />
+                    <span>Concluir ou Incorporar esta Aula</span>
+                  </button>
                 </div>
               </div>
             </motion.div>
