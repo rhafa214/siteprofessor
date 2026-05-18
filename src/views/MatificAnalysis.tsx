@@ -312,7 +312,7 @@ export default function MatificAnalysis() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl mx-auto flex flex-col h-full space-y-6 pb-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-7xl w-full mx-auto flex flex-col h-full gap-4">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-3 mb-2">
