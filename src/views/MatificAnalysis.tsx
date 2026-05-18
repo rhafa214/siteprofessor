@@ -18,7 +18,7 @@ import {
   Minimize,
 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-import { collection, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
@@ -163,21 +163,61 @@ export default function MatificAnalysis() {
     }
   };
 
-  const handleAddStudents = () => {
+  const handleAddStudents = async () => {
     if (!studentNamesInput.trim()) return;
     const lines = studentNamesInput.split("\n").map((l) => l.trim()).filter((l) => l);
     const newStudents = [...classData.students];
     const newMinutes = { ...classData.minutes };
+    
+    const addedStudents: {id: string, name: string}[] = [];
 
     for (const name of lines) {
       if (!newStudents.some((s) => s.name.toLowerCase() === name.toLowerCase())) {
         const newId = `st_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        newStudents.push({ id: newId, name });
+        const newStudent = { id: newId, name };
+        newStudents.push(newStudent);
+        addedStudents.push(newStudent);
         newMinutes[newId] = {};
       }
     }
     newStudents.sort((a, b) => a.name.localeCompare(b.name));
-    saveClassData({ ...classData, students: newStudents, minutes: newMinutes });
+    await saveClassData({ ...classData, students: newStudents, minutes: newMinutes });
+    
+    // Alimenta o banco principal (Controle de Tarefas / Banco de Alunos) se logado
+    if (user && selectedTurma && addedStudents.length > 0) {
+       try {
+         const docRef = doc(db, "users", user.uid, "taskAnalysis", selectedTurma);
+         const snap = await getDoc(docRef);
+         if (snap.exists()) {
+           const dbData = snap.data();
+           const dbStudents = dbData.students || [];
+           const updatedDbStudents = [...dbStudents];
+           let changed = false;
+           
+           addedStudents.forEach(st => {
+             if (!updatedDbStudents.some((s: any) => s.name.toLowerCase() === st.name.toLowerCase())) {
+                updatedDbStudents.push(st);
+                changed = true;
+             }
+           });
+           
+           if (changed) {
+             updatedDbStudents.sort((a, b) => a.name.localeCompare(b.name));
+             await updateDoc(docRef, { students: updatedDbStudents });
+           }
+         } else {
+             // Se não existe a turma no banco, cria ela também
+             await setDoc(docRef, {
+                 students: addedStudents.sort((a, b) => a.name.localeCompare(b.name)),
+                 tasks: [],
+                 grades: {}
+             });
+         }
+       } catch (e) {
+         console.error("Erro ao sincronizar com banco central", e);
+       }
+    }
+    
     setStudentNamesInput("");
     setIsAddingStudents(false);
   };

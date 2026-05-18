@@ -166,7 +166,7 @@ export default function StudentsDatabase() {
     }
   };
 
-  const handleReplaceStudents = async () => {
+  const handleImportStudents = async (mode: "replace" | "merge") => {
     if (!importTargetTurma || !user) return;
 
     const rows = importText
@@ -219,15 +219,23 @@ export default function StudentsDatabase() {
         classData = snap.data() as any;
       }
 
-      const newStudentsList = extractedNames.map((name) => {
+      const existingStudents = classData.students || [];
+      const newStudentsList = mode === "replace" ? [] : [...existingStudents];
+
+      extractedNames.forEach((name) => {
         const existing = classData.students?.find((s: any) => s.name === name);
-        if (existing) return existing;
-        return { id: crypto.randomUUID(), name };
+        if (existing) {
+           if (mode === "replace") {
+             newStudentsList.push(existing);
+           }
+        } else {
+          newStudentsList.push({ id: crypto.randomUUID(), name });
+        }
       });
 
       const newGrades = { ...classData.grades };
       Object.keys(newGrades).forEach((studentId) => {
-        if (!newStudentsList.find((s) => s.id === studentId)) {
+        if (!newStudentsList.find((s: any) => s.id === studentId)) {
           delete newGrades[studentId];
         }
       });
@@ -241,8 +249,8 @@ export default function StudentsDatabase() {
       setIsImportModalOpen(false);
       await fetchStudents();
     } catch (e) {
-      console.error("Error replacing students", e);
-      alert("Houve um erro ao substituir a lista.");
+      console.error("Error importing students", e);
+      alert("Houve um erro ao importar a lista.");
     }
   };
 
@@ -446,16 +454,14 @@ export default function StudentsDatabase() {
               className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full relative z-10 flex flex-col max-h-[85vh]"
             >
               <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
-                Importar / Substituir Turma
+                Atualizar Lista de Alunos
               </h2>
               <p className="text-slate-500 mb-6 font-medium leading-relaxed">
-                Cole a lista de nomes abaixo ou faça upload de um CSV/PDF.{" "}
-                <strong className="text-amber-600">Atenção:</strong> Isso irá
-                substituir a lista de alunos atual da turma{" "}
+                Cole a lista de nomes abaixo ou faça upload de um CSV/PDF para a turma{" "}
                 <span className="bg-slate-100 px-2 rounded">
                   {importTargetTurma}
                 </span>
-                . Alunos com o mesmo nome manterão suas notas.
+                . Você pode optar por adicionar apenas os novos ou substituir a lista inteira. Alunos com nomes já existentes manterão suas notas.
               </p>
 
               <div className="flex-1 overflow-y-auto pr-2 mb-6 min-h-[250px]">
@@ -467,7 +473,7 @@ export default function StudentsDatabase() {
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
+              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 flex-wrap">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -481,17 +487,24 @@ export default function StudentsDatabase() {
                 >
                   <FileText size={18} /> Carregar Arquivo
                 </button>
-                <div className="flex-1"></div>
+                <div className="flex-1 hidden md:block"></div>
                 <button
                   onClick={() => setIsImportModalOpen(false)}
-                  className="px-6 py-3 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors"
+                  className="px-4 py-3 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
-                  onClick={handleReplaceStudents}
+                  onClick={() => handleImportStudents("merge")}
                   disabled={!importText.trim()}
-                  className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
+                  className="px-4 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
+                >
+                  Adicionar Novos
+                </button>
+                <button
+                  onClick={() => handleImportStudents("replace")}
+                  disabled={!importText.trim()}
+                  className="px-4 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
                 >
                   Substituir Lista
                 </button>

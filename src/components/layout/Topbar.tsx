@@ -56,6 +56,9 @@ export default function Topbar({
     conhecimento: "Base do Jarvis",
     banner: "Assistente Banner",
     apostilas: "Minhas Apostilas",
+    avaliacoes: "Central de Avaliações",
+    "guia-pedagogico": "Guia Pedagógico",
+    jarvis: "Jarvis AI",
   };
 
   return (

@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BookOpen, Map, GraduationCap, PenTool, LayoutDashboard, ChevronLeft } from "lucide-react";
 import { cn } from "../lib/utils";
-import AnoDashboard from "./GuiaPedagogico/AnoDashboard";
 import AprendizagensEssenciais from "./GuiaPedagogico/AprendizagensEssenciais";
 import EscopoSequencia from "./GuiaPedagogico/EscopoSequencia";
 import MatrizProvaPaulista from "./GuiaPedagogico/MatrizProvaPaulista";
