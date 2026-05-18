@@ -18,6 +18,7 @@ import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useAlert } from "../contexts/AlertContext";
 import { extractTextFromFile } from "../lib/fileExtraction";
 
 interface Student {
@@ -44,6 +45,7 @@ const defaultClassData: ClassData = { students: [], tasks: [], grades: {} };
 export default function TaskAnalysis() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
+  const { showAlert } = useAlert();
   const [turmasList, setTurmasList] = useLocalStorage<string[]>(
     "classTurmasList",
     [
@@ -219,13 +221,15 @@ export default function TaskAnalysis() {
         }
 
         setStudentNamesInput(extractedNames.join("\n"));
-        setIsAddingStudents(true);
+        setIsImportModalOpen(true);
       }
     } catch (err: any) {
       console.error(err);
-      alert(
+      showAlert(
         err.message ||
           "Erro ao ler arquivo. Tente copiar e colar os nomes na caixa de texto.",
+        "Erro",
+        "error"
       );
     } finally {
       e.target.value = "";

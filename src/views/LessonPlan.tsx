@@ -40,6 +40,7 @@ import {
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { usePrompt } from "../contexts/PromptContext";
 
 import { useJarvisKnowledge } from "../hooks/useJarvisKnowledge";
 
@@ -76,6 +77,7 @@ import { curriculumData } from "../data/curriculumData";
 export default function LessonPlan() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
+  const { prompt } = usePrompt();
   const { curriculum, schoolModel, jarvisDocs } = useJarvisKnowledge();
   const [oldContent, setOldContent] = useLocalStorage<string>("eduPlan", "");
   const [plansDict, setPlansDict] = useLocalStorage<Record<string, string>>(
@@ -1051,9 +1053,9 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                             </div>
                             <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                               <button
-                                onClick={(e) => {
+                                onClick={async (e) => {
                                   e.stopPropagation();
-                                  const newTitle = window.prompt(
+                                  const newTitle = await prompt(
                                     "Renomear:",
                                     plan.title,
                                   );

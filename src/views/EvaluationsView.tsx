@@ -5,6 +5,7 @@ import ProvaPaulistaAnalysis from "./ProvaPaulistaAnalysis";
 import { motion, AnimatePresence } from "framer-motion";
 import { Calculator, ClipboardCheck, FileText, BarChart, BrainCircuit, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { useAlert } from "../contexts/AlertContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -14,6 +15,7 @@ import { GoogleGenAI } from "@google/genai";
 
 function MediaView() {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [turmasList] = useLocalStorage<string[]>(
     "classTurmasList",
     [
@@ -29,7 +31,10 @@ function MediaView() {
   const [aiReport, setAiReport] = useState("");
 
   const generateReport = async () => {
-    if (!user) return alert("Faça login para gerar o relatório.");
+    if (!user) {
+      showAlert("Faça login para gerar o relatório.", "Atenção", "warning");
+      return;
+    }
     setLoading(true);
     setAiReport("");
     try {
@@ -54,7 +59,7 @@ function MediaView() {
       setAiReport(data.report);
     } catch (e: any) {
       console.error(e);
-      alert("Falha ao gerar: " + e.message);
+      showAlert("Falha ao gerar: " + e.message, "Erro", "error");
     } finally {
       setLoading(false);
     }

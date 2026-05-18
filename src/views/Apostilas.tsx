@@ -24,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useAlert } from "../contexts/AlertContext";
 import PdfViewer, { PdfThumbnail } from "../components/PdfViewer";
 import {
   savePdfLocal,
@@ -101,6 +102,7 @@ function ThumbnailRenderer({ url }: { url: string }) {
 export default function Apostilas() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
+  const { showAlert } = useAlert();
   const [apostilas, setApostilas] = useState<Apostila[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -191,7 +193,7 @@ export default function Apostilas() {
     e.preventDefault();
     if (!user || !newTitle.trim()) return;
     if (!selectedFile && !newUrl.trim()) {
-      alert("Por favor, adicione um link ou selecione um arquivo.");
+      showAlert("Por favor, adicione um link ou selecione um arquivo.", "Aviso", "warning");
       return;
     }
 
@@ -240,7 +242,7 @@ export default function Apostilas() {
       setEditingId(null);
     } catch (e: any) {
       console.error(e);
-      alert(`Erro ao salvar apostila: ${e.message || "Erro desconhecido"}`);
+      showAlert(`Erro ao salvar apostila: ${e.message || "Erro desconhecido"}`, "Erro", "error");
     } finally {
       setIsUploading(false);
     }
@@ -258,7 +260,7 @@ export default function Apostilas() {
         if (selectedApostila?.id === apo.id) setSelectedApostila(null);
       } catch (e) {
         console.error(e);
-        alert("Erro ao remover o arquivo.");
+        showAlert("Erro ao remover o arquivo.", "Erro", "error");
       }
     }
   };

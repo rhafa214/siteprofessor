@@ -4,6 +4,7 @@ import { Database, FileText, UploadCloud, Loader2, Trash2, ChevronDown, ChevronU
 import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { useAlert } from "../contexts/AlertContext";
 
 export interface KnowledgeDoc {
   id: string;
@@ -14,6 +15,7 @@ export interface KnowledgeDoc {
 
 export default function JarvisBaseView() {
   const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -46,7 +48,7 @@ export default function JarvisBaseView() {
       setDocs(newDocs);
     } catch (err) {
       console.error("Error saving knowledge base:", err);
-      alert("Erro ao salvar documento.");
+      showAlert("Erro ao salvar documento.", "Erro", "error");
     }
   };
 
@@ -98,7 +100,7 @@ export default function JarvisBaseView() {
         }
       } catch (err: any) {
         console.error(`Erro ao importar ${file.name}:`, err);
-        alert(`Erro ao importar ${file.name}: ${err.message}`);
+        showAlert(`Erro ao importar ${file.name}: ${err.message}`, "Erro", "error");
       }
     }
     

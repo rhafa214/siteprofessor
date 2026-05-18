@@ -6,6 +6,7 @@ import { collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useAlert } from "../contexts/AlertContext";
 
 interface Student { id: string; name: string; }
 interface Exam { id: string; title: string; maxScore: number; date: string; }
@@ -16,6 +17,7 @@ const defaultClassData: ClassData = { students: [], exams: [], grades: {} };
 export default function ProvaPaulistaAnalysis() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
+  const { showAlert } = useAlert();
   
   const [turmasList] = useLocalStorage<string[]>(
     "classTurmasList",
@@ -84,7 +86,10 @@ export default function ProvaPaulistaAnalysis() {
   };
 
   const syncStudents = async () => {
-    if (!user) return alert("Faça login para sincronizar");
+    if (!user) {
+      showAlert("Faça login para sincronizar", "Aviso", "warning");
+      return;
+    }
     setIsLoading(true);
     try {
        const taskRef = doc(db, "users", user.uid, "taskAnalysis", selectedTurma);
@@ -94,13 +99,13 @@ export default function ProvaPaulistaAnalysis() {
           const newGrades = { ...classData.grades };
           studentsFromTasks.forEach((s: any) => { if (!newGrades[s.id]) newGrades[s.id] = {}; });
           saveClassData({ ...classData, students: studentsFromTasks, grades: newGrades });
-          alert("Alunos sincronizados com sucesso!");
+          showAlert("Alunos sincronizados com sucesso!", "Sucesso", "success");
        } else {
-          alert("Nenhum aluno encontrado no Controle de Tarefas para esta turma.");
+          showAlert("Nenhum aluno encontrado no Controle de Tarefas para esta turma.", "Aviso", "warning");
        }
     } catch (err) {
        console.error(err);
-       alert("Erro ao sincronizar");
+       showAlert("Erro ao sincronizar", "Erro", "error");
     } finally { setIsLoading(false); }
   };
 

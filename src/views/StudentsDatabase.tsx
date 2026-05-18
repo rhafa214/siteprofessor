@@ -15,6 +15,7 @@ import {
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useAlert } from "../contexts/AlertContext";
 import {
   collection,
   getDocs,
@@ -35,6 +36,7 @@ interface StudentData {
 export default function StudentsDatabase() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
+  const { showAlert } = useAlert();
   const [students, setStudents] = useState<StudentData[]>([]);
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -115,7 +117,7 @@ export default function StudentsDatabase() {
         } catch (e) {}
       } catch (e) {
         console.error("Error deleting turma:", e);
-        alert("Erro ao excluir turma.");
+        showAlert("Erro ao excluir turma.", "Erro", "error");
       }
     }
   };
@@ -161,7 +163,7 @@ export default function StudentsDatabase() {
           setImportText(text);
         }
       } catch (err: any) {
-        alert(err.message);
+        showAlert(err.message || "Erro ao ler arquivo.", "Erro", "error");
       }
     }
   };
@@ -250,7 +252,7 @@ export default function StudentsDatabase() {
       await fetchStudents();
     } catch (e) {
       console.error("Error importing students", e);
-      alert("Houve um erro ao importar a lista.");
+      showAlert("Houve um erro ao importar a lista.", "Erro", "error");
     }
   };
 

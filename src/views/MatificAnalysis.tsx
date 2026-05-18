@@ -22,6 +22,7 @@ import { collection, doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useAlert } from "../contexts/AlertContext";
 import { extractTextFromFile } from "../lib/fileExtraction";
 
 interface Student {
@@ -45,6 +46,8 @@ const defaultClassData: ClassData = { students: [], weeks: [], minutes: {} };
 
 export default function MatificAnalysis() {
   const { user } = useAuth();
+  const { confirm } = useConfirm();
+  const { showAlert } = useAlert();
   const [turmasList, setTurmasList] = useLocalStorage<string[]>(
     "classTurmasList",
     [
@@ -62,7 +65,6 @@ export default function MatificAnalysis() {
   const [isSaving, setIsSaving] = useState(false);
   const [studentMode, setStudentMode] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const { confirm } = useConfirm();
 
   useEffect(() => {
     if (!selectedTurma) return;
@@ -112,7 +114,7 @@ export default function MatificAnalysis() {
 
   const syncStudentsWithDatabase = async () => {
     if (!user || !selectedTurma) {
-      alert("Você precisa estar logado para sincronizar com o banco em nuvem.");
+      showAlert("Você precisa estar logado para sincronizar com o banco em nuvem.", "Aviso", "warning");
       return;
     }
     
@@ -145,19 +147,19 @@ export default function MatificAnalysis() {
            
            if (added > 0) {
              saveClassData({ ...classData, students: newStudents, minutes: newMinutes });
-             alert(`Sincronização concluída! ${added} novo(s) aluno(s) puxado(s) do banco de dados.`);
+             showAlert(`Sincronização concluída! ${added} novo(s) aluno(s) puxado(s) do banco de dados.`, "Sucesso", "success");
            } else {
-             alert("Sincronização concluída! Todos os alunos do banco já estão na lista.");
+             showAlert("Sincronização concluída! Todos os alunos do banco já estão na lista.", "Aviso", "info");
            }
         } else {
-          alert("Nenhum aluno encontrado no banco de dados para esta turma (ou a turma não está no banco).");
+          showAlert("Nenhum aluno encontrado no banco de dados para esta turma (ou a turma não está no banco).", "Aviso", "warning");
         }
       } else {
-        alert("Turma não encontrada no banco de dados de alunos. Adicione a turma no Controle de Tarefas ou Banco de Alunos primeiro.");
+        showAlert("Turma não encontrada no banco de dados de alunos. Adicione a turma no Controle de Tarefas ou Banco de Alunos primeiro.", "Aviso", "warning");
       }
     } catch (e) {
       console.error(e);
-      alert("Erro ao sincronizar com o banco de alunos.");
+      showAlert("Erro ao sincronizar com o banco de alunos.", "Erro", "error");
     } finally {
       setIsSyncing(false);
     }
@@ -272,11 +274,11 @@ export default function MatificAnalysis() {
           }
         }
         setStudentNamesInput(extractedNames.join("\n"));
-        setIsAddingStudents(true);
+        setIsImportModalOpen(true);
       }
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Erro ao ler arquivo.");
+      showAlert(err.message || "Erro ao ler arquivo.", "Erro", "error");
     } finally {
       e.target.value = "";
     }

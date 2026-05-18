@@ -27,6 +27,7 @@ import {
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
+import { useAlert } from "../contexts/AlertContext";
 
 interface ClassLog {
   id: number;
@@ -52,6 +53,7 @@ const horariosDeAula = [
 export default function ClassJournal() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
+  const { showAlert } = useAlert();
   const [logs, setLogs] = useLocalStorage<ClassLog[]>("classLogs", []);
   const [turmasList, setTurmasList] = useLocalStorage<string[]>(
     "classTurmasList",
@@ -172,8 +174,10 @@ export default function ClassJournal() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTurma || !formResumo.trim() || formHorarios.length === 0) {
-      alert(
+      showAlert(
         "Por favor, preencha o resumo e selecione pelo menos um horário de aula.",
+        "Atenção",
+        "warning"
       );
       return;
     }
