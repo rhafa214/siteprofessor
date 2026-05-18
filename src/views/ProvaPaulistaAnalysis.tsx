@@ -129,9 +129,23 @@ export default function ProvaPaulistaAnalysis() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-transparent">
+    <div className="flex flex-col max-w-7xl mx-auto space-y-6 pb-24">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-indigo-100 text-indigo-700 rounded-2xl shadow-sm">
+              <FileText size={28} />
+            </div>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+              Prova Paulista
+            </h1>
+          </div>
+          <p className="text-slate-500 font-medium">Acompanhe as notas da Prova Paulista e os descritores.</p>
+        </div>
+      </div>
+
       {!selectedTurma ? (
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto flex-1 min-h-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           {!turmasList || turmasList.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
               <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
@@ -159,7 +173,7 @@ export default function ProvaPaulistaAnalysis() {
           )}
         </div>
       ) : (
-      <div className="flex-1 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-slate-200">
+      <div className="flex flex-col bg-white rounded-2xl shadow-sm border border-slate-200">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-t-2xl border-b border-slate-200">
             <div className="flex items-center gap-3">
               <button

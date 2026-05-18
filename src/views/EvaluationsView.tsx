@@ -206,13 +206,11 @@ export default function EvaluationsView() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-hidden relative">
-        <div className="absolute inset-0 p-4 md:p-6 overflow-hidden">
-          {activeTab === "tarefas" && <TaskAnalysis />}
-          {activeTab === "matific" && <MatificAnalysis />}
-          {activeTab === "paulista" && <ProvaPaulistaAnalysis />}
-          {activeTab === "media" && <div className="h-full overflow-y-auto"><MediaView /></div>}
-        </div>
+      <div className="flex-1 overflow-y-auto relative p-4 md:p-6 pb-24">
+        {activeTab === "tarefas" && <TaskAnalysis />}
+        {activeTab === "matific" && <MatificAnalysis />}
+        {activeTab === "paulista" && <ProvaPaulistaAnalysis />}
+        {activeTab === "media" && <MediaView />}
       </div>
     </div>
   );

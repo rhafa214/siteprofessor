@@ -354,9 +354,9 @@ export default function TaskAnalysis() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl w-full mx-auto flex flex-col h-full gap-4"
+      className="max-w-7xl mx-auto space-y-6"
     >
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl shadow-sm">
@@ -374,7 +374,7 @@ export default function TaskAnalysis() {
       </div>
 
       {!selectedTurma ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 overflow-y-auto flex-1 min-h-0 pb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
           {!turmasList || turmasList.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
               <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
@@ -438,7 +438,7 @@ export default function TaskAnalysis() {
           )}
         </div>
       ) : (
-        <div className="flex-1 flex flex-col min-h-0 gap-4">
+        <div className="flex flex-col gap-4">
           <div className="flex-none flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-3">
               <button
@@ -459,7 +459,7 @@ export default function TaskAnalysis() {
               <Loader2 className="animate-spin text-emerald-600" size={32} />
             </div>
           ) : (
-            <div className="flex-1 bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col min-h-0">
+            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm overflow-hidden flex flex-col">
               {/* Header Controls */}
               <div className="p-4 md:p-6 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
                 <div className="flex items-center gap-3">
