@@ -20,6 +20,7 @@ import {
   Gamepad2,
   Moon,
   Sun,
+  Map,
 } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
@@ -81,6 +82,12 @@ export default function Sidebar({
       id: "apostilas",
       label: "Minhas Apostilas",
       icon: Library,
+      group: "Recursos",
+    },
+    {
+      id: "guia-pedagogico",
+      label: "Currículo Priorizado 2026",
+      icon: Map,
       group: "Recursos",
     },
     {

@@ -27,6 +27,7 @@ import BannerAssistant from "./views/BannerAssistant";
 import Apostilas from "./views/Apostilas";
 import EvaluationsView from "./views/EvaluationsView";
 import JarvisBaseView from "./views/JarvisBaseView";
+import GuiaPedagogicoView from "./views/GuiaPedagogicoView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -275,6 +276,7 @@ function App() {
             {currentView === "alunos" && <StudentsDatabase />}
             {currentView === "conhecimento" && <KnowledgeBase />}
             {currentView === "jarvis" && <JarvisBaseView />}
+            {currentView === "guia-pedagogico" && <GuiaPedagogicoView />}
             {currentView === "banner" && <BannerAssistant />}
             {currentView === "apostilas" && <Apostilas />}
           </div>

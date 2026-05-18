@@ -129,9 +129,9 @@ export default function ProvaPaulistaAnalysis() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50">
+    <div className="flex flex-col h-full bg-transparent">
       {!selectedTurma ? (
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto flex-1 min-h-0">
           {!turmasList || turmasList.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
               <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
@@ -159,7 +159,7 @@ export default function ProvaPaulistaAnalysis() {
           )}
         </div>
       ) : (
-      <div className="flex flex-col h-full bg-white rounded-2xl shadow-sm border border-slate-200">
+      <div className="flex-1 flex flex-col min-h-0 bg-white rounded-2xl shadow-sm border border-slate-200">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-t-2xl border-b border-slate-200">
             <div className="flex items-center gap-3">
               <button

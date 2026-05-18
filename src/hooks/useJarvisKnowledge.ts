@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { db } from "../lib/firebase";
+import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -45,8 +45,12 @@ export function useJarvisKnowledge() {
         if (baseDoc.exists() && baseDoc.data()?.docs) {
           setJarvisDocs(baseDoc.data().docs);
         }
-      } catch (err) {
-        console.error("Error loading jarvis knowledge", err);
+      } catch (err: any) {
+        if (err?.message?.includes("Missing or insufficient permissions")) {
+          handleFirestoreError(err, OperationType.GET, `users/${user.uid}/knowledge`);
+        } else {
+          console.error("Error loading jarvis knowledge", err);
+        }
       } finally {
         setLoading(false);
       }
