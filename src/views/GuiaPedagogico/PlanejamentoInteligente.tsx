@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Settings2, Download, RefreshCcw, Calendar, BookOpen } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { getCurrentBimestre } from "../../lib/constants";
 
 export default function PlanejamentoInteligente({ ano }: { ano: number }) {
   const [aulasSemanais, setAulasSemanais] = useState(5);
@@ -53,7 +54,7 @@ export default function PlanejamentoInteligente({ ano }: { ano: number }) {
               Período do Planejamento
             </label>
             <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
-              <option>1º Bimestre Completo</option>
+              <option>{getCurrentBimestre()}º Bimestre Completo</option>
               <option>Mês Atual</option>
               <option>Próximos 15 dias</option>
             </select>

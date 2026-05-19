@@ -56,6 +56,17 @@ export const DATAS_OFICIAIS = {
   },
 };
 
+export function getCurrentBimestre(): number {
+  const now = new Date();
+  const m = now.getMonth() + 1; // 1 to 12
+  const d = now.getDate();
+  
+  if (m < 4 || (m === 4 && d <= 22)) return 1;
+  if (m < 7 || (m === 7 && d <= 6)) return 2;
+  if (m < 10 || (m === 10 && d <= 2)) return 3;
+  return 4;
+}
+
 export function getHolidays(year: number): Record<string, string> {
   const a = year % 19,
     b = Math.floor(year / 100),

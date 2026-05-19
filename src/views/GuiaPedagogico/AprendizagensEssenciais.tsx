@@ -3,10 +3,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { Search, ChevronDown, ChevronUp, CheckCircle2, Bookmark, BookmarkCheck } from "lucide-react";
 import { dbAEs, AprendizagemEssencial } from "../../data/guiaPedagogico";
 import { cn } from "../../lib/utils";
+import { getCurrentBimestre } from "../../lib/constants";
 
 export default function AprendizagensEssenciais({ ano }: { ano: number }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [bimestre, setBimestre] = useState<number | "all">(1);
+  const [bimestre, setBimestre] = useState<number | "all">(getCurrentBimestre());
   const [expandedAE, setExpandedAE] = useState<string | null>(null);
 
   const aes = useMemo(() => {

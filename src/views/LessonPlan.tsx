@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { GoogleGenAI } from "@google/genai";
-import { getHolidays, DATAS_OFICIAIS } from "../lib/constants";
+import { getHolidays, DATAS_OFICIAIS, getCurrentBimestre } from "../lib/constants";
 import {
   collection,
   doc,
@@ -116,7 +116,7 @@ export default function LessonPlan() {
 
   const [isBimestralModalOpen, setIsBimestralModalOpen] = useState(false);
   const [selectedBimestralAno, setSelectedBimestralAno] = useState<string>("6");
-  const [selectedBimestralBimestre, setSelectedBimestralBimestre] = useState<string>("1");
+  const [selectedBimestralBimestre, setSelectedBimestralBimestre] = useState<string>(String(getCurrentBimestre()));
 
   useEffect(() => {
     if (user) {

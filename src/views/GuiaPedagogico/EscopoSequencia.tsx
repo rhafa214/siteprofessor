@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle2, ChevronRight, X, User } from "lucide-react";
 import { dbAulas, Aula } from "../../data/guiaPedagogico";
 import { cn } from "../../lib/utils";
+import { getCurrentBimestre } from "../../lib/constants";
 
 export default function EscopoSequencia({ ano }: { ano: number }) {
-  const [bimestre, setBimestre] = useState<number>(1);
+  const [bimestre, setBimestre] = useState<number>(getCurrentBimestre());
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
 
   // In this mock, we filter by ano and bimestre and ensure 35 classes are displayed
