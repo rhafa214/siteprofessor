@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { getCurrentBimestre } from "../lib/constants";
-import { dbAulas } from "../data/guiaPedagogico";
+import { dbAulas, dbAEs } from "../data/guiaPedagogico";
 import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft } from "lucide-react";
 
 export default function AddonSidebar() {
@@ -8,6 +8,16 @@ export default function AddonSidebar() {
   const [bimestre, setBimestre] = useState<number>(getCurrentBimestre());
   const [searchTerm, setSearchTerm] = useState("");
   const [insertedIds, setInsertedIds] = useState<Set<string>>(new Set());
+
+  const getDetalheAprendizagem = (ano: number, bimestre: number, codigo: string) => {
+    if (!codigo || codigo === "-") return codigo;
+    const codigos = codigo.split(",").map((c) => c.trim());
+    const detalhes = codigos.map((c) => {
+      const aeInfo = dbAEs.find((ae) => ae.ano === ano && ae.bimestre === bimestre && ae.id === c);
+      return aeInfo ? `${c} - ${aeInfo.titulo}` : c;
+    });
+    return detalhes.join("\n");
+  };
 
   // Filter aulas
   const aulas = dbAulas.filter(
@@ -24,7 +34,7 @@ export default function AddonSidebar() {
   const handleInsert = (aula: any, id: string) => {
     // Construct the text to insert
     const title = aula.titulo || aula.conteudo || "";
-    const aprendizagem = aula.aprendizagemEssencial || "";
+    const aprendizagem = getDetalheAprendizagem(aula.ano, aula.bimestre, aula.aprendizagemEssencial || "");
     const habilidades = Array.isArray(aula.habilidades) 
       ? aula.habilidades.join(", ") 
       : aula.habilidades || "";
@@ -177,11 +187,11 @@ export default function AddonSidebar() {
                       </div>
 
                       <div className="flex flex-col gap-2 mb-3">
-                        {aula.aprendizagemEssencial && (
+                        {aula.aprendizagemEssencial && aula.aprendizagemEssencial !== "-" && (
                           <div>
                             <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Aprendizagem Essencial</span>
-                            <p className="text-xs text-slate-600 leading-snug">
-                              {aula.aprendizagemEssencial}
+                            <p className="text-xs text-slate-600 leading-snug whitespace-pre-wrap">
+                              {getDetalheAprendizagem(aula.ano, aula.bimestre, aula.aprendizagemEssencial)}
                             </p>
                           </div>
                         )}

@@ -1,13 +1,23 @@
 import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle2, ChevronRight, X, User } from "lucide-react";
-import { dbAulas, Aula } from "../../data/guiaPedagogico";
+import { dbAulas, dbAEs, Aula } from "../../data/guiaPedagogico";
 import { cn } from "../../lib/utils";
 import { getCurrentBimestre } from "../../lib/constants";
 
 export default function EscopoSequencia({ ano }: { ano: number }) {
   const [bimestre, setBimestre] = useState<number>(getCurrentBimestre());
   const [selectedAula, setSelectedAula] = useState<Aula | null>(null);
+
+  const getDetalheAprendizagem = (ano: number, bimestre: number, codigo: string) => {
+    if (!codigo || codigo === "-") return codigo;
+    const codigos = codigo.split(",").map((c) => c.trim());
+    const detalhes = codigos.map((c) => {
+      const aeInfo = dbAEs.find((ae) => ae.ano === ano && ae.bimestre === bimestre && ae.id === c);
+      return aeInfo ? `${c} - ${aeInfo.titulo}` : c;
+    });
+    return detalhes.join("\n");
+  };
 
   // In this mock, we filter by ano and bimestre and ensure 35 classes are displayed
   const aulas = useMemo(() => {
@@ -159,7 +169,7 @@ export default function EscopoSequencia({ ano }: { ano: number }) {
                   
                   <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-center">
                     <h4 className="text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Aprendizagem Essencial</h4>
-                    <p className="text-sm font-extrabold text-indigo-600">{selectedAula.aprendizagemEssencial}</p>
+                    <p className="text-sm font-extrabold text-indigo-600 whitespace-pre-wrap">{getDetalheAprendizagem(selectedAula.ano, selectedAula.bimestre, selectedAula.aprendizagemEssencial)}</p>
                   </div>
                 </div>
 
