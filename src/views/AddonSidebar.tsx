@@ -12,18 +12,24 @@ export default function AddonSidebar() {
 
   // Filter aulas
   const aulas = dbAulas.filter(
-    (aula) =>
-      aula.ano === ano &&
-      aula.bimestre === bimestre &&
-      (aula.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        aula.objetivo.toLowerCase().includes(searchTerm.toLowerCase())),
+    (aula) => {
+      if (aula.ano !== ano || aula.bimestre !== bimestre) return false;
+      const title = String(aula.titulo || aula.conteudo || "").toLowerCase();
+      const obj = String(aula.objetivos || "").toLowerCase();
+      const term = searchTerm.toLowerCase();
+      return title.includes(term) || obj.includes(term);
+    }
   );
 
-  const handleInsert = (aula: any) => {
+  const handleInsert = (aula: any, id: string) => {
     // Construct the text to insert
-    const textToInsert = `Aula: ${aula.titulo}\nObjetivos: ${aula.objetivo}\nHabilidades: ${aula.habilidades.join(
-      ", ",
-    )}\n\n`;
+    const title = aula.titulo || aula.conteudo || "";
+    const objetivos = aula.objetivos || "";
+    const habilidades = Array.isArray(aula.habilidades) 
+      ? aula.habilidades.join(", ") 
+      : aula.habilidades || "";
+
+    const textToInsert = `Aula: ${title}\nObjetivos: ${objetivos}\nHabilidades: ${habilidades}\n\n`;
 
     // Send generic postMessage up to the parent iframe (Apps Script)
     window.parent.postMessage(
@@ -35,13 +41,13 @@ export default function AddonSidebar() {
     );
 
     // mark as inserted visually
-    setInsertedIds((prev) => new Set(prev).add(aula.id));
+    setInsertedIds((prev) => new Set(prev).add(id));
 
     // reset visual after 2 seconds
     setTimeout(() => {
       setInsertedIds((prev) => {
         const next = new Set(prev);
-        next.delete(aula.id);
+        next.delete(id);
         return next;
       });
     }, 2000);
@@ -112,13 +118,14 @@ export default function AddonSidebar() {
         ) : (
           <div className="relative border-l-2 border-indigo-100 ml-3 space-y-6">
             {aulas.map((aula, index) => {
-              const isInserted = insertedIds.has(aula.id);
+              const id = `${aula.ano}-${aula.bimestre}-${aula.numero}-${index}`;
+              const isInserted = insertedIds.has(id);
               return (
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.05 }}
-                  key={aula.id}
+                  key={id}
                   className="relative pl-6"
                 >
                   {/* Timeline Dot */}
@@ -126,15 +133,15 @@ export default function AddonSidebar() {
 
                   <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
                     <h3 className="font-semibold text-sm text-slate-800 leading-tight mb-1">
-                      {aula.titulo}
+                      {aula.titulo || aula.conteudo || `Aula ${aula.numero}`}
                     </h3>
 
                     <p className="text-xs text-slate-500 line-clamp-3 mb-3">
-                      {aula.objetivo}
+                      {aula.objetivos || "Sem objetivos cadastrados."}
                     </p>
 
                     <button
-                      onClick={() => handleInsert(aula)}
+                      onClick={() => handleInsert(aula, id)}
                       className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
                         isInserted
                           ? "bg-green-100 text-green-700"
