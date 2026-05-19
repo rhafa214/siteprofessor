@@ -54,14 +54,14 @@ export default function AddonSidebar() {
   };
 
   const renderAnos = () => (
-    <div className="p-3 grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-3">
       {[6, 7, 8, 9].map((ano) => (
         <button
           key={ano}
           onClick={() => setSelectedAno(ano)}
-          className="bg-white border text-center border-slate-200 rounded-xl p-3 shadow-sm hover:border-[#8257E5] hover:shadow-md transition-all group flex flex-col items-center justify-center gap-1.5"
+          className="bg-white border text-center border-slate-200 rounded-xl p-3 shadow-sm hover:border-[#8257E5] hover:shadow-md transition-all group flex flex-col items-center justify-center gap-2"
         >
-          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-[#8257E5] font-bold text-base group-hover:scale-110 transition-transform">
+          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-[#8257E5] font-bold text-lg group-hover:scale-110 transition-transform">
             {ano}º
           </div>
           <span className="font-semibold text-slate-700 text-sm">{ano}º Ano</span>
@@ -71,7 +71,7 @@ export default function AddonSidebar() {
   );
 
   return (
-    <div className="w-full bg-slate-50 text-slate-800 font-sans min-h-screen">
+    <div className="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
       {/* Header compact - Sticky */}
       <div className="sticky top-0 z-20 bg-white">
         <div className="bg-[#8257E5] text-white p-3 shadow-md">
@@ -127,7 +127,7 @@ export default function AddonSidebar() {
       </div>
 
       {/* Timeline Content */}
-      <div className="p-4 pb-12 relative">
+      <div className="flex-1 p-4 pb-12 relative">
         {!selectedAno ? (
           renderAnos()
         ) : (
