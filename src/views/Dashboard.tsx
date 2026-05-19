@@ -770,28 +770,38 @@ Bimestres escolares:
           <div className="text-slate-700 font-medium text-sm max-w-4xl space-y-2">
             {currentTurma ? (
               logForCurrentTurma ? (
-                <p>
-                  Vi que você está no{" "}
-                  <strong className="text-indigo-700">{currentTurma}</strong>{" "}
-                  agora. Na última aula com eles (
-                  <strong className="text-indigo-700">
-                    {logForCurrentTurma.data}
-                  </strong>
-                  ) você registrou:{" "}
-                  <strong className="text-indigo-700">
-                    {logForCurrentTurma.progresso}
-                  </strong>
-                  . Inicie a partir daí!
-                </p>
+                <div className="flex flex-col gap-1.5">
+                  <p>
+                    Professor, de acordo com o meu banco de dados sua próxima aula será no{" "}
+                    <strong className="text-indigo-700">{currentTurma}</strong>.
+                  </p>
+                  <p className="text-slate-600 bg-white/50 p-3 rounded-xl border border-indigo-100/50">
+                    Na última aula (<strong className="text-slate-800">{logForCurrentTurma.data}</strong>) vocês trabalharam:{" "}
+                    <span className="italic text-slate-800">"{logForCurrentTurma.progresso}"</span>
+                  </p>
+                  {logForCurrentTurma.lembretes && (
+                    <p className="text-amber-700 font-semibold bg-amber-50 px-3 py-2 rounded-lg mt-1 w-fit border border-amber-200">
+                      📝 Lembrete da época: {logForCurrentTurma.lembretes}
+                    </p>
+                  )}
+                  <button onClick={() => setCurrentView?.("diario")} className="text-indigo-600 hover:text-indigo-800 mt-1 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors">
+                    Ir para o Registro de Aulas &rarr;
+                  </button>
+                </div>
               ) : (
-                <p>
-                  Vi que você está no{" "}
-                  <strong className="text-indigo-700">{currentTurma}</strong>{" "}
-                  agora, porém busquei nas aulas trabalhadas e não encontrei
-                  registros no seu{" "}
-                  <strong className="text-indigo-700">Registro de Aulas</strong>{" "}
-                  para essa turma.
-                </p>
+                <div className="flex flex-col gap-1.5">
+                  <p>
+                    Vi que você está no{" "}
+                    <strong className="text-indigo-700">{currentTurma}</strong>{" "}
+                    agora, porém busquei nas aulas trabalhadas e não encontrei
+                    registros no seu{" "}
+                    <strong className="text-indigo-700">Registro de Aulas</strong>{" "}
+                    para essa turma.
+                  </p>
+                  <button onClick={() => setCurrentView?.("diario")} className="text-indigo-600 hover:text-indigo-800 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors">
+                    Registrar uma Aula Agora &rarr;
+                  </button>
+                </div>
               )
             ) : latestLog ? (
               <p>

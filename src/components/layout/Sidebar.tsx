@@ -21,6 +21,7 @@ import {
   Moon,
   Sun,
   Map,
+  User as UserIcon,
 } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
@@ -98,17 +99,10 @@ export default function Sidebar({
     },
     { id: "plano", label: "Plano de Aula", icon: PenTool, group: "Recursos" },
     { id: "tarefas", label: "Checklist", icon: ListTodo, group: "Recursos" },
-    { id: "alunos", label: "Banco de Alunos", icon: Users, group: "Recursos" },
     {
-      id: "jarvis",
-      label: "Documentos Jarvis",
-      icon: Database,
-      group: "Recursos",
-    },
-    {
-      id: "conhecimento",
-      label: "Treinamento & Datas",
-      icon: BookOpen,
+      id: "perfil",
+      label: "Perfil",
+      icon: UserIcon,
       group: "Recursos",
     },
   ] as const;
@@ -136,7 +130,7 @@ export default function Sidebar({
             EduPlanner<span className="text-indigo-400">.</span>
           </div>
         </div>
-        
+
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
@@ -144,63 +138,6 @@ export default function Sidebar({
         >
           {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
         </button>
-      </div>
-
-      <div className="relative mb-6">
-        <button
-          onClick={() => (user ? setIsProfileOpen(!isProfileOpen) : null)}
-          className={cn(
-            "w-full flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-2xl transition-colors text-left",
-            user ? "hover:bg-white/10 cursor-pointer" : "cursor-default",
-          )}
-        >
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-10 h-10 shrink-0">
-              <img
-                src={
-                  user?.photoURL ||
-                  "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"
-                }
-                alt="Professor"
-                className="w-full h-full rounded-full border-2 border-indigo-500 object-cover keep-colors"
-              />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-bold truncate">
-                {user
-                  ? `Professor ${user.displayName?.split(" ")[0] || ""}`
-                  : "Visitante"}
-              </span>
-            </div>
-          </div>
-          {user && (
-            <div className="text-slate-400 shrink-0">
-              {isProfileOpen ? (
-                <ChevronUp size={18} />
-              ) : (
-                <ChevronDown size={18} />
-              )}
-            </div>
-          )}
-        </button>
-
-        {isProfileOpen && user && (
-          <div className="absolute top-full left-0 w-full mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden z-50 p-2">
-            <div className="px-3 py-2 text-xs font-medium text-slate-400 border-b border-slate-800/50 mb-1 truncate">
-              {user.email}
-            </div>
-            <button
-              onClick={() => {
-                logout();
-                setIsProfileOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-sm font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors"
-            >
-              <LogOut size={16} />
-              Sair
-            </button>
-          </div>
-        )}
       </div>
 
       <nav className="flex-1 overflow-y-auto scrollbar-thin">

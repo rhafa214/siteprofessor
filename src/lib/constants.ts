@@ -12,7 +12,8 @@ export type ViewType =
   | "alunos"
   | "banner"
   | "apostilas"
-  | "guia-pedagogico";
+  | "guia-pedagogico"
+  | "perfil";
 
 export const DATAS_OFICIAIS = {
   provas: [

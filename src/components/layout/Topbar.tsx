@@ -7,9 +7,11 @@ import { useAuth } from "../../contexts/AuthContext";
 export default function Topbar({
   currentView,
   setIsSidebarOpen,
+  setCurrentView,
 }: {
   currentView: ViewType;
   setIsSidebarOpen: (b: boolean) => void;
+  setCurrentView: (b: ViewType) => void;
 }) {
   const [time, setTime] = useState(new Date());
   const [recessoInfo, setRecessoInfo] = useState<{
@@ -59,6 +61,7 @@ export default function Topbar({
     avaliacoes: "Central de Avaliações",
     "guia-pedagogico": "Guia Pedagógico",
     jarvis: "Jarvis AI",
+    perfil: "Meu Perfil",
   };
 
   return (
@@ -90,7 +93,7 @@ export default function Topbar({
         </div>
 
         <div className="flex items-center border-l border-slate-200 pl-4 lg:pl-6 ml-2 lg:ml-0">
-          {!user && (
+          {!user ? (
             <button
               onClick={loginWithGoogle}
               className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl hover:bg-indigo-100 transition-colors shadow-sm"
@@ -98,6 +101,17 @@ export default function Topbar({
               <LogIn size={16} />{" "}
               <span className="hidden sm:inline">Entrar com Google</span>
             </button>
+          ) : (
+            <div 
+               onClick={() => setCurrentView("perfil")}
+               className="w-8 h-8 rounded-full border border-slate-200 overflow-hidden cursor-pointer shadow-sm hover:ring-2 hover:ring-indigo-100 transition-all"
+            >
+               <img 
+                 src={user.photoURL || "https://ui-avatars.com/api/?name=Professor&background=6366f1&color=fff"} 
+                 alt="Profile" 
+                 className="w-full h-full object-cover"
+               />
+            </div>
           )}
         </div>
       </div>

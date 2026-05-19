@@ -28,6 +28,7 @@ import Apostilas from "./views/Apostilas";
 import EvaluationsView from "./views/EvaluationsView";
 import JarvisBaseView from "./views/JarvisBaseView";
 import GuiaPedagogicoView from "./views/GuiaPedagogicoView";
+import ProfileView from "./views/ProfileView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -260,13 +261,18 @@ function App() {
       />
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar currentView={currentView} setIsSidebarOpen={setIsSidebarOpen} />
+        <Topbar 
+          currentView={currentView} 
+          setIsSidebarOpen={setIsSidebarOpen} 
+          setCurrentView={setCurrentView}
+        />
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
           <div className="max-w-7xl mx-auto h-full">
             {currentView === "dashboard" && (
               <Dashboard setCurrentView={setCurrentView} />
             )}
+            {currentView === "perfil" && <ProfileView setCurrentView={setCurrentView} />}
             {currentView === "diario" && <ClassJournal />}
             {currentView === "agenda" && <Agenda />}
             {currentView === "arquivos" && <DriveExplorer />}

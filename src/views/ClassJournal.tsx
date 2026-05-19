@@ -354,7 +354,9 @@ export default function ClassJournal() {
   }
 
   // 2. Render specifically selected Class
-  const currentTurmaLogs = logs.filter((l) => l.turma === selectedTurma);
+  const currentTurmaLogs = logs
+    .filter((l) => l.turma === selectedTurma)
+    .sort((a, b) => b.id - a.id);
 
   return (
     <motion.div
