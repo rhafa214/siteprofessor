@@ -24,12 +24,17 @@ export default function AddonSidebar() {
   const handleInsert = (aula: any, id: string) => {
     // Construct the text to insert
     const title = aula.titulo || aula.conteudo || "";
-    const objetivos = aula.objetivos || "";
+    const aprendizagem = aula.aprendizagemEssencial || "";
     const habilidades = Array.isArray(aula.habilidades) 
       ? aula.habilidades.join(", ") 
       : aula.habilidades || "";
+    const objetivos = aula.objetivos || "";
 
-    const textToInsert = `Aula: ${title}\nObjetivos: ${objetivos}\nHabilidades: ${habilidades}\n\n`;
+    let textToInsert = `Aula ${aula.numero}: ${title}\n`;
+    if (aprendizagem) textToInsert += `Aprendizagem Essencial: ${aprendizagem}\n`;
+    if (habilidades) textToInsert += `Habilidades: ${habilidades}\n`;
+    if (objetivos) textToInsert += `Objetivos: ${objetivos}\n`;
+    textToInsert += `\n`;
 
     // Send generic postMessage up to the parent iframe (Apps Script)
     window.parent.postMessage(
@@ -172,11 +177,11 @@ export default function AddonSidebar() {
                       </div>
 
                       <div className="flex flex-col gap-2 mb-3">
-                        {aula.aprendizagem_essencial && (
+                        {aula.aprendizagemEssencial && (
                           <div>
                             <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Aprendizagem Essencial</span>
                             <p className="text-xs text-slate-600 leading-snug">
-                              {aula.aprendizagem_essencial}
+                              {aula.aprendizagemEssencial}
                             </p>
                           </div>
                         )}
