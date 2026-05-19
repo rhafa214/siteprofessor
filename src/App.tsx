@@ -29,10 +29,15 @@ import EvaluationsView from "./views/EvaluationsView";
 import JarvisBaseView from "./views/JarvisBaseView";
 import GuiaPedagogicoView from "./views/GuiaPedagogicoView";
 import ProfileView from "./views/ProfileView";
+import AddonSidebar from "./views/AddonSidebar";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
 
 function App() {
+  if (typeof window !== "undefined" && window.location.pathname === "/addon") {
+    return <AddonSidebar />;
+  }
+
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, loading, loginWithGoogle } = useAuth();

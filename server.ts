@@ -10,6 +10,13 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Allow iframe embedding for Google Docs add-on
+  app.use((req, res, next) => {
+    res.removeHeader("X-Frame-Options");
+    res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    next();
+  });
+
   app.use(express.json({ limit: "50mb" }));
   
   app.post("/api/parse-curriculum", upload.single("file"), async (req, res) => {
@@ -245,6 +252,18 @@ async function startServer() {
       appType: "spa",
     });
     app.use(vite.middlewares);
+    
+    const fs = await import("fs/promises");
+    app.use("*", async (req, res, next) => {
+      try {
+        let html = await fs.readFile(path.join(process.cwd(), "index.html"), "utf-8");
+        html = await vite.transformIndexHtml(req.url, html);
+        res.status(200).set({ "Content-Type": "text/html" }).end(html);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
