@@ -71,61 +71,63 @@ export default function AddonSidebar() {
   );
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-50 text-slate-800 font-sans overflow-hidden">
-      {/* Header compact */}
-      <div className="bg-[#8257E5] text-white p-3 shadow-md flex-shrink-0">
-        <div className="flex items-center gap-2 mb-2">
-          {selectedAno ? (
-            <button onClick={() => setSelectedAno(null)} className="hover:bg-white/20 p-1 -ml-1 rounded-full text-white transition-colors">
-              <ChevronLeft size={16} />
-            </button>
-          ) : (
-            <BookOpen size={16} />
+    <div className="w-full bg-slate-50 text-slate-800 font-sans min-h-screen">
+      {/* Header compact - Sticky */}
+      <div className="sticky top-0 z-20 bg-white">
+        <div className="bg-[#8257E5] text-white p-3 shadow-md">
+          <div className="flex items-center gap-2 mb-2">
+            {selectedAno ? (
+              <button onClick={() => setSelectedAno(null)} className="hover:bg-white/20 p-1 -ml-1 rounded-full text-white transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+            ) : (
+              <BookOpen size={16} />
+            )}
+            <h1 className="font-bold text-base leading-tight tracking-tight">
+              {selectedAno ? `${selectedAno}º Ano` : "Escopo EduAssistente"}
+            </h1>
+          </div>
+
+          {selectedAno && (
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <select
+                  value={bimestre}
+                  onChange={(e) => setBimestre(Number(e.target.value))}
+                  className="w-full bg-white/20 border border-white/30 text-white rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-slate-800"
+                >
+                  <option value={1}>1º Bim</option>
+                  <option value={2}>2º Bim</option>
+                  <option value={3}>3º Bim</option>
+                  <option value={4}>4º Bim</option>
+                </select>
+              </div>
+            </div>
           )}
-          <h1 className="font-bold text-base leading-tight tracking-tight">
-            {selectedAno ? `${selectedAno}º Ano` : "Escopo EduAssistente"}
-          </h1>
         </div>
 
+        {/* Search */}
         {selectedAno && (
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <select
-                value={bimestre}
-                onChange={(e) => setBimestre(Number(e.target.value))}
-                className="w-full bg-white/20 border border-white/30 text-white rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-slate-800"
-              >
-                <option value={1}>1º Bim</option>
-                <option value={2}>2º Bim</option>
-                <option value={3}>3º Bim</option>
-                <option value={4}>4º Bim</option>
-              </select>
+          <div className="px-3 py-2 bg-white border-b border-slate-200 shadow-sm relative z-10">
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+              />
+              <input
+                type="text"
+                placeholder="Buscar aula ou termo..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 bg-slate-100 border-none rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#8257E5]"
+              />
             </div>
           </div>
         )}
       </div>
 
-      {/* Search */}
-      {selectedAno && (
-        <div className="px-3 py-2 bg-white border-b border-slate-200 flex-shrink-0">
-          <div className="relative">
-            <Search
-              size={14}
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="text"
-              placeholder="Buscar aula ou termo..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-8 pr-3 py-1.5 bg-slate-100 border-none rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#8257E5]"
-            />
-          </div>
-        </div>
-      )}
-
       {/* Timeline Content */}
-      <div className="flex-1 overflow-y-auto relative p-4 pb-12">
+      <div className="p-4 pb-12 relative">
         {!selectedAno ? (
           renderAnos()
         ) : (
