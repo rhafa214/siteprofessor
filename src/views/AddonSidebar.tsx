@@ -71,9 +71,22 @@ export default function AddonSidebar() {
   );
 
   return (
-    <div className="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col">
+    <div 
+      className="bg-slate-50 text-slate-800 font-sans flex flex-col"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}
+    >
       {/* Header compact - Sticky */}
-      <div className="sticky top-0 z-20 bg-white">
+      <div className="sticky top-0 z-20 bg-white shadow-sm">
         <div className="bg-[#8257E5] text-white p-3 shadow-md">
           <div className="flex items-center gap-2 mb-2">
             {selectedAno ? (
@@ -158,9 +171,32 @@ export default function AddonSidebar() {
                         </h3>
                       </div>
 
-                      <p className="text-xs text-slate-500 line-clamp-3 mb-3">
-                        {aula.objetivos || "Sem objetivos cadastrados."}
-                      </p>
+                      <div className="flex flex-col gap-2 mb-3">
+                        {aula.aprendizagem_essencial && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Aprendizagem Essencial</span>
+                            <p className="text-xs text-slate-600 leading-snug">
+                              {aula.aprendizagem_essencial}
+                            </p>
+                          </div>
+                        )}
+
+                        {(aula.habilidades && aula.habilidades.length > 0) && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades</span>
+                            <p className="text-xs text-slate-600 leading-snug">
+                              {Array.isArray(aula.habilidades) ? aula.habilidades.join(", ") : aula.habilidades}
+                            </p>
+                          </div>
+                        )}
+
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Objetivos</span>
+                          <p className="text-xs text-slate-600 leading-snug">
+                            {aula.objetivos || "Sem objetivos cadastrados."}
+                          </p>
+                        </div>
+                      </div>
 
                       <button
                         onClick={() => handleInsert(aula, id)}
