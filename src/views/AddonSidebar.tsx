@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { getCurrentBimestre } from "../lib/constants";
 import { dbAulas, dbAEs } from "../data/guiaPedagogico";
+import { bnccHabilidades } from "../data/bnccHabilidades";
 import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft } from "lucide-react";
 
 export default function AddonSidebar() {
@@ -199,9 +200,17 @@ export default function AddonSidebar() {
                         {(aula.habilidades && aula.habilidades.length > 0) && (
                           <div>
                             <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades</span>
-                            <p className="text-xs text-slate-600 leading-snug">
-                              {Array.isArray(aula.habilidades) ? aula.habilidades.join(", ") : aula.habilidades}
-                            </p>
+                            <div className="text-xs text-slate-600 leading-snug space-y-1">
+                              {(Array.isArray(aula.habilidades) ? aula.habilidades : aula.habilidades.split(",")).map(h => {
+                                const code = h.trim();
+                                const desc = bnccHabilidades[code];
+                                return (
+                                  <p key={code} className="mb-1">
+                                    <span className="font-semibold">({code})</span>{desc ? ` ${desc}` : ""}
+                                  </p>
+                                );
+                              })}
+                            </div>
                           </div>
                         )}
 

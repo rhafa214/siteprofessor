@@ -1,15 +1,9 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Permitir acesso a qualquer subcoleção e documento apenas se o UID 
-    // do usuário autenticado for igual ao UID no caminho.
-    match /users/{userId} {
+    // Permitir aos usuários acesso total APENAS aos seus próprios documentos
+    match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Cascata de permissão para qualquer subcoleção dentro de users/{userId}
-      match /{document=**} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
-      }
     }
   }
 }
