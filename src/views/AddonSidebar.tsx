@@ -11,6 +11,25 @@ export default function AddonSidebar() {
   const [insertedIds, setInsertedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"aulas" | "aes">("aulas");
 
+  const formatAulasList = (numbers: number[]) => {
+    if (numbers.length === 0) return "";
+    let res = [];
+    let i = 0;
+    while (i < numbers.length) {
+      let start = numbers[i];
+      let end = start;
+      while (i + 1 < numbers.length && numbers[i + 1] === end + 1) {
+        end = numbers[i + 1];
+        i++;
+      }
+      if (start === end) res.push(`${start}`);
+      else if (end === start + 1) res.push(`${start}, ${end}`);
+      else res.push(`${start} a ${end}`);
+      i++;
+    }
+    return res.join(", ");
+  };
+
   const getDetalheAprendizagem = (ano: number, bimestre: number, codigo: string) => {
     if (!codigo || codigo === "-") return codigo;
     const codigos = codigo.split(",").map((c) => c.trim());
@@ -311,15 +330,28 @@ export default function AddonSidebar() {
                 {aes.map((ae, index) => {
                   const id = `ae-${ae.ano}-${ae.bimestre}-${ae.id}-${index}`;
                   const isInserted = insertedIds.has(id);
+                  const aulasRelacionadas = dbAulas
+                    .filter(a => a.ano === ae.ano && a.bimestre === ae.bimestre && a.aprendizagemEssencial.split(',').map(s => s.trim()).includes(ae.id))
+                    .map(a => a.numero)
+                    .sort((a,b) => a - b);
+                  const aulasStr = formatAulasList(aulasRelacionadas);
+
                   return (
                     <div key={id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
                       <div className="flex items-start gap-2 mb-2">
                         <span className="bg-emerald-100 text-emerald-700 text-[10px] whitespace-nowrap font-bold px-2 py-0.5 rounded-full shrink-0">
                           {ae.id}
                         </span>
-                        <h3 className="font-semibold text-sm text-slate-800 leading-tight">
-                          {ae.titulo}
-                        </h3>
+                        <div className="flex-1">
+                          {aulasStr && (
+                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
+                              {aulasStr.includes("a") || aulasStr.includes(",") ? "Engloba as Aulas " : "Engloba a Aula "}{aulasStr}
+                            </div>
+                          )}
+                          <h3 className="font-semibold text-sm text-slate-800 leading-tight">
+                            {ae.titulo}
+                          </h3>
+                        </div>
                       </div>
 
                       <div className="flex flex-col gap-2 mb-3">
