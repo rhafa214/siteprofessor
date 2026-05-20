@@ -9,6 +9,7 @@ export default function AddonSidebar() {
   const [bimestre, setBimestre] = useState<number>(getCurrentBimestre());
   const [searchTerm, setSearchTerm] = useState("");
   const [insertedIds, setInsertedIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"aulas" | "aes">("aulas");
 
   const getDetalheAprendizagem = (ano: number, bimestre: number, codigo: string) => {
     if (!codigo || codigo === "-") return codigo;
@@ -29,6 +30,16 @@ export default function AddonSidebar() {
       const num = String(aula.numero || "").toLowerCase();
       const term = searchTerm.toLowerCase();
       return title.includes(term) || obj.includes(term) || num.includes(term);
+    }
+  );
+
+  const aes = dbAEs.filter(
+    (ae) => {
+      if (ae.ano !== selectedAno || ae.bimestre !== bimestre) return false;
+      const title = String(ae.titulo || "").toLowerCase();
+      const id = String(ae.id || "").toLowerCase();
+      const term = searchTerm.toLowerCase();
+      return title.includes(term) || id.includes(term);
     }
   );
 
@@ -60,6 +71,30 @@ export default function AddonSidebar() {
     setInsertedIds((prev) => new Set(prev).add(id));
 
     // reset visual after 2 seconds
+    setTimeout(() => {
+      setInsertedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 2000);
+  };
+
+  const handleInsertAE = (ae: any, id: string) => {
+    let textToInsert = `Aprendizagem Essencial: ${ae.id}\n${ae.titulo}\n`;
+    if (ae.habilidadePriorizada) textToInsert += `Habilidade Priorizada: ${ae.habilidadePriorizada}\n`;
+    if (ae.habilidadesRelacionadas) textToInsert += `Habilidades Relacionadas: ${ae.habilidadesRelacionadas}\n`;
+    textToInsert += `\n`;
+
+    window.parent.postMessage(
+      {
+        type: "INSERT_TEXT",
+        text: textToInsert,
+      },
+      "*"
+    );
+
+    setInsertedIds((prev) => new Set(prev).add(id));
     setTimeout(() => {
       setInsertedIds((prev) => {
         const next = new Set(prev);
@@ -137,19 +172,40 @@ export default function AddonSidebar() {
 
         {/* Search */}
         {selectedAno && (
-          <div className="px-3 py-2 bg-white border-b border-slate-200 shadow-sm relative z-10">
-            <div className="relative">
-              <Search
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-              />
-              <input
-                type="text"
-                placeholder="Buscar aula ou termo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-slate-100 border-none rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#8257E5]"
-              />
+          <div className="bg-white border-b border-slate-200 shadow-sm relative z-10 flex flex-col">
+            <div className="px-3 py-2 border-b border-slate-100">
+              <div className="relative">
+                <Search
+                  size={14}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+                <input
+                  type="text"
+                  placeholder={activeTab === "aulas" ? "Buscar aula ou termo..." : "Buscar aprendizagem..."}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-slate-100 border-none rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#8257E5]"
+                />
+              </div>
+            </div>
+            
+            <div className="flex w-full">
+              <button 
+                onClick={() => setActiveTab("aulas")}
+                className={`flex-1 py-2 text-xs font-semibold text-center border-b-2 transition-colors ${
+                  activeTab === "aulas" ? "border-[#8257E5] text-[#8257E5]" : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                Aulas
+              </button>
+              <button 
+                onClick={() => setActiveTab("aes")}
+                className={`flex-1 py-2 text-xs font-semibold text-center border-b-2 transition-colors ${
+                  activeTab === "aes" ? "border-[#8257E5] text-[#8257E5]" : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+              >
+                Aprendizagens (AE)
+              </button>
             </div>
           </div>
         )}
@@ -160,48 +216,118 @@ export default function AddonSidebar() {
         {!selectedAno ? (
           renderAnos()
         ) : (
-          aulas.length === 0 ? (
-            <p className="text-center text-slate-500 text-sm mt-4">
-              Nenhuma aula encontrada.
-            </p>
-          ) : (
-            <div className="relative border-l-2 border-indigo-100 ml-3 space-y-6">
-              {aulas.map((aula, index) => {
-                const id = `${aula.ano}-${aula.bimestre}-${aula.numero}-${index}`;
-                const isInserted = insertedIds.has(id);
-                return (
-                  <div
-                    key={id}
-                    className="relative pl-6"
-                  >
-                    {/* Timeline Dot */}
-                    <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-[#8257E5] z-10" />
+          activeTab === "aulas" ? (
+            aulas.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm mt-4">
+                Nenhuma aula encontrada.
+              </p>
+            ) : (
+              <div className="relative border-l-2 border-indigo-100 ml-3 space-y-6">
+                {aulas.map((aula, index) => {
+                  const id = `${aula.ano}-${aula.bimestre}-${aula.numero}-${index}`;
+                  const isInserted = insertedIds.has(id);
+                  return (
+                    <div key={id} className="relative pl-6">
+                      <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-[#8257E5] z-10" />
 
-                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                          Aula {aula.numero}
+                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                            Aula {aula.numero}
+                          </span>
+                          <h3 className="font-semibold text-sm text-slate-800 leading-tight">
+                            {aula.titulo || aula.conteudo}
+                          </h3>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mb-3">
+                          {aula.aprendizagemEssencial && aula.aprendizagemEssencial !== "-" && (
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Aprendizagem Essencial</span>
+                              <p className="text-xs text-slate-600 leading-snug whitespace-pre-wrap">
+                                {getDetalheAprendizagem(aula.ano, aula.bimestre, aula.aprendizagemEssencial)}
+                              </p>
+                            </div>
+                          )}
+
+                          {(aula.habilidades && aula.habilidades.length > 0) && (
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades</span>
+                              <div className="text-xs text-slate-600 leading-snug space-y-1">
+                                {(Array.isArray(aula.habilidades) ? aula.habilidades : aula.habilidades.split(",")).map(h => {
+                                  const code = h.trim();
+                                  const desc = bnccHabilidades[code];
+                                  return (
+                                    <p key={code} className="mb-1">
+                                      <span className="font-semibold">({code})</span>{desc ? ` ${desc}` : ""}
+                                    </p>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Objetivos</span>
+                            <p className="text-xs text-slate-600 leading-snug">
+                              {aula.objetivos || "Sem objetivos cadastrados."}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => handleInsert(aula, id)}
+                          className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                            isInserted
+                              ? "bg-green-100 text-green-700"
+                              : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                          }`}
+                        >
+                          {isInserted ? (
+                            <>
+                              <CheckCircle2 size={14} />
+                              Inserido!
+                            </>
+                          ) : (
+                            <>
+                              <PlusCircle size={14} />
+                              Inserir no Doc
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          ) : (
+            aes.length === 0 ? (
+              <p className="text-center text-slate-500 text-sm mt-4">
+                Nenhuma aprendizagem essencial encontrada.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {aes.map((ae, index) => {
+                  const id = `ae-${ae.ano}-${ae.bimestre}-${ae.id}-${index}`;
+                  const isInserted = insertedIds.has(id);
+                  return (
+                    <div key={id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
+                      <div className="flex items-start gap-2 mb-2">
+                        <span className="bg-emerald-100 text-emerald-700 text-[10px] whitespace-nowrap font-bold px-2 py-0.5 rounded-full shrink-0">
+                          {ae.id}
                         </span>
                         <h3 className="font-semibold text-sm text-slate-800 leading-tight">
-                          {aula.titulo || aula.conteudo}
+                          {ae.titulo}
                         </h3>
                       </div>
 
                       <div className="flex flex-col gap-2 mb-3">
-                        {aula.aprendizagemEssencial && aula.aprendizagemEssencial !== "-" && (
+                        {ae.habilidadePriorizada && (
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Aprendizagem Essencial</span>
-                            <p className="text-xs text-slate-600 leading-snug whitespace-pre-wrap">
-                              {getDetalheAprendizagem(aula.ano, aula.bimestre, aula.aprendizagemEssencial)}
-                            </p>
-                          </div>
-                        )}
-
-                        {(aula.habilidades && aula.habilidades.length > 0) && (
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidade Priorizada</span>
                             <div className="text-xs text-slate-600 leading-snug space-y-1">
-                              {(Array.isArray(aula.habilidades) ? aula.habilidades : aula.habilidades.split(",")).map(h => {
+                              {ae.habilidadePriorizada.split(",").map(h => {
                                 const code = h.trim();
                                 const desc = bnccHabilidades[code];
                                 return (
@@ -214,20 +340,30 @@ export default function AddonSidebar() {
                           </div>
                         )}
 
-                        <div>
-                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Objetivos</span>
-                          <p className="text-xs text-slate-600 leading-snug">
-                            {aula.objetivos || "Sem objetivos cadastrados."}
-                          </p>
-                        </div>
+                        {ae.habilidadesRelacionadas && (
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades Relacionadas</span>
+                            <div className="text-xs text-slate-600 leading-snug space-y-1">
+                              {ae.habilidadesRelacionadas.split(",").map(h => {
+                                const code = h.trim();
+                                const desc = bnccHabilidades[code];
+                                return (
+                                  <p key={code} className="mb-1">
+                                    <span className="font-semibold">({code})</span>{desc ? ` ${desc}` : ""}
+                                  </p>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <button
-                        onClick={() => handleInsert(aula, id)}
+                        onClick={() => handleInsertAE(ae, id)}
                         className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
                           isInserted
                             ? "bg-green-100 text-green-700"
-                            : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                         }`}
                       >
                         {isInserted ? (
@@ -243,10 +379,10 @@ export default function AddonSidebar() {
                         )}
                       </button>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )
           )
         )}
       </div>
