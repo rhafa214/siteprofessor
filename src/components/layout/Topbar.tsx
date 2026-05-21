@@ -49,6 +49,7 @@ export default function Topbar({
   const viewTitles: Record<ViewType, string> = {
     dashboard: "Dashboard",
     diario: "Registro de Aulas",
+    grade: "Grade de Horários",
     agenda: "Agenda Estratégica",
     arquivos: "Explorador Drive",
     plano: "Plano de Aula",

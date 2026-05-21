@@ -115,8 +115,10 @@ export default function LessonPlan() {
   const [selectedSemanalClasses, setSelectedSemanalClasses] = useState<string[]>([]);
 
   const [isBimestralModalOpen, setIsBimestralModalOpen] = useState(false);
-  const [selectedBimestralAno, setSelectedBimestralAno] = useState<string>("6");
+  const [selectedBimestralClasses, setSelectedBimestralClasses] = useState<string[]>([]);
   const [selectedBimestralBimestre, setSelectedBimestralBimestre] = useState<string>(String(getCurrentBimestre()));
+  const [isGeneratingAuto, setIsGeneratingAuto] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState("");
 
   useEffect(() => {
     if (user) {
@@ -306,46 +308,141 @@ export default function LessonPlan() {
     setIsBimestralModalOpen(true);
   };
 
-  const handleBimestralSubmit = () => {
-    setViewMode("chat");
-    setIsBimestralModalOpen(false);
-    handleNewChat();
-    
-    // We use a timeout to avoid react state batching overriding the messages immediately
-    setTimeout(() => {
-      handleSend(undefined, `Preciso de um GUIA DE APRENDIZAGEM / PLANEJAMENTO BIMESTRAL EXTREMAMENTE DETALHADO referente ao **${selectedBimestralAno}º Ano**, **${selectedBimestralBimestre}º Bimestre**.
+  const handleAutoBimestralGeneration = async () => {
+    setIsGeneratingAuto(true);
+    setGenerationProgress("Inicializando Jarvis...");
 
-Use como estrutura e agrupamento as informações abaixo (baseadas no formato P.E.I. E.E. Prof.ª Maria Elisa de Oliveira):
+    const ai = getAI();
+    if (!ai) {
+      alert("Configure sua chave do Gemini API para continuarmos!");
+      setIsGeneratingAuto(false);
+      return;
+    }
 
-**1. Cabeçalho:**
-- Componente Curricular: Matemática
-- Ano/Turma: ${selectedBimestralAno}º Ano
-- Bimestre: ${selectedBimestralBimestre}º
+    const year = new Date().getFullYear();
+    const feriadosObj = getHolidays(year);
+    const feriadosList = Object.entries(feriadosObj).map(([k, v]) => `${k}/${year}: ${v}`).join(", ");
 
-**2. Aulas previstas:**
-Calcule e informe a quantidade total de aulas previstas para o bimestre (ex: 35 aulas ou o que for previsto no calendário normal). 
+    try {
+      let createdPlansCount = 0;
+      let lastGeneratedId = "";
 
-**3. Tabela Principal (Coração do Guia):**
-Divida rigorosamente as aulas do bimestre em **blocos de aulas** baseados nas matrizes/escopo-sequência fornecidas. Não invente conteúdos, extraia-os exclusivamente do JSON/Matriz Curricular do ${selectedBimestralAno}º Ano, ${selectedBimestralBimestre}º Bimestre. 
-Para cada bloco construa as colunas:
-- **Aula & Conteúdos (O que vou aprender?)**: Exemplo: "Aula 1 a 5: AE1 - [Descrição da Aprendizagem Essencial/Conteúdo]"
-- **Objetivos de Aprendizagem (O que devo saber?)**: Exemplo: "Identificar... Compor ou decompor..." Detalhe com base nas Habilidades.
+      for (const turma of selectedBimestralClasses) {
+        setGenerationProgress(`Gerando plano para ${turma}...`);
+        
+        // Descobrir dias da semana da turma
+        const diasTurma: string[] = [];
+        let totalAulasSemana = 0;
+        if (schedule) {
+          const diasMap: Record<number, string> = { 1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta", 5: "Sexta" };
+          Object.entries(schedule).forEach(([diaNum, turmas]) => {
+            const count = (turmas as string[]).filter(t => {
+              const td = t.toLowerCase().replace(/º/g, "°").trim();
+              const md = turma.toLowerCase().replace(/º/g, "°").trim();
+              return td === md || td.includes(md) || md.includes(td);
+            }).length;
+            if (count > 0) {
+              totalAulasSemana += count;
+              if (!diasTurma.includes(diasMap[Number(diaNum)])) {
+                diasTurma.push(diasMap[Number(diaNum)]);
+              }
+            }
+          });
+        }
+        
+        const infoDias = diasTurma.length > 0 
+          ? `dias da semana (${diasTurma.join(", ")}), somando ${totalAulasSemana} aulas semanais` 
+          : "dias da semana (sem cadastro no schedule, use estimativa genérica de 4 a 5 aulas semanais)";
 
-Faça isso percorrendo TODAS as aulas (ex: Aula 1 a 5, Aula 6 a 10... até as últimas aulas designadas para Revisão).
+        const sysPrompt = `Você é o Jarvis, especialista administrativo de educação. 
+Seu objetivo é redigir um PLANEJAMENTO BIMESTRAL estratégico para a turma ${turma}, no ${selectedBimestralBimestre}º Bimestre.
+Gere APENAS o documento final formatado em Markdown de altíssima qualidade (sem introduções em chat).
 
-**4. Critérios de Avaliação (Como serei avaliado?):**
-Obrigatório incluir os exatos critérios e pesos abaixo:
-- Matific: 10%
-- Tarefas de Casa/SP: 10%
-- Prova Paulista: 30%
-- Prova Escrita (Bimestral): 30%
-- Participação e Atividades em Aula: 20%
+CUIDADOS COM A FORMATAÇÃO VISUAL (MARKDOWN):
+- Utilize espaços generosos entre blocos de texto.
+- Use **negrito** e \`destaques\` para chamar atenção para métricas importantes (como número de aulas e dias da semana).
+- Use listas (bullet points) bem estruturadas.
+- Evite blocos de texto monolíticos e gigantescos. Prefira parágrafos curtos, tópicos e um formato limpo, direto e profissional.
 
-**5. Referências e fontes (Material Digital, etc):**
-Inclua os links do Material Digital, Tarefas (CMSP/Matific), Livro impresso e canais Youtube.
+INFORMAÇÕES OFICIAIS DE CALENDÁRIO:
+- Feriados anuais: ${feriadosList}
+- Bimestres: 1º Bim: 02/02 a 22/04 | 2º Bim: 23/04 a 06/07 | 3º Bim: 24/07 a 02/10 | 4º Bim: 05/10 a 18/12
 
-Traga a resposta inteiramente formatada em Markdown, usando tabelas se possível ou blocos destrinchados que sigam o cabeçalho, a organização por blocos de aula e as demais sessões.`);
-    }, 100);
+INFORMAÇÕES EXATAS DA TURMA:
+- Dia(s) da semana letivo(s) da turma: **${diasTurma.length > 0 ? diasTurma.join(", ") : "Não definidos"}**.
+- Aulas semanais: **${totalAulasSemana > 0 ? totalAulasSemana : "Estimar 4-5"}**.
+- **MATEMÁTICA OBRIGATÓRIA**: Conte as semanas do ${selectedBimestralBimestre}º bimestre, multiplique pelas aulas semanais e DESCONTE rigorosamente os feriados que caírem nos dias de aula desta turma específica. Defina um **NÚMERO EXATO** de aulas previstas para o bimestre.
+
+${curriculum ? `[MATRIZ/ESCOPO CURRICULAR DO PROFESSOR]: \n\`\`\`\n${curriculum}\n\`\`\`\n` : `[ESCOPO OFICIAL (FALLBACK)]: \n\`\`\`json\n${JSON.stringify(curriculumData)}\n\`\`\``}
+${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE]:\n${jarvisDocs.map(d => `[${d.title}]\n${d.content}`).join("\n\n")}` : ""}
+
+SUA TAREFA - Gere o arquivo com a seguinte estrutura:
+
+# Planejamento Bimestral Estratégico
+
+**1. Ficha Técnica**
+- **Turma:** ${turma}
+- **Bimestre:** ${selectedBimestralBimestre}º Bimestre
+- **Dias de Aula da Turma:** Analise quais os dias (${diasTurma.join(", ")}). Explicite-os claramente.
+- **Carga Horária Estimada Mapeada:** (Apresente o cálculo exato de aulas descontados os feriados e emendas. Destaque em negrito. Ex: "**44 aulas planejadas**").
+
+**2. Visão Geral do Bimestre (Análise Jarvis)**
+- Um parágrafo executivo no estilo do Jarvis: estrategista, inteligente, confiante, propondo a rota de aprendizagem e pontos principais do bimestre. 
+
+**3. Aprendizagens Essenciais e Habilidades Oficiais**
+- Agrupe e destaque usando **bullet points limpos**. Extraia tudo dos materiais em anexo.
+
+**4. Distribuição da Sequência de Aulas Semanal**
+- Ao invés de uma tabela complexa ou blocões gigantes, use subtópicos espaçados (ex: \`### Semanas 1 e 2 - Aulas 1 a X\`). 
+- **Conteúdo O que veremos?**: Y.
+- **Objetivo Prático**: Z.
+- Distribua cronologicamente até bater a meta limite de aulas (carga horária estipulada acima).
+- **Sem paredes de texto!** Formate para leitura fácil.`;
+
+        let response;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            response = await ai.models.generateContent({
+              model: "gemini-2.5-flash",
+              contents: [{ role: "user", parts: [{ text: sysPrompt }] }],
+            });
+            break;
+          } catch(e) {
+            console.error(e);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+          }
+        }
+        
+        if (response && response.text) {
+          const newDocId = Date.now().toString() + Math.random().toString(36).substring(7);
+          const newPlan = {
+            id: newDocId,
+            folder: turma,
+            title: `Bimestral - ${selectedBimestralBimestre}º Bimestre`,
+            content: response.text
+          };
+          lastGeneratedId = newDocId;
+          await createPlan(newPlan); // Note: createPlan is defined higher up and saves to DB and context
+          createdPlansCount++;
+        }
+      }
+
+      setIsBimestralModalOpen(false);
+      
+      if (createdPlansCount > 0) {
+        setViewMode("editor");
+        setSelectedPlanId(lastGeneratedId);
+      } else {
+        alert("Falha ao gerar os planos. Verifique a API Key ou conexão.");
+      }
+
+    } catch (err) {
+      console.error(err);
+      alert("Ocorreu um erro durante a geração automática.");
+    } finally {
+      setIsGeneratingAuto(false);
+      setGenerationProgress("");
+    }
   };
 
   const handleDeleteChat = async (id: string, e: React.MouseEvent) => {
@@ -1315,9 +1412,9 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
         <div className="fixed inset-0 z-50 flex items-center justify-center top-0 left-0">
           <div
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setIsBimestralModalOpen(false)}
+            onClick={() => !isGeneratingAuto && setIsBimestralModalOpen(false)}
           ></div>
-          <div className="bg-white rounded-[2rem] p-8 w-full max-w-md shadow-2xl relative z-10 m-4 flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-[2rem] p-8 w-full max-w-lg shadow-2xl relative z-10 m-4 flex flex-col max-h-[90vh]">
             <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shrink-0">
               <Calendar size={24} />
             </div>
@@ -1325,26 +1422,10 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               Plano Bimestral
             </h3>
             <p className="text-sm font-medium text-slate-500 mb-6 shrink-0">
-              Selecione o ano escolar e o bimestre para o plano.
+              Gerador automático. Selecione o bimestre e as turmas.
             </p>
             
-            <div className="space-y-4 mb-6 flex-1">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">
-                  Ano Escolar
-                </label>
-                <select 
-                  value={selectedBimestralAno}
-                  onChange={(e) => setSelectedBimestralAno(e.target.value)}
-                  className="w-full bg-slate-100 border-none px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
-                >
-                  <option value="6">6º Ano</option>
-                  <option value="7">7º Ano</option>
-                  <option value="8">8º Ano</option>
-                  <option value="9">9º Ano</option>
-                </select>
-              </div>
-
+            <div className="space-y-4 mb-6 flex-1 overflow-y-auto pr-2 scrollbar-thin">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">
                   Bimestre
@@ -1352,6 +1433,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                 <select 
                   value={selectedBimestralBimestre}
                   onChange={(e) => setSelectedBimestralBimestre(e.target.value)}
+                  disabled={isGeneratingAuto}
                   className="w-full bg-slate-100 border-none px-4 py-3 rounded-xl focus:ring-2 focus:ring-blue-500 font-medium text-slate-700"
                 >
                   <option value="1">1º Bimestre</option>
@@ -1360,20 +1442,63 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                   <option value="4">4º Bimestre</option>
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                  Turmas para o Planejamento
+                </label>
+                {turmasList.length === 0 ? (
+                  <p className="text-sm text-slate-500 italic">Nenhuma turma cadastrada no diário.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {turmasList.map((turma) => (
+                      <label key={turma} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors group">
+                        <div className="relative flex items-center justify-center">
+                          <input 
+                            type="checkbox" 
+                            disabled={isGeneratingAuto}
+                            className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-blue-500 checked:border-blue-500 transition-colors"
+                            checked={selectedBimestralClasses.includes(turma)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedBimestralClasses((prev) => [...prev, turma]);
+                              } else {
+                                setSelectedBimestralClasses((prev) => prev.filter(t => t !== turma));
+                              }
+                            }}
+                          />
+                          <CheckCircle2 size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 placeholder-events-none transition-opacity" />
+                        </div>
+                        <span className="font-bold text-slate-700 group-hover:text-blue-800 transition-colors">{turma}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
+            {isGeneratingAuto && (
+              <div className="flex flex-col items-center justify-center py-4 text-blue-600">
+                <Loader2 size={24} className="animate-spin mb-2" />
+                <span className="text-sm font-bold text-slate-700 text-center">{generationProgress || "Iniciando geração..."}</span>
+              </div>
+            )}
 
             <div className="flex gap-3 shrink-0">
               <button
                 onClick={() => setIsBimestralModalOpen(false)}
-                className="flex-1 bg-white border border-slate-200 text-slate-600 px-4 py-3.5 rounded-2xl font-bold hover:bg-slate-50 transition-colors"
+                disabled={isGeneratingAuto}
+                className="flex-1 bg-white border border-slate-200 text-slate-600 px-4 py-3.5 rounded-2xl font-bold hover:bg-slate-50 transition-colors disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleBimestralSubmit}
-                className="flex-1 bg-blue-600 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50"
+                disabled={selectedBimestralClasses.length === 0 || isGeneratingAuto}
+                onClick={handleAutoBimestralGeneration}
+                className="flex-[2] bg-blue-600 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Gerar Plano
+                {isGeneratingAuto ? <Loader2 size={18} className="animate-spin" /> : <Bot size={18} />}
+                Gerar Automático
               </button>
             </div>
           </div>

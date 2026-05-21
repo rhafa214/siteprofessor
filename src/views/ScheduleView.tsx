@@ -66,20 +66,18 @@ export default function ScheduleView() {
       return;
     }
     const current = schedule[dayIndex] || [];
-    if (!current.includes(newTurmaValue.trim())) {
-      setSchedule(prev => ({
-        ...prev,
-        [dayIndex]: [...current, newTurmaValue.trim()]
-      }));
-    }
+    setSchedule(prev => ({
+      ...prev,
+      [dayIndex]: [...current, newTurmaValue.trim()]
+    }));
     setNewTurmaValue("");
     setActiveDayIndex(null);
   };
 
-  const handleRemoveTurma = (dayIndex: number, turma: string) => {
+  const handleRemoveTurma = (dayIndex: number, turmaIndex: number) => {
     setSchedule(prev => ({
       ...prev,
-      [dayIndex]: (prev[dayIndex] || []).filter(t => t !== turma)
+      [dayIndex]: (prev[dayIndex] || []).filter((_, idx) => idx !== turmaIndex)
     }));
   };
 
@@ -170,7 +168,7 @@ export default function ScheduleView() {
                   <div key={idx} className="bg-indigo-50 border border-indigo-100 text-indigo-800 rounded-xl px-3 py-2 flex items-center justify-between group shadow-sm">
                      <span className="font-medium text-sm pr-2 truncate">{turma}</span>
                      <button
-                        onClick={() => handleRemoveTurma(day.index, turma)}
+                        onClick={() => handleRemoveTurma(day.index, idx)}
                         className="text-indigo-400 hover:text-red-500 opacity-50 group-hover:opacity-100 transition-opacity"
                      >
                        <X size={16} />
