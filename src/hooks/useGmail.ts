@@ -15,76 +15,9 @@ export function useGmail() {
     }
 
     const fetchMessages = async () => {
-      setIsLoading(true);
-      setApiError(null);
-      try {
-        // Fetch recent messages
-        const resList = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=5&labelIds=INBOX`,
-          {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          },
-        );
-
-        if (resList.status === 401) {
-          logout();
-          setApiError(
-            "Sessão do Google expirada. Por favor, conecte novamente.",
-          );
-          return;
-        }
-
-        if (resList.status === 403) {
-          const errData = await resList.json().catch(() => null);
-          const errMsg =
-            errData?.error?.message ||
-            "Permissão negada ou API não ativada. Ao fazer login, marque a caixa de permissão do Gmail.";
-          setApiError(errMsg);
-          return;
-        }
-
-        const dataList = await resList.json();
-
-        if (dataList.messages) {
-          const detailPromises = dataList.messages.map((m: any) =>
-            fetch(
-              `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From`,
-              {
-                headers: { Authorization: `Bearer ${accessToken}` },
-              },
-            ).then((r) => r.json()),
-          );
-          const details = await Promise.all(detailPromises);
-
-          const formattedMessages = details.map((d) => {
-            const subjectHeader = d.payload?.headers?.find(
-              (h: any) => h.name === "Subject",
-            );
-            const fromHeader = d.payload?.headers?.find(
-              (h: any) => h.name === "From",
-            );
-
-            let fromName = fromHeader?.value || "Desconhecido";
-            if (fromName.includes("<")) {
-              fromName = fromName.split("<")[0].trim();
-            }
-
-            return {
-              id: d.id,
-              snippet: d.snippet,
-              subject: subjectHeader?.value || "Sem assunto",
-              from: fromName,
-              date: new Date(parseInt(d.internalDate)),
-            };
-          });
-
-          setMessages(formattedMessages);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
+      setMessages([]);
+      return;
     };
 
     fetchMessages();

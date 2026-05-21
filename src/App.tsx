@@ -30,6 +30,7 @@ import JarvisBaseView from "./views/JarvisBaseView";
 import GuiaPedagogicoView from "./views/GuiaPedagogicoView";
 import ProfileView from "./views/ProfileView";
 import AddonSidebar from "./views/AddonSidebar";
+import ScheduleView from "./views/ScheduleView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
 
@@ -278,6 +279,7 @@ function App() {
               <Dashboard setCurrentView={setCurrentView} />
             )}
             {currentView === "perfil" && <ProfileView setCurrentView={setCurrentView} />}
+            {currentView === "grade" && <ScheduleView />}
             {currentView === "diario" && <ClassJournal />}
             {currentView === "agenda" && <Agenda />}
             {currentView === "arquivos" && <DriveExplorer />}

@@ -22,6 +22,7 @@ import {
   Sun,
   Map,
   User as UserIcon,
+  Table,
 } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
@@ -64,6 +65,12 @@ export default function Sidebar({
       id: "diario",
       label: "Registro de Aulas",
       icon: Book,
+      group: "Principal",
+    },
+    {
+      id: "grade",
+      label: "Grade de Horários",
+      icon: Table,
       group: "Principal",
     },
     {
