@@ -42,9 +42,45 @@ export default function DriveExplorer() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   const fetchFiles = async (token: string, folderId: string, isStarred: boolean) => {
-    setIsLoading(false);
-    setFiles([]);
-    return;
+    setIsLoading(true);
+    setApiError(null);
+    try {
+      const q = isStarred
+        ? "starred = true and trashed = false"
+        : `'${folderId}' in parents and trashed = false`;
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,starred,iconLink,webViewLink)&orderBy=folder,name`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      if (res.status === 401) {
+        logout();
+        setApiError("Sessão do Google expirada. Por favor, conecte novamente.");
+        return;
+      }
+
+      if (res.status === 403) {
+        let errMsg =
+          "Permissão negada ou API não ativada. Ao fazer login, marque a caixa de permissão do Google Drive.";
+        try {
+          const errData = await res.json();
+          if (errData?.error?.message) errMsg = errData.error.message;
+        } catch (e) {}
+        throw new Error(errMsg);
+      }
+
+      const data = await res.json();
+      if (data.files) {
+        setFiles(data.files);
+      }
+    } catch (error: any) {
+      console.error(error);
+      setApiError(error.message || "Erro ao carregar arquivos");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {

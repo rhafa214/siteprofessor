@@ -57,6 +57,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
     const provider = new GoogleAuthProvider();
 
+    // Requisitar os escopos necessários para Agenda, Drive e Email
+    provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
+    provider.addScope("https://www.googleapis.com/auth/drive.readonly");
+    provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
+
+    // Forçar a tela de consentimento para garantir que os escopos sejam solicitados
+    provider.setCustomParameters({
+      prompt: "consent",
+    });
+
     try {
       const result = await signInWithPopup(auth, provider);
       const credential = GoogleAuthProvider.credentialFromResult(result);

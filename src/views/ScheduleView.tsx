@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAlert } from "../contexts/AlertContext";
+import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 
 type Schedule = Record<number, string[]>;
 
@@ -18,6 +19,7 @@ const DAYS = [
 export default function ScheduleView() {
   const { user } = useAuth();
   const { showAlert } = useAlert();
+  const { events, isLoading: isLoadingCalendar } = useGoogleCalendar();
   
   const [schedule, setSchedule] = useState<Schedule>({ 1: [], 2: [], 3: [], 4: [], 5: [] });
   const [isSaving, setIsSaving] = useState(false);
@@ -82,7 +84,32 @@ export default function ScheduleView() {
   };
 
   const importFromCalendar = () => {
-    showAlert("Integração com Google Calendário foi desabilitada.", "Aviso", "warning");
+    if (!events || events.length === 0) {
+      showAlert("Nenhum evento encontrado no calendário para importar.", "Aviso", "warning");
+      return;
+    }
+
+    const newSchedule: Schedule = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+    
+    events.forEach((ev) => {
+      if (ev.start?.dateTime || ev.start?.date) {
+        const dateStr = ev.start.dateTime || ev.start.date;
+        const date = new Date(dateStr);
+        const dayIndex = date.getDay(); // 0(Sun) - 6(Sat)
+        
+        if (dayIndex >= 1 && dayIndex <= 5) {
+          // simple heuristic: if it looks like a class "Aula 7º Ano", "7º A"
+          const title = ev.summary || "Aula";
+          // let's just add the title directly if it's short, or let the user filter it
+          if (!newSchedule[dayIndex].includes(title)) {
+            newSchedule[dayIndex].push(title);
+          }
+        }
+      }
+    });
+
+    setSchedule(newSchedule);
+    showAlert("Turmas importadas do calendário! Não esqueça de revisar e salvar.", "Sucesso", "success");
   };
 
   if (isLoading) {
@@ -111,6 +138,15 @@ export default function ScheduleView() {
         </div>
 
         <div className="relative z-10 shrink-0 flex flex-col sm:flex-row gap-3">
+          <button
+             onClick={importFromCalendar}
+             disabled={isLoadingCalendar}
+             className="flex items-center justify-center gap-2 px-5 py-3 bg-white border border-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm disabled:opacity-50"
+          >
+             {isLoadingCalendar ? <Loader2 size={18} className="animate-spin" /> : <Calendar size={18} />}
+             Importar do Calendário
+          </button>
+
           <button
              onClick={() => saveSchedule(schedule)}
              disabled={isSaving}
