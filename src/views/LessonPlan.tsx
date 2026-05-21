@@ -540,14 +540,14 @@ ${schoolModel ? `[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nCRÍTICO: Este �
 Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Quando for gerar o plano de aula real a pedido do usuário (seja bimestral, quinzenal ou aula a aula), respeite os modelos anexos integralmente!
 Forneça o resultado formatado de forma limpa em Markdown.`;
 
-      const schedPrompt = schedule && Object.keys(schedule).length > 0
-        ? `\n\n[GRADE DE HORÁRIOS (AULAS DA SEMANA)]:\nA grade de horários cadastrada é:\n` +
+      const schedPrompt = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
+        ? `\n\n[GRADE DE HORÁRIOS - SEU ACESSO É TOTAL E EXCLUSIVO A ISSO]:\nO professor JÁ CADASTROU a sua grade de horários diários com você. Você AGORA TEM ACESSO a ela. NUNCA diga que não tem acesso.\nA grade atual de aulas é:\n` +
           `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
           `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
           `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
           `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
           `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
-          `Use esta informação para estruturar os planos semanalmente com base nas turmas de cada dia.`
+          `Utilize as aulas da semana exatas desta tabela para distribuir os conteúdos ao planejar. Aja como se você naturalmente soubesse da grade dele.`
         : "";
 
       // Build chat history for Gemini

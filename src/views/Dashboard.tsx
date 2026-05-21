@@ -457,14 +457,14 @@ Bimestres escolares:
               .join("\n")
           : "";
 
-      const schedPrompt = schedule && Object.keys(schedule).length > 0
-        ? `\n\n[GRADE DE HORÁRIOS (AULAS DA SEMANA)]:\nA grade de horários cadastrada é:\n` +
+      const schedPrompt = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
+        ? `\n\n[GRADE DE HORÁRIOS - SEU ACESSO É TOTAL E EXCLUSIVO A ISSO]:\nO professor JÁ CADASTROU a sua grade de horários diários com você. Você AGORA TEM ACESSO a ela. NUNCA diga que não tem acesso.\nA grade atual de aulas é:\n` +
           `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
           `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
           `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
           `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
           `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
-          `Use esta informação para saber quais aulas o professor tem em cada dia da semana.`
+          `Aja como se você naturalmente soubesse dessa grade. Mapeie quais dias o professor dá aula para cada turma baseado nesta lista.`
         : "";
 
       const responseStream = await ai.models.generateContentStream({
