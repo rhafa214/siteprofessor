@@ -78,7 +78,7 @@ export default function LessonPlan() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const { prompt } = usePrompt();
-  const { curriculum, schoolModel, jarvisDocs } = useJarvisKnowledge();
+  const { curriculum, schoolModel, jarvisDocs, schedule } = useJarvisKnowledge();
   const [oldContent, setOldContent] = useLocalStorage<string>("eduPlan", "");
   const [plansDict, setPlansDict] = useLocalStorage<Record<string, string>>(
     "eduPlansRecord",
@@ -540,6 +540,16 @@ ${schoolModel ? `[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nCRÍTICO: Este �
 Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Quando for gerar o plano de aula real a pedido do usuário (seja bimestral, quinzenal ou aula a aula), respeite os modelos anexos integralmente!
 Forneça o resultado formatado de forma limpa em Markdown.`;
 
+      const schedPrompt = schedule && Object.keys(schedule).length > 0
+        ? `\n\n[GRADE DE HORÁRIOS (AULAS DA SEMANA)]:\nA grade de horários cadastrada é:\n` +
+          `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
+          `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
+          `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
+          `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
+          `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
+          `Use esta informação para estruturar os planos semanalmente com base nas turmas de cada dia.`
+        : "";
+
       // Build chat history for Gemini
       const contents = messages
         .filter((m) => !m.isError)
@@ -563,7 +573,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                 role: "user",
                 parts: [
                   {
-                    text: `System Prompt: ${sysPrompt}\n\nAgora continue a conversa.`,
+                    text: `System Prompt: ${sysPrompt}${schedPrompt}\n\nAgora continue a conversa.`,
                   },
                 ],
               },

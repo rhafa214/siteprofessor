@@ -51,7 +51,7 @@ interface DashboardProps {
 
 export default function Dashboard({ setCurrentView }: DashboardProps) {
   const { user, loginWithGoogle } = useAuth();
-  const { curriculum, schoolModel, jarvisDocs } = useJarvisKnowledge();
+  const { curriculum, schoolModel, jarvisDocs, schedule } = useJarvisKnowledge();
   const {
     events: calendarEvents,
     isLoading: isCalendarLoading,
@@ -457,12 +457,22 @@ Bimestres escolares:
               .join("\n")
           : "";
 
+      const schedPrompt = schedule && Object.keys(schedule).length > 0
+        ? `\n\n[GRADE DE HORÁRIOS (AULAS DA SEMANA)]:\nA grade de horários cadastrada é:\n` +
+          `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
+          `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
+          `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
+          `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
+          `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
+          `Use esta informação para saber quais aulas o professor tem em cada dia da semana.`
+        : "";
+
       const responseStream = await ai.models.generateContentStream({
         model: "gemini-2.5-flash",
         contents,
         config: {
           systemInstruction:
-            basePrompt + impDatesPrompt + curPrompt + modPrompt + jarvisDocsPrompt,
+            basePrompt + impDatesPrompt + curPrompt + modPrompt + jarvisDocsPrompt + schedPrompt,
           tools: [
             {
               functionDeclarations: [

@@ -8,6 +8,7 @@ export function useJarvisKnowledge() {
   const [curriculum, setCurriculum] = useState("");
   const [schoolModel, setSchoolModel] = useState("");
   const [jarvisDocs, setJarvisDocs] = useState<{title: string, content: string}[]>([]);
+  const [schedule, setSchedule] = useState<Record<number, string[]>>({ 1: [], 2: [], 3: [], 4: [], 5: [] });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,6 +46,13 @@ export function useJarvisKnowledge() {
         if (baseDoc.exists() && baseDoc.data()?.docs) {
           setJarvisDocs(baseDoc.data().docs);
         }
+
+        const schedDoc = await getDoc(
+          doc(db, "users", user.uid, "knowledge", "schedule"),
+        );
+        if (schedDoc.exists() && schedDoc.data()?.schedule) {
+          setSchedule(schedDoc.data().schedule);
+        }
       } catch (err: any) {
         if (err?.message?.includes("Missing or insufficient permissions")) {
           try {
@@ -62,5 +70,5 @@ export function useJarvisKnowledge() {
     load();
   }, [user]);
 
-  return { curriculum, schoolModel, jarvisDocs, loading };
+  return { curriculum, schoolModel, jarvisDocs, schedule, loading };
 }
