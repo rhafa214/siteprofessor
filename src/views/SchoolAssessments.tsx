@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, FileCheck, Search, Trophy, Plus, Copy, Trash2, Download } from "lucide-react";
+import { BookOpen, FileCheck, Search, Trophy, Plus, Copy, Trash2, Download, Users, Loader2 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { useAuth } from "../contexts/AuthContext";
+import { useAlert } from "../contexts/AlertContext";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../lib/firebase";
 
 interface GradeRecord {
   id: string;
@@ -10,8 +14,11 @@ interface GradeRecord {
 }
 
 export default function SchoolAssessments({ defaultTab = "bimestral" }: { defaultTab?: "bimestral" | "simulado" }) {
+  const { user } = useAuth();
+  const { showAlert } = useAlert();
   const [activeTab, setActiveTab] = useState<"bimestral" | "simulado">(defaultTab);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const [turmasList] = useLocalStorage<string[]>(
     "classTurmasList",
@@ -33,6 +40,60 @@ export default function SchoolAssessments({ defaultTab = "bimestral" }: { defaul
 
   const [newStudent, setNewStudent] = useState("");
   const [newGrade, setNewGrade] = useState("");
+
+  const syncStudentsWithDatabase = async () => {
+    if (!user || !selectedTurma) {
+      showAlert("Você precisa estar logado para sincronizar com o banco em nuvem.", "Aviso", "warning");
+      return;
+    }
+    
+    try {
+      setIsSyncing(true);
+      const snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma));
+      if (snap.exists()) {
+        const td = snap.data();
+        if (td && td.students && Array.isArray(td.students)) {
+           const existingNames = new Set(currentGrades.map(s => s.studentName.toLowerCase()));
+           
+           const newRecords: GradeRecord[] = [];
+           let added = 0;
+
+           for (const st of td.students) {
+             if (!existingNames.has(st.name.toLowerCase())) {
+               newRecords.push({
+                 id: crypto.randomUUID(),
+                 studentName: st.name,
+                 grade: ""
+               });
+               added++;
+             }
+           }
+
+           if (added > 0) {
+             const finalGrades = [...currentGrades, ...newRecords];
+             finalGrades.sort((a, b) => a.studentName.localeCompare(b.studentName));
+             
+             setGradesData(prev => ({
+               ...prev,
+               [currentKey]: finalGrades
+             }));
+             showAlert(`Sincronização concluída! ${added} novo(s) aluno(s) adicionado(s).`, "Sucesso", "success");
+           } else {
+             showAlert("Todos os alunos do banco já estão na lista de notas.", "Aviso", "info");
+           }
+        } else {
+          showAlert("Nenhum aluno encontrado no banco de dados para esta turma.", "Aviso", "warning");
+        }
+      } else {
+        showAlert("Turma não encontrada no banco de dados de alunos.", "Aviso", "warning");
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert("Erro ao sincronizar com o banco de alunos.", "Erro", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const handleAddGrade = (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,28 +278,38 @@ export default function SchoolAssessments({ defaultTab = "bimestral" }: { defaul
       </div>
 
       <div className="flex-1 p-6 overflow-auto">
-        <form onSubmit={handleAddGrade} className="mb-6 flex gap-2">
-            <input
-               type="text"
-               placeholder="Nome do Aluno"
-               value={newStudent}
-               onChange={(e) => setNewStudent(e.target.value)}
-               className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
-            />
-            <input
-               type="number"
-               step="0.1"
-               min="0"
-               max="10"
-               placeholder="Nota"
-               value={newGrade}
-               onChange={(e) => setNewGrade(e.target.value)}
-               className="w-24 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
-            />
-            <button type="submit" className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-colors">
-               <Plus size={20} />
-            </button>
-        </form>
+        <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-6">
+          <form onSubmit={handleAddGrade} className="flex gap-2 flex-1">
+              <input
+                 type="text"
+                 placeholder="Nome do Aluno"
+                 value={newStudent}
+                 onChange={(e) => setNewStudent(e.target.value)}
+                 className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+              />
+              <input
+                 type="number"
+                 step="0.1"
+                 min="0"
+                 max="10"
+                 placeholder="Nota"
+                 value={newGrade}
+                 onChange={(e) => setNewGrade(e.target.value)}
+                 className="w-24 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
+              />
+              <button type="submit" className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-colors">
+                 <Plus size={20} />
+              </button>
+          </form>
+          <button
+              onClick={syncStudentsWithDatabase}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl font-bold text-sm shadow-sm transition-colors shrink-0"
+          >
+              {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
+              {isSyncing ? "Sincronizando..." : "Puxar Alunos do Banco"}
+          </button>
+        </div>
 
         <div className="flex gap-4 mb-4">
            <div className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-bold">

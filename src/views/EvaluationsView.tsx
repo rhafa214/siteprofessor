@@ -4,7 +4,7 @@ import TaskAnalysis from "./TaskAnalysis";
 import ProvaPaulistaAnalysis from "./ProvaPaulistaAnalysis";
 import SchoolAssessments from "./SchoolAssessments";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, ClipboardCheck, FileText, BarChart, BrainCircuit, Loader2, BookOpen } from "lucide-react";
+import { Calculator, ClipboardCheck, FileText, BarChart, BrainCircuit, Loader2, BookOpen, Trophy } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAlert } from "../contexts/AlertContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";

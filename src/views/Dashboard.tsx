@@ -120,6 +120,21 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     { id: string; nome: string; data: string; dataFim?: string }[]
   >([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const lembretesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (lembretesRef.current && !lembretesRef.current.contains(event.target as Node)) {
+        setIsLembretesOpen(false);
+      }
+    }
+    if (isLembretesOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isLembretesOpen]);
 
   useEffect(() => {
     if (user && chatMessages.length === 1 && chatMessages[0].role === "bot") {
@@ -227,6 +242,16 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
       setDoc(
         doc(db, "users", user.uid, "settings", "dashboard"),
         { reminders: newReminders },
+        { merge: true },
+      ).catch((e) => console.error(e));
+    }
+  };
+
+  const updateFirestoreImportantDates = (newDates: { id: string; nome: string; data: string; dataFim?: string }[]) => {
+    if (user) {
+      setDoc(
+        doc(db, "users", user.uid, "settings", "dashboard"),
+        { importantDates: newDates },
         { merge: true },
       ).catch((e) => console.error(e));
     }
@@ -498,6 +523,24 @@ Bimestres escolares:
                   },
                 },
                 {
+                  name: "addEvaluation",
+                  description: "Adiciona uma data importante ou avaliação no painel (contagem regressiva).",
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      nome: {
+                        type: Type.STRING,
+                        description: "O nome da avaliação ou evento (ex: 'Prova Bimestral 6°A')."
+                      },
+                      data: {
+                        type: Type.STRING,
+                        description: "A data da avaliação no formato YYYY-MM-DD."
+                      }
+                    },
+                    required: ["nome", "data"]
+                  }
+                },
+                {
                   name: "manageMatificWeeks",
                   description: "Adiciona, edita ou exclui semanas ao controle do Matific de uma turma.",
                   parameters: {
@@ -544,6 +587,26 @@ Bimestres escolares:
               {
                 role: "bot",
                 text: `Entendido. Adicionado o lembrete: "${args.task}" à sua agenda pessoal, senhor.`,
+              },
+            ]);
+            functionCalled = true;
+            break;
+          } else if (call.name === "addEvaluation") {
+            const args = call.args as { nome: string; data: string };
+            const newDateEntry = {
+              id: Date.now().toString(),
+              nome: args.nome,
+              data: args.data,
+            };
+            const nextDates = [...importantDates, newDateEntry];
+            setImportantDates(nextDates);
+            updateFirestoreImportantDates(nextDates);
+
+            setChatMessages((prev) => [
+              ...prev,
+              {
+                role: "bot",
+                text: `Adicionado: "${args.nome}" para a data ${args.data}. A contagem regressiva no painel já está atualizada, senhor.`,
               },
             ]);
             functionCalled = true;
@@ -1443,7 +1506,7 @@ Bimestres escolares:
         </div>
       )}
       {/* Floating Reminders Widget */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+      <div ref={lembretesRef} className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
         <AnimatePresence>
           {isLembretesOpen && (
             <motion.div

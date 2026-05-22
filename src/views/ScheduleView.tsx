@@ -92,20 +92,6 @@ export default function ScheduleView() {
     }
   };
 
-  const handleAddTurma = (dayIndex: number) => {
-    if (!newTurmaValue.trim()) {
-      setActiveDayIndex(null);
-      return;
-    }
-    const current = schedule[dayIndex] || [];
-    setSchedule(prev => ({
-      ...prev,
-      [dayIndex]: [...current, newTurmaValue.trim()]
-    }));
-    setNewTurmaValue("");
-    setActiveDayIndex(null);
-  };
-
   const handleRemoveTurma = (dayIndex: number, turmaIndex: number) => {
     setSchedule(prev => ({
       ...prev,
