@@ -26,9 +26,9 @@ async function startServer() {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
-        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor. (ou VITE_)" });
         return;
       }
 
@@ -44,7 +44,7 @@ async function startServer() {
       const mimeType = req.file.mimetype; // usually application/pdf
 
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             {
@@ -103,9 +103,9 @@ async function startServer() {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
-        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor. (ou VITE_)" });
         return;
       }
 
@@ -131,7 +131,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 Extraia todas as aulas contidas no documento.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             {
@@ -174,9 +174,9 @@ Extraia todas as aulas contidas no documento.`;
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
-        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor. (ou VITE_)" });
         return;
       }
 
@@ -186,7 +186,7 @@ Extraia todas as aulas contidas no documento.`;
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             { text: textContext },
@@ -239,9 +239,9 @@ Extraia todas as aulas contidas no documento.`;
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
-        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor. (ou VITE_)" });
         return;
       }
 
@@ -254,7 +254,7 @@ Extraia todas as aulas contidas no documento.`;
       const mimeType = req.file.mimetype;
 
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             {
@@ -286,9 +286,9 @@ Extraia todas as aulas contidas no documento.`;
   app.post("/api/generate-eval-report", async (req, res) => {
     try {
       const { turma, tarefas, matific, provaPaulista } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
-        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor. (ou VITE_)" });
         return;
       }
 
@@ -298,7 +298,7 @@ Extraia todas as aulas contidas no documento.`;
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             { text: `Gere um relatório consolidado da turma ${turma} avaliando a evolução/regresso através dos seguintes dados de notas:\n\nTarefas JSON: ${JSON.stringify(tarefas)}\n\nMatific JSON: ${JSON.stringify(matific)}\n\nProva Paulista JSON: ${JSON.stringify(provaPaulista)}` },

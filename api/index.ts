@@ -24,7 +24,7 @@ app.post("/api/parse-curriculum", upload.single("file"), async (req, res) => {
     const mimeType = req.file.mimetype;
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: {
         parts: [
           { inlineData: { mimeType, data: base64EncodeString } },
@@ -79,7 +79,7 @@ app.post("/api/parse-curriculum", upload.single("file"), async (req, res) => {
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             { text: textContext },
@@ -142,7 +142,7 @@ app.post("/api/extract-text", upload.single("file"), async (req, res) => {
     const mimeType = req.file.mimetype;
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: {
         parts: [
           { inlineData: { mimeType, data: base64EncodeString } },
@@ -204,7 +204,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 Extraia todas as aulas contidas no documento.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: {
         parts: [
           {
@@ -254,7 +254,7 @@ app.post("/api/generate-eval-report", async (req, res) => {
     });
     
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash",
       contents: {
         parts: [
           { text: `Gere um relatório consolidado da turma ${turma} avaliando a evolução/regresso através dos seguintes dados de notas:\n\nTarefas JSON: ${JSON.stringify(tarefas)}\n\nMatific JSON: ${JSON.stringify(matific)}\n\nProva Paulista JSON: ${JSON.stringify(provaPaulista)}` },
