@@ -50,13 +50,30 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 Texto:
 ${text.substring(0, 35000)}`;
 
-        const response = await ai.models.generateContent({
-          model: "gemini-2.5-flash",
-          contents: prompt,
-          config: {
-            responseMimeType: "application/json"
+        const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"];
+        let response = null;
+        let lastError = null;
+
+        for (const modelName of modelsToTry) {
+          try {
+            response = await ai.models.generateContent({
+              model: modelName,
+              contents: prompt,
+              config: {
+                responseMimeType: "application/json"
+              }
+            });
+            if (response) break; // Sucesso, sair do loop
+          } catch (e: any) {
+            console.warn(`Erro com o modelo ${modelName}:`, e);
+            lastError = e;
+            // Se for erro de cota ou indisponibilidade, tenta o próximo.
           }
-        });
+        }
+
+        if (!response) {
+          throw lastError || new Error("Todos os modelos falharam na extração.");
+        }
 
         if (response.text) {
            const parsed = JSON.parse(response.text);
