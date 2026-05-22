@@ -6,7 +6,10 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // 2. Permitir aos usuários acesso total APENAS aos seus próprios documentos
+    // Permitir aos usuários acesso total APENAS aos seus próprios documentos
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
     match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Save,
   CheckCircle2,
@@ -132,7 +132,6 @@ export default function LessonPlan() {
           snap.forEach((d) => fbPlans.push(d.data() as Plan));
           if (fbPlans.length > 0) {
             setAppPlans(fbPlans);
-            if (!selectedPlanId) setSelectedPlanId(fbPlans[0].id);
           } else if (appPlans.length > 0) {
             // migrate to firestore if firestore is empty but we have local plans
             appPlans.forEach(async (p) => {
@@ -175,11 +174,8 @@ export default function LessonPlan() {
       });
       if (migrated.length > 0) {
         setAppPlans(migrated);
-        setSelectedPlanId(migrated[0].id);
       }
       localStorage.setItem("eduPlans_v2_migrated", "true");
-    } else if (!selectedPlanId && appPlans.length > 0) {
-      setSelectedPlanId(appPlans[0].id);
     }
   }, []);
 
@@ -758,7 +754,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
     h3: ({node, ...props}: any) => <h3 className="text-lg font-black text-slate-800 mt-8 mb-4 uppercase tracking-wider text-[13px]" {...props} />,
     ul: ({node, ...props}: any) => (
       <ul 
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-8 list-none pl-0 [&>li]:bg-white [&>li]:border [&>li]:text-left [&>li]:border-slate-200 [&>li]:rounded-2xl [&>li]:p-6 [&>li]:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:[&>li]:shadow-xl hover:[&>li]:shadow-indigo-500/10 hover:[&>li]:border-indigo-400 [&>li]:transition-all [&>li]:duration-300 [&>li]:text-slate-700 [&>li]:relative [&>li]:overflow-hidden [&>li>strong]:text-indigo-700 [&>li>strong]:text-lg [&>li>strong]:mb-2 [&>li>strong]:block" 
+        className="not-prose grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-8 list-none pl-0 [&>li]:bg-white [&>li]:border [&>li]:text-left [&>li]:border-slate-200 [&>li]:rounded-2xl [&>li]:p-6 [&>li]:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:[&>li]:shadow-xl hover:[&>li]:shadow-indigo-500/10 hover:[&>li]:border-indigo-400 [&>li]:transition-all [&>li]:duration-300 [&>li]:text-slate-700 [&>li]:relative [&>li]:overflow-hidden [&>li>strong]:text-indigo-700 [&>li>strong]:text-lg [&>li>strong]:mb-2 [&>li>strong]:block" 
         {...props} 
       />
     ),
@@ -774,6 +770,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
   };
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [selectedFolderForModal, setSelectedFolderForModal] = useState<string | null>(null);
 
   return (
     <motion.div
@@ -822,7 +819,10 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
         )}
         {viewMode === "chat" && (
           <button
-            onClick={() => setViewMode("editor")}
+            onClick={() => {
+              setViewMode("editor");
+              setSelectedPlanId(null);
+            }}
             className="flex items-center gap-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-2.5 rounded-xl font-bold transition-colors"
           >
             <FolderOpen size={18} />
@@ -872,6 +872,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
           <button
             onClick={() => {
               setViewMode("editor");
+              setSelectedPlanId(null);
             }}
             className="flex flex-col items-start p-8 bg-white border border-rose-100 rounded-3xl shadow-sm hover:shadow-md hover:border-rose-300 transition-all text-left relative overflow-hidden group cursor-pointer"
           >
@@ -1281,7 +1282,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                        <p className="text-base font-medium text-slate-500 mt-2">Acesse rapidamente as turmas e planeje suas aulas.</p>
                     </div>
 
-                    {folders.length === 0 || appPlans.length === 0 ? (
+                    {folders.length === 0 ? (
                        <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm border-dashed">
                          <div className="w-20 h-20 bg-indigo-50 text-indigo-300 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
                            <FolderOpen size={40} />
@@ -1299,41 +1300,31 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                          </button>
                        </div>
                     ) : (
-                       <div className="space-y-12 pb-12">
+                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
                          {folders.map(folder => {
                             const plans = appPlans.filter(p => p.folder === folder);
-                            if (plans.length === 0) return null;
                             return (
-                              <section key={folder} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <h3 className="flex items-center gap-3 text-xl font-black text-slate-800 mb-6 border-b border-slate-200 pb-3">
-                                  <div className="p-2 bg-indigo-100 rounded-lg">
-                                    <Folder size={22} className="text-indigo-600" />
-                                  </div>
-                                  {folder} 
-                                  <span className="text-sm font-bold bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-md ml-auto">
-                                    {plans.length} {plans.length === 1 ? 'plano' : 'planos'}
-                                  </span>
-                                </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
-                                  {plans.map(plan => (
-                                    <button
-                                      key={plan.id}
-                                      onClick={() => setSelectedPlanId(plan.id)}
-                                      className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col min-h-[160px] relative overflow-hidden"
-                                    >
-                                      <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
-                                      <div className="flex justify-between items-start mb-auto relative z-10 w-full">
-                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
-                                          <FileText size={24} />
-                                        </div>
-                                      </div>
-                                      <h4 className="font-bold text-slate-800 text-[15px] group-hover:text-indigo-700 transition-colors line-clamp-2 leading-snug mt-4 relative z-10">
-                                        {plan.title}
-                                      </h4>
-                                    </button>
-                                  ))}
-                                </div>
-                              </section>
+                               <button
+                                 key={folder}
+                                 onClick={() => setSelectedFolderForModal(folder)}
+                                 className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl p-6 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col min-h-[160px] relative overflow-hidden"
+                               >
+                                 <div className="absolute -right-6 -top-6 w-32 h-32 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0 border border-indigo-100/50"></div>
+                                 <div className="flex justify-between items-start mb-auto relative z-10 w-full">
+                                   <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
+                                     <FolderOpen size={28} />
+                                   </div>
+                                 </div>
+                                 <div className="relative z-10 mt-6">
+                                   <h4 className="font-black text-slate-800 text-[18px] group-hover:text-indigo-700 transition-colors leading-snug">
+                                     {folder}
+                                   </h4>
+                                   <p className="text-sm font-bold text-slate-500 mt-1.5 flex items-center gap-1.5">
+                                     <FileText size={14} className="text-indigo-400" />
+                                     {plans.length} {plans.length === 1 ? 'plano gerado' : 'planos gerados'}
+                                   </p>
+                                 </div>
+                               </button>
                             );
                          })}
                        </div>
@@ -1426,6 +1417,83 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
           </div>
         </div>
       )}
+
+      {/* Planejamentos da Turma Modal */}
+      <AnimatePresence>
+        {selectedFolderForModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => setSelectedFolderForModal(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl shadow-indigo-900/20 border border-slate-200"
+            >
+              <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
+                    <FolderOpen size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-black tracking-tight text-slate-800 text-lg leading-tight">
+                      {selectedFolderForModal}
+                    </h3>
+                    <p className="text-sm font-medium text-slate-500">Selecione o plano desejado para abrir</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedFolderForModal(null)}
+                  className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl transition-colors shrink-0"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              
+              <div className="p-6 max-h-[60vh] overflow-y-auto w-full">
+                {appPlans.filter(p => p.folder === selectedFolderForModal).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center p-10 text-center bg-slate-50/50 rounded-2xl border border-slate-200 border-dashed">
+                    <div className="w-16 h-16 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mb-4 shadow-inner">
+                      <FileText size={24} />
+                    </div>
+                    <h4 className="text-slate-600 font-bold mb-1">Nenhum plano gerado</h4>
+                    <p className="text-sm text-slate-500">Esta turma ainda não possui planejamentos salvos.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {appPlans.filter(p => p.folder === selectedFolderForModal).map(plan => (
+                      <button
+                        key={plan.id}
+                        onClick={() => {
+                          setSelectedPlanId(plan.id);
+                          setViewMode("editor");
+                          setSelectedFolderForModal(null);
+                        }}
+                        className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col relative overflow-hidden"
+                      >
+                         <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0 border border-indigo-100/50"></div>
+                         <div className="flex justify-between items-start mb-auto relative z-10 w-full mb-3">
+                           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
+                             <FileText size={20} />
+                           </div>
+                         </div>
+                         <h4 className="font-bold text-slate-800 text-[15px] group-hover:text-indigo-700 transition-colors line-clamp-3 leading-snug mt-2 relative z-10">
+                           {plan.title.replace(`Plano Bimestral: ${selectedFolderForModal} (`, '').replace(')', '') || plan.title}
+                         </h4>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {isNewPlanModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center top-0 left-0">
