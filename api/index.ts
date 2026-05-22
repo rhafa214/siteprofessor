@@ -169,6 +169,76 @@ export const config = {
   },
 };
 
+app.post("/api/parse-addon-curriculum", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ error: "Nenhum arquivo enviado." });
+      return;
+    }
+    
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+      return;
+    }
+
+    const ai = new GoogleGenAI({ 
+      apiKey,
+      httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+    });
+    
+    const base64EncodeString = req.file.buffer.toString("base64");
+    const mimeType = req.file.mimetype;
+
+    const prompt = `Analise o seguinte plano/escopo de aulas (arquivo PDF) e o converta para um JSON. O JSON DEVE SER um array de objetos puros, não use markdown.
+Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero como integer, os outros como string):
+- ano (ex: 6 para 6º ano)
+- bimestre (1, 2, 3 ou 4)
+- numero (numero da aula)
+- titulo (titulo da aula)
+- conteudo (descreva em string)
+- objetivos (descreva em string)
+- habilidades (codigos das habilidades)
+- aprendizagemEssencial (texto)
+
+Extraia todas as aulas contidas no documento.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: {
+        parts: [
+          {
+            inlineData: {
+              mimeType: mimeType,
+              data: base64EncodeString,
+            },
+          },
+          {
+            text: prompt,
+          },
+        ],
+      },
+      config: {
+        responseMimeType: "application/json",
+      },
+    });
+
+    let extractedText = response.text;
+    if (!extractedText) {
+      res.status(500).json({ error: "A resposta do modelo veio vazia." });
+      return;
+    }
+    
+    extractedText = extractedText.replace(/^```json\s*/g, "").replace(/^```\s*/g, "").replace(/\s*```$/g, "").trim();
+    const jsonData = JSON.parse(extractedText);
+    res.json(jsonData);
+
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).json({ error: "Erro ao gerar json do PDF: " + e.message });
+  }
+});
+
 app.post("/api/generate-eval-report", async (req, res) => {
   try {
     const { turma, tarefas, matific, provaPaulista } = req.body;
