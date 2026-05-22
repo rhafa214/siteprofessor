@@ -24,65 +24,26 @@ export default function AddonSidebar() {
     if (file.name.endsWith('.pdf')) {
       setIsExtractingPDF(true);
       try {
-        const { extractTextFromFile } = await import("../lib/fileExtraction");
-        const { getGeminiClient } = await import("../lib/gemini");
-        
-        const ai = getGeminiClient();
-        if (!ai) {
-          alert("Erro: Configure uma chave do Gemini para processar PDFs.");
-          setIsExtractingPDF(false);
-          return;
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/parse-addon-curriculum", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+           const errData = await res.json();
+           throw new Error(errData.error || "Erro no upload.");
         }
 
-        const text = await extractTextFromFile(file);
+        const parsed = await res.json();
 
-        const prompt = `Analise o seguinte plano/escopo de aulas e o converta para um JSON. O JSON DEVE SER um array de objetos. 
-Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero como number, os outros como string):
-- ano (ex: 6 para 6º ano)
-- bimestre (1 a 4)
-- numero (numero da aula)
-- titulo (titulo da aula)
-- conteudo
-- objetivos
-- habilidades (codigos das habilidades citadas)
-- aprendizagemEssencial
-
-Texto:
-${text.substring(0, 35000)}`;
-
-        const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-flash"];
-        let response = null;
-        let lastError = null;
-
-        for (const modelName of modelsToTry) {
-          try {
-            response = await ai.models.generateContent({
-              model: modelName,
-              contents: prompt,
-              config: {
-                responseMimeType: "application/json"
-              }
-            });
-            if (response) break; // Sucesso, sair do loop
-          } catch (e: any) {
-            console.warn(`Erro com o modelo ${modelName}:`, e);
-            lastError = e;
-            // Se for erro de cota ou indisponibilidade, tenta o próximo.
-          }
-        }
-
-        if (!response) {
-          throw lastError || new Error("Todos os modelos falharam na extração.");
-        }
-
-        if (response.text) {
-           const parsed = JSON.parse(response.text);
-           if(Array.isArray(parsed)){
-             setCustomAulas(prev => [...prev, ...parsed]);
-             alert("Escopo PDF importado com sucesso!");
-           } else {
-             alert("Erro ao formatar resposta do PDF. Tente novamente.");
-           }
+        if (Array.isArray(parsed) && parsed.length > 0) {
+           setCustomAulas(prev => [...prev, ...parsed]);
+           alert(`Escopo PDF importado com sucesso! ${parsed.length} aulas extraídas.`);
+        } else {
+           alert("Nenhuma aula foi extraída do PDF. Escolha um PDF válido de matriz curricular.");
         }
       } catch (err: any) {
         console.error(err);
