@@ -33,11 +33,23 @@ export default function AddonSidebar() {
         });
 
         if (!res.ok) {
-           const errData = await res.json();
+           let errData: any = {};
+           const textResponse = await res.text();
+           try {
+             errData = JSON.parse(textResponse);
+           } catch {
+             throw new Error(`Erro do servidor (Status ${res.status}): Ação temporariamente indisponível.`);
+           }
            throw new Error(errData.error || "Erro no upload.");
         }
 
-        const parsed = await res.json();
+        const rawText = await res.text();
+        let parsed;
+        try {
+          parsed = JSON.parse(rawText);
+        } catch {
+          throw new Error("Erro de servidor inesperado ao tentar ler o PDF.");
+        }
 
         if (Array.isArray(parsed) && parsed.length > 0) {
            setCustomAulas(prev => [...prev, ...parsed]);

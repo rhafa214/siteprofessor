@@ -80,13 +80,14 @@ async function startServer() {
         },
       });
 
-      const extractedText = response.text;
+      let extractedText = response.text;
       if (!extractedText) {
         res.status(500).json({ error: "A resposta do modelo veio vazia." });
         return;
       }
       
-      const jsonData = JSON.parse(extractedText.trim());
+      extractedText = extractedText.replace(/^```json\s*/g, "").replace(/^```\s*/g, "").replace(/\s*```$/g, "").trim();
+      const jsonData = JSON.parse(extractedText);
       res.json(jsonData);
 
     } catch (e: any) {
@@ -149,13 +150,14 @@ Extraia todas as aulas contidas no documento.`;
         },
       });
 
-      const extractedText = response.text;
+      let extractedText = response.text;
       if (!extractedText) {
         res.status(500).json({ error: "A resposta do modelo veio vazia." });
         return;
       }
       
-      const jsonData = JSON.parse(extractedText.trim());
+      extractedText = extractedText.replace(/^```json\s*/g, "").replace(/^```\s*/g, "").replace(/\s*```$/g, "").trim();
+      const jsonData = JSON.parse(extractedText);
       res.json(jsonData);
 
     } catch (e: any) {
