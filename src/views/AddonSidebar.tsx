@@ -4,7 +4,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { getCurrentBimestre } from "../lib/constants";
 import { dbAulas, dbAEs, Aula } from "../data/guiaPedagogico";
 import { bnccHabilidades } from "../data/bnccHabilidades";
-import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft, Upload } from "lucide-react";
+import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft, Upload, Settings } from "lucide-react";
 
 export default function AddonSidebar() {
   const [selectedAno, setSelectedAno] = useState<number | null>(null);
@@ -25,15 +25,16 @@ export default function AddonSidebar() {
     if (file.name.endsWith('.pdf')) {
       setIsExtractingPDF(true);
       try {
-        const { extractTextFromFile } = await import("../lib/fileExtraction");
-        const { getGeminiClient } = await import("../lib/gemini");
         const { GoogleGenAI } = await import("@google/genai");
         
         let ai = null;
         if (userGeminiKey) {
           ai = new GoogleGenAI({ apiKey: userGeminiKey });
         } else {
-          ai = getGeminiClient();
+          try {
+            const { getGeminiClient } = await import("../lib/gemini");
+            ai = getGeminiClient();
+          } catch(e) {}
         }
         
         if (!ai) {
@@ -43,7 +44,14 @@ export default function AddonSidebar() {
           return;
         }
 
-        const text = await extractTextFromFile(file);
+        const toBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(f);
+            reader.onload = () => resolve((reader.result as string).split(",")[1]);
+            reader.onerror = error => reject(error);
+        });
+
+        const base64Data = await toBase64(file);
 
         const prompt = `Analise o seguinte plano/escopo de aulas (matriz curricular) e o converta para um JSON. O JSON DEVE SER um array de objetos. 
 Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero como number, os outros como string):
@@ -54,12 +62,9 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 - conteudo
 - objetivos
 - habilidades (codigos das habilidades citadas)
-- aprendizagemEssencial
+- aprendizagemEssencial`;
 
-Texto:
-${text.substring(0, 35000)}`;
-
-        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-2.0-flash-lite-preview-02-05", "gemini-2.0-flash"];
+        const modelsToTry = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"];
         let response = null;
         let lastError = null;
 
@@ -67,7 +72,15 @@ ${text.substring(0, 35000)}`;
           try {
             response = await ai.models.generateContent({
               model: modelName,
-              contents: prompt,
+              contents: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: "application/pdf",
+                    data: base64Data
+                  }
+                }
+              ],
               config: {
                 responseMimeType: "application/json"
               }
@@ -83,16 +96,29 @@ ${text.substring(0, 35000)}`;
           throw lastError || new Error("Todos os modelos falharam na extração.");
         }
 
-        if (response.text) {
-           const parsed = JSON.parse(response.text);
-           if (Array.isArray(parsed) && parsed.length > 0) {
-             setCustomAulas(prev => [...prev, ...parsed]);
-             alert(`Escopo PDF importado com sucesso! ${parsed.length} aulas extraídas.`);
-           } else {
-             alert("Nenhuma aula foi extraída do PDF. Escolha um PDF válido de matriz curricular.");
+        let rawText = response.text || "";
+        rawText = rawText.trim();
+        if (rawText.startsWith("```json")) {
+          rawText = rawText.replace(/^```json\n?/, "").replace(/\n?```$/, "");
+        } else if (rawText.startsWith("```")) {
+          rawText = rawText.replace(/^```\n?/, "").replace(/\n?```$/, "");
+        }
+
+        if (rawText) {
+           try {
+             const parsed = JSON.parse(rawText);
+             if (Array.isArray(parsed) && parsed.length > 0) {
+               setCustomAulas(prev => [...prev, ...parsed]);
+               alert(`Escopo PDF importado com sucesso! ${parsed.length} aulas extraídas.`);
+             } else {
+               alert(`O PDF foi processado, mas o formato não continha aulas válidas (encontrado: ${typeof parsed}).`);
+             }
+           } catch (parseError: any) {
+             console.error("Erro no JSON.parse:", parseError, rawText);
+             throw new Error(`Erro ao interpretar as aulas (JSON inválido retornado pela IA).`);
            }
         } else {
-           alert("Nenhuma aula foi extraída do PDF.");
+           alert("Nenhuma aula foi extraída do PDF. O modelo retornou vazio.");
         }
       } catch (err: any) {
         console.error(err);
@@ -313,7 +339,7 @@ ${text.substring(0, 35000)}`;
               className={`hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative ${activeTab === "settings" ? "bg-white/20" : ""}`}
               title="Configurações (Chave API)"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <Settings size={16} />
             </button>
             <button 
               onClick={() => fileInputRef.current?.click()}
