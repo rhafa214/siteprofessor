@@ -307,18 +307,27 @@ ${text.substring(0, 35000)}`;
             </h1>
           </div>
           
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative"
-            title="Importar Meu Escopo (PDF/CSV/JSON)"
-            disabled={isExtractingPDF}
-          >
-            {isExtractingPDF ? (
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-            ) : (
-              <Upload size={16} />
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => setActiveTab(activeTab === "settings" ? "aulas" : "settings")}
+              className={`hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative ${activeTab === "settings" ? "bg-white/20" : ""}`}
+              title="Configurações (Chave API)"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative"
+              title="Importar Meu Escopo (PDF/CSV/JSON)"
+              disabled={isExtractingPDF}
+            >
+              {isExtractingPDF ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              ) : (
+                <Upload size={16} />
+              )}
+            </button>
+          </div>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -381,15 +390,6 @@ ${text.substring(0, 35000)}`;
               >
                 Aprendizagens (AE)
               </button>
-              <button 
-                onClick={() => setActiveTab("settings")}
-                className={`w-12 py-2 flex justify-center items-center text-center border-b-2 transition-colors ${
-                  activeTab === "settings" ? "border-[#8257E5] text-[#8257E5]" : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                }`}
-                title="Configurações (Chave API)"
-              >
-                ⚙️
-              </button>
             </div>
           </div>
         )}
@@ -397,10 +397,29 @@ ${text.substring(0, 35000)}`;
 
       {/* Timeline Content */}
       <div className="flex-1 p-4 pb-12 relative">
-        {!selectedAno ? (
+        {activeTab === "settings" ? (
+          <div className="bg-white border text-sm border-slate-200 rounded-xl p-4 shadow-sm">
+            <h3 className="font-bold text-slate-800 mb-2">Configurações de IA</h3>
+            <p className="text-slate-600 mb-4 text-xs">
+              Para extrair dados do seu próprio PDF de matriz curricular, forneça uma chave de API do Google Gemini (gratuita).
+            </p>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs font-semibold text-slate-700">Gemini API Key</label>
+              <input
+                type="password"
+                value={userGeminiKey}
+                onChange={(e) => setUserGeminiKey(e.target.value)}
+                placeholder="AIzaSy..."
+                className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:border-[#8257E5]"
+              />
+              <p className="text-[10px] text-slate-500">
+                Sua chave fica salva apenas no seu navegador. Obtenha a sua em <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-indigo-600 underline">aistudio.google.com</a>.
+              </p>
+            </div>
+          </div>
+        ) : !selectedAno ? (
           renderAnos()
-        ) : (
-          activeTab === "aulas" ? (
+        ) : activeTab === "aulas" ? (
             aulas.length === 0 ? (
               <p className="text-center text-slate-500 text-sm mt-4">
                 Nenhuma aula encontrada.
@@ -580,28 +599,7 @@ ${text.substring(0, 35000)}`;
                 })}
               </div>
             )
-          ) : (
-            <div className="bg-white border text-sm border-slate-200 rounded-xl p-4 shadow-sm">
-              <h3 className="font-bold text-slate-800 mb-2">Configurações de IA</h3>
-              <p className="text-slate-600 mb-4 text-xs">
-                Para extrair dados do seu próprio PDF de matriz curricular, forneça uma chave de API do Google Gemini (gratuita).
-              </p>
-              <div className="flex flex-col gap-2">
-                <label className="text-xs font-semibold text-slate-700">Gemini API Key</label>
-                <input
-                  type="password"
-                  value={userGeminiKey}
-                  onChange={(e) => setUserGeminiKey(e.target.value)}
-                  placeholder="AIzaSy..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:border-[#8257E5]"
-                />
-                <p className="text-[10px] text-slate-500">
-                  Sua chave fica salva apenas no seu navegador. Obtenha a sua em <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-indigo-600 underline">aistudio.google.com</a>.
-                </p>
-              </div>
-            </div>
-          )
-        )}
+          ) : null}
       </div>
     </div>
   );
