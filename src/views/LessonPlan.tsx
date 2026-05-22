@@ -326,6 +326,7 @@ export default function LessonPlan() {
     try {
       let createdPlansCount = 0;
       let lastGeneratedId = "";
+      let lastGenerationError: any = null;
 
       for (const turma of selectedBimestralClasses) {
         setGenerationProgress(`Gerando plano para ${turma}...`);
@@ -408,7 +409,8 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
             });
             break;
           } catch(e) {
-            console.error(e);
+            console.error("Gemini generation error:", e);
+            lastGenerationError = e;
             if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
           }
         }
@@ -433,7 +435,7 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
         setViewMode("editor");
         setSelectedPlanId(lastGeneratedId);
       } else {
-        alert("Falha ao gerar os planos. Verifique a API Key ou conexão.");
+        alert("Falha ao gerar os planos. Verifique a API Key ou conexão. Detalhes: " + (lastGenerationError?.message || "Erro desconhecido"));
       }
 
     } catch (err) {
@@ -1421,9 +1423,18 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
             <h3 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">
               Plano Bimestral
             </h3>
-            <p className="text-sm font-medium text-slate-500 mb-6 shrink-0">
+            <p className="text-sm font-medium text-slate-500 mb-4 shrink-0">
               Gerador automático. Selecione o bimestre e as turmas.
             </p>
+
+            {(!schedule || Object.values(schedule).every((arr: any) => !arr || arr.length === 0)) && (
+              <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 text-sm mb-6 shrink-0 flex gap-3 items-start">
+                <span className="text-xl">⚠️</span>
+                <div>
+                  <strong>Sua grade horária está vazia!</strong> Acesse "Grade de Horários" no menu para cadastrar os dias da semana em que você dá aula para estas turmas, para que o cálculo seja exato.
+                </div>
+              </div>
+            )}
             
             <div className="space-y-4 mb-6 flex-1 overflow-y-auto pr-2 scrollbar-thin">
               <div>
