@@ -25,7 +25,8 @@ import {
   CalendarDays,
   ListTodo,
   Bot,
-  Calendar
+  Calendar,
+  ArrowLeft
 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { GoogleGenAI } from "@google/genai";
@@ -379,11 +380,11 @@ export default function LessonPlan() {
 Seu objetivo é redigir um PLANEJAMENTO BIMESTRAL estratégico para a turma ${turma}, no ${selectedBimestralBimestre}º Bimestre.
 Gere APENAS o documento final formatado em Markdown de altíssima qualidade (sem introduções em chat).
 
-CUIDADOS COM A FORMATAÇÃO VISUAL (MARKDOWN):
+CUIDADOS COM A FORMATAÇÃO VISUAL (MARKDOWN E CARDS):
 - Utilize espaços generosos entre blocos de texto.
-- Use **negrito** e \`destaques\` para chamar atenção para métricas importantes (como número de aulas e dias da semana).
-- Use listas (bullet points) bem estruturadas.
-- Evite blocos de texto monolíticos e gigantescos. Prefira parágrafos curtos, tópicos e um formato limpo, direto e profissional.
+- **DESIGN DE CARDS INTERATIVOS**: Nosso painel transforma magicamente qualquer "*Lista Não-Ordenada*" (bullet points convencionais) em **Cards Visuais**. Por isso, quando for listar Semanas, Aulas, Roteiros, Habilidades ou Avaliações, FAÇA ISSO USANDO BULLET POINTS. Exemplo: "- **Aula 1 (Segunda)**: Frações". Esses tópicos virarão cards bonitos e separados.
+- Nunca crie paredes de texto. Quebre o texto em tópicos.
+- Use **negrito** e destaques.
 
 INFORMAÇÕES OFICIAIS DE CALENDÁRIO:
 - Feriados anuais: ${feriadosList}
@@ -659,6 +660,7 @@ ${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE DA IA (BASE DO JARVI
 ${schoolModel ? `[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nCRÍTICO: Este é o modelo exato exigido pela escola! Ao escrever o documento final de planejamento de aula para o usuário, você DEVE, OBRIGATORIAMENTE, replicar os tópicos, a estrutura e cada um dos campos presentes neste formato, preenchendo-os por completo de forma rica e detalhada com os dados da matriz. O professor tem que estar pronto para apenas copiar a sua saída e entregar à coordenação.` : ""}
 
 Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Quando for gerar o plano de aula real a pedido do usuário (seja bimestral, quinzenal ou aula a aula), respeite os modelos anexos integralmente!
+Para a FORMATAÇÃO VISUAL, lembre-se: Nosso painel transforma magicamente \*Listas Não-Ordenadas\* (bullet points) em CARDS INTERATIVOS. Portanto, SEMPRE que você for apresentar Aulas, Semanas, Conteúdos ou Avaliações, distribua-os em bullet points para que fiquem lindos e dinâmicos para o usuário.
 Forneça o resultado formatado de forma limpa em Markdown.`;
 
       const schedPrompt = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
@@ -750,7 +752,26 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
     }
   };
 
-  // Markdown renderer is now handled by react-markdown directly in the component.
+  const customMarkdownComponents: any = {
+    h1: ({node, ...props}: any) => <h1 className="text-3xl font-black text-slate-800 mb-6 pb-4 border-b-2 border-indigo-100 mt-6" {...props} />,
+    h2: ({node, ...props}: any) => <h2 className="text-2xl font-bold text-indigo-700 mt-10 mb-6 flex items-center gap-2" {...props} />,
+    h3: ({node, ...props}: any) => <h3 className="text-lg font-black text-slate-800 mt-8 mb-4 uppercase tracking-wider text-[13px]" {...props} />,
+    ul: ({node, ...props}: any) => (
+      <ul 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-8 list-none pl-0 [&>li]:bg-white [&>li]:border [&>li]:text-left [&>li]:border-slate-200 [&>li]:rounded-2xl [&>li]:p-6 [&>li]:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:[&>li]:shadow-xl hover:[&>li]:shadow-indigo-500/10 hover:[&>li]:border-indigo-400 [&>li]:transition-all [&>li]:duration-300 [&>li]:text-slate-700 [&>li]:relative [&>li]:overflow-hidden [&>li>strong]:text-indigo-700 [&>li>strong]:text-lg [&>li>strong]:mb-2 [&>li>strong]:block" 
+        {...props} 
+      />
+    ),
+    ol: ({node, ...props}: any) => <ol className="space-y-4 my-6 list-decimal pl-5 font-medium text-slate-700 marker:text-indigo-600 marker:font-bold" {...props} />,
+    li: ({node, ...props}: any) => <li className="mb-2 leading-relaxed" {...props} />,
+    p: ({node, ...props}: any) => <p className="mb-4 text-slate-600 leading-relaxed text-[15px]" {...props} />,
+    strong: ({node, ...props}: any) => <strong className="font-extrabold text-indigo-900" {...props} />,
+    blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-indigo-500 bg-indigo-50/50 p-5 rounded-r-xl italic text-slate-700 my-6 font-medium" {...props} />,
+    table: ({node, ...props}: any) => <div className="overflow-x-auto my-8 rounded-xl border border-slate-200 shadow-sm"><table className="w-full text-left border-collapse bg-white" {...props} /></div>,
+    th: ({node, ...props}: any) => <th className="bg-slate-50/80 border-b border-slate-200 p-4 font-black text-[13px] uppercase tracking-wider text-slate-600" {...props} />,
+    td: ({node, ...props}: any) => <td className="border-b border-slate-100 p-4 text-slate-600 font-medium text-[15px]" {...props} />,
+    a: ({node, ...props}: any) => <a className="text-indigo-600 hover:text-indigo-800 underline font-extrabold" {...props} />
+  };
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
@@ -1042,8 +1063,8 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                         }`}
                       >
                         {m.role === "model" ? (
-                          <div className="markdown-body prose prose-sm md:prose-base prose-slate max-w-none">
-                            <Markdown remarkPlugins={[remarkGfm]}>
+                        <div className="prose prose-sm md:prose-base prose-slate max-w-none">
+                            <Markdown remarkPlugins={[remarkGfm]} components={customMarkdownComponents}>
                               {m.content}
                             </Markdown>
                           </div>
@@ -1124,29 +1145,39 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
       </div>
 
       {viewMode === "editor" && (
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 min-h-0 items-stretch pb-6 animate-in fade-in slide-in-from-bottom-4">
+        <div className={`flex-1 grid grid-cols-1 ${activePlan ? 'lg:grid-cols-[300px_1fr]' : ''} gap-6 min-h-0 items-stretch pb-6 animate-in fade-in slide-in-from-bottom-4`}>
           {/* Left panel: Files */}
-          <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full print:hidden relative">
-            <div className="bg-slate-50/80 border-b border-slate-200 p-3 shrink-0 flex items-center justify-between">
-              <div className="flex items-center gap-2 px-3 py-1.5 text-slate-700 font-bold">
-                <FolderOpen size={16} className="text-indigo-600" />
-                <span className="text-sm">Planos Salvos</span>
+          {activePlan && (
+            <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full print:hidden relative animate-in slide-in-from-left-4 fade-in duration-300">
+              <div className="bg-slate-50/80 border-b border-slate-200 p-3 shrink-0 flex items-center justify-between">
+                <div className="flex items-center gap-2 px-3 py-1.5 text-slate-700 font-bold">
+                  <FolderOpen size={16} className="text-indigo-600" />
+                  <span className="text-sm">Planos Salvos</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setSelectedPlanId("")}
+                    className="bg-slate-100 text-slate-600 hover:bg-slate-200 p-2 rounded-xl transition-all flex items-center gap-1"
+                    title="Voltar para Turmas"
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setNewPlanData({ title: "", folder: "Geral", newFolder: "" });
+                      setIsNewPlanModalOpen(true);
+                    }}
+                    className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 p-2 rounded-xl transition-all flex items-center gap-1"
+                    title="Novo Documento"
+                  >
+                    <Plus size={16} />{" "}
+                    <span className="text-xs tracking-tight font-bold pr-1">
+                      Novo
+                    </span>
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => {
-                  setNewPlanData({ title: "", folder: "Geral", newFolder: "" });
-                  setIsNewPlanModalOpen(true);
-                }}
-                className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 p-2 rounded-xl transition-all flex items-center gap-1"
-                title="Novo Documento"
-              >
-                <Plus size={16} />{" "}
-                <span className="text-xs tracking-tight font-bold pr-1">
-                  Novo
-                </span>
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 scrollbar-thin bg-slate-50/50">
+              <div className="flex-1 overflow-y-auto p-3 scrollbar-thin bg-slate-50/50">
               <div className="space-y-4">
                 {folders.map((folder) => {
                   const folderPlans = appPlans.filter(
@@ -1238,88 +1269,125 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               ) : null}
             </div>
           </div>
+          )}
 
-          {/* Editor */}
+          {/* Editor Area */}
           <div className="flex flex-col bg-slate-100/80 rounded-3xl shadow-inner overflow-hidden print:bg-white print:shadow-none min-h-0 relative border border-slate-200">
-            {!activePlan && (
-              <div className="absolute inset-0 z-10 bg-slate-50/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
-                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-xl shadow-slate-200/50 mb-6">
-                  <FileText size={40} className="text-indigo-300" />
-                </div>
-                <h3 className="text-xl font-black text-slate-800 mb-2 tracking-tight">
-                  Câmera de Documentos Vazia
-                </h3>
-                <p className="text-sm text-slate-500 mb-8 max-w-sm font-medium">
-                  Selecione um plano no explorador à esquerda ou inicie um novo
-                  projeto para começar a escrever.
-                </p>
-                <button
-                  onClick={() => {
-                    setNewPlanData({
-                      title: "",
-                      folder: "Geral",
-                      newFolder: "",
-                    });
-                    setIsNewPlanModalOpen(true);
-                  }}
-                  className="bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5"
-                >
-                  <Plus size={18} /> Criar Novo Plano
-                </button>
-              </div>
-            )}
-
-            <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-5 py-3.5 shrink-0 flex flex-wrap items-center justify-between print:hidden gap-4 z-20">
-              <div className="flex flex-col">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                  {activePlan?.folder || "Pasta"}
-                </span>
-                <span className="text-base font-black text-slate-800 truncate">
-                  {activePlan ? activePlan.title : "Sem título"}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={handleClearText}
-                  disabled={!activePlan}
-                  className="bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                  title="Limpar Documento"
-                >
-                  <Trash2 size={14} />{" "}
-                  <span className="hidden xl:inline">Limpar</span>
-                </button>
-
-                <button
-                  onClick={handlePrint}
-                  disabled={!activePlan}
-                  className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                  title="Imprimir / Gerar PDF"
-                >
-                  <Printer size={14} />{" "}
-                  <span className="hidden xl:inline">Imprimir</span>
-                </button>
-
-                <div className="w-px h-6 bg-slate-200 mx-1"></div>
-
-                <button
-                  onClick={handleSave}
-                  disabled={!activePlan}
-                  className={`text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50 ${saved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"}`}
-                >
-                  {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
-                  {saved ? "Salvo no Drive" : "Salvar Alterações"}
-                </button>
-              </div>
-            </div>
-
-            {/* Toggle Editor/Preview tabs */}
             {!activePlan ? (
-                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center items-center pb-24">
-                  <p className="text-slate-400 font-medium">Selecione ou crie um plano ao lado.</p>
+                <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-slate-50 relative min-h-0 scrollbar-thin">
+                  <div className="max-w-6xl mx-auto">
+                    <div className="mb-10">
+                       <h2 className="text-3xl font-black text-slate-800 tracking-tight">Meus Planos e Turmas</h2>
+                       <p className="text-base font-medium text-slate-500 mt-2">Acesse rapidamente as turmas e planeje suas aulas.</p>
+                    </div>
+
+                    {folders.length === 0 || appPlans.length === 0 ? (
+                       <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm border-dashed">
+                         <div className="w-20 h-20 bg-indigo-50 text-indigo-300 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
+                           <FolderOpen size={40} />
+                         </div>
+                         <h3 className="text-xl font-bold text-slate-800 mb-2">Nenhum plano salvo</h3>
+                         <p className="text-slate-500 text-[15px] font-medium max-w-sm">Crie seu primeiro planejamento clicando em Novo Plano.</p>
+                         <button
+                           onClick={() => {
+                             setNewPlanData({ title: "", folder: "Geral", newFolder: "" });
+                             setIsNewPlanModalOpen(true);
+                           }}
+                           className="mt-6 bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg"
+                         >
+                           <Plus size={18} /> Criar Novo Plano
+                         </button>
+                       </div>
+                    ) : (
+                       <div className="space-y-12 pb-12">
+                         {folders.map(folder => {
+                            const plans = appPlans.filter(p => p.folder === folder);
+                            if (plans.length === 0) return null;
+                            return (
+                              <section key={folder} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <h3 className="flex items-center gap-3 text-xl font-black text-slate-800 mb-6 border-b border-slate-200 pb-3">
+                                  <div className="p-2 bg-indigo-100 rounded-lg">
+                                    <Folder size={22} className="text-indigo-600" />
+                                  </div>
+                                  {folder} 
+                                  <span className="text-sm font-bold bg-slate-200 text-slate-600 px-2.5 py-0.5 rounded-md ml-auto">
+                                    {plans.length} {plans.length === 1 ? 'plano' : 'planos'}
+                                  </span>
+                                </h3>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
+                                  {plans.map(plan => (
+                                    <button
+                                      key={plan.id}
+                                      onClick={() => setSelectedPlanId(plan.id)}
+                                      className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col min-h-[160px] relative overflow-hidden"
+                                    >
+                                      <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0"></div>
+                                      <div className="flex justify-between items-start mb-auto relative z-10 w-full">
+                                        <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
+                                          <FileText size={24} />
+                                        </div>
+                                      </div>
+                                      <h4 className="font-bold text-slate-800 text-[15px] group-hover:text-indigo-700 transition-colors line-clamp-2 leading-snug mt-4 relative z-10">
+                                        {plan.title}
+                                      </h4>
+                                    </button>
+                                  ))}
+                                </div>
+                              </section>
+                            );
+                         })}
+                       </div>
+                    )}
+                  </div>
                 </div>
             ) : (
                 <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0">
+                  {/* Editor Header */}
+                  <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-5 py-3.5 shrink-0 flex flex-wrap items-center justify-between print:hidden gap-4 z-20">
+                    <div className="flex flex-col">
+                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                        {activePlan?.folder || "Pasta"}
+                      </span>
+                      <span className="text-base font-black text-slate-800 truncate">
+                        {activePlan ? activePlan.title : "Sem título"}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={handleClearText}
+                        disabled={!activePlan}
+                        className="bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                        title="Limpar Documento"
+                      >
+                        <Trash2 size={14} />{" "}
+                        <span className="hidden xl:inline">Limpar</span>
+                      </button>
+
+                      <button
+                        onClick={handlePrint}
+                        disabled={!activePlan}
+                        className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                        title="Imprimir / Gerar PDF"
+                      >
+                        <Printer size={14} />{" "}
+                        <span className="hidden xl:inline">Imprimir</span>
+                      </button>
+
+                      <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+                      <button
+                        onClick={handleSave}
+                        disabled={!activePlan}
+                        className={`text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50 ${saved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"}`}
+                      >
+                        {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
+                        {saved ? "Salvo no Drive" : "Salvar Alterações"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Toggle Tabs */}
                   <div className="flex justify-center border-b border-slate-200 bg-white print:hidden py-2 sticky top-0 z-20">
                     <div className="bg-slate-100 p-1 rounded-xl flex gap-1 shadow-sm">
                       <button 
@@ -1347,8 +1415,8 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                       />
                     ) : (
                       <div className="w-full max-w-[1000px] min-h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 print:shadow-none print:border-none print:p-0">
-                        <div className="markdown-body">
-                          <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+                        <div className="w-full">
+                          <Markdown remarkPlugins={[remarkGfm]} components={customMarkdownComponents}>{content}</Markdown>
                         </div>
                       </div>
                     )}
