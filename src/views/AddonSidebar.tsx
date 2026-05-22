@@ -64,12 +64,17 @@ ${text.substring(0, 35000)}`;
              setCustomAulas(prev => [...prev, ...parsed]);
              alert("Escopo PDF importado com sucesso!");
            } else {
-             alert("Erro ao formatar resposta do PDF.");
+             alert("Erro ao formatar resposta do PDF. Tente novamente.");
            }
         }
       } catch (err: any) {
         console.error(err);
-        alert("Erro no processamento do PDF: " + err.message);
+        const errorMessage = typeof err.message === 'string' ? err.message : JSON.stringify(err);
+        if (errorMessage.includes("503") || errorMessage.includes("high demand") || errorMessage.includes("UNAVAILABLE")) {
+          alert("A Inteligência Artificial está com alta demanda no momento. Por favor, aguarde alguns instantes e tente novamente.");
+        } else {
+          alert("Erro no processamento do PDF: " + errorMessage);
+        }
       } finally {
         setIsExtractingPDF(false);
       }
