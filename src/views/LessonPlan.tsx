@@ -259,6 +259,7 @@ export default function LessonPlan() {
   const [viewMode, setViewMode] = useState<"dashboard" | "chat" | "editor">(
     "dashboard",
   );
+  const [isPreviewMode, setIsPreviewMode] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -338,8 +339,9 @@ export default function LessonPlan() {
           const diasMap: Record<number, string> = { 1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta", 5: "Sexta" };
           Object.entries(schedule).forEach(([diaNum, turmas]) => {
             const count = (turmas as string[]).filter(t => {
-              const td = t.toLowerCase().replace(/º/g, "°").trim();
-              const md = turma.toLowerCase().replace(/º/g, "°").trim();
+              const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/º/g, "°").replace(/\s+/g, "");
+              const td = normalizeStr(t);
+              const md = normalizeStr(turma);
               return td === md || td.includes(md) || md.includes(td);
             }).length;
             if (count > 0) {
@@ -1291,15 +1293,48 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center pb-24 scrollbar-thin">
-              <textarea
-                value={content}
-                disabled={!activePlan}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Digite seu planejamento ou peça para o Jarvis inserir o conteúdo gerado..."
-                className="w-full max-w-[1000px] min-h-full h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 font-medium text-slate-700 text-[15px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300 print:shadow-none print:border-none print:p-0 resize-none"
-              />
-            </div>
+            {/* Toggle Editor/Preview tabs */}
+            {!activePlan ? (
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center items-center pb-24">
+                  <p className="text-slate-400 font-medium">Selecione ou crie um plano ao lado.</p>
+                </div>
+            ) : (
+                <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0">
+                  <div className="flex justify-center border-b border-slate-200 bg-white print:hidden py-2 sticky top-0 z-20">
+                    <div className="bg-slate-100 p-1 rounded-xl flex gap-1 shadow-sm">
+                      <button 
+                         onClick={() => setIsPreviewMode(false)}
+                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${!isPreviewMode ? 'bg-white text-indigo-700 shadow shadow-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                      >
+                         Editar Texto
+                      </button>
+                      <button 
+                         onClick={() => setIsPreviewMode(true)}
+                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${isPreviewMode ? 'bg-white text-indigo-700 shadow shadow-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
+                      >
+                         Visualizar Documento
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center pb-24 scrollbar-thin">
+                    {!isPreviewMode ? (
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="Digite seu planejamento ou peça para o Jarvis inserir o conteúdo gerado..."
+                        className="w-full max-w-[1000px] min-h-full h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 font-medium text-slate-700 text-[15px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300 print:shadow-none print:border-none print:p-0 resize-none font-mono"
+                      />
+                    ) : (
+                      <div className="w-full max-w-[1000px] min-h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 print:shadow-none print:border-none print:p-0">
+                        <div className="markdown-body">
+                          <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+            )}
           </div>
         </div>
       )}
