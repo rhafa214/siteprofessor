@@ -25,8 +25,40 @@ export default function ScheduleView() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [newTurmaValue, setNewTurmaValue] = useState("");
   const [activeDayIndex, setActiveDayIndex] = useState<number | null>(null);
+
+  // New states for the add modal
+  const [modalTurmaValue, setModalTurmaValue] = useState("");
+  const [modalAulasCount, setModalAulasCount] = useState(1);
+  const [modalStartTime, setModalStartTime] = useState("");
+  const [modalEndTime, setModalEndTime] = useState("");
+
+  const handleOpenAddModal = (dayIndex: number) => {
+    setActiveDayIndex(dayIndex);
+    setModalTurmaValue("");
+    setModalAulasCount(1);
+    setModalStartTime("");
+    setModalEndTime("");
+  };
+
+  const handleConfirmAddModal = () => {
+    if (!modalTurmaValue.trim() || activeDayIndex === null) {
+      setActiveDayIndex(null);
+      return;
+    }
+
+    let finalStr = `${modalAulasCount} ${modalAulasCount > 1 ? "Aulas" : "Aula"} - ${modalTurmaValue.trim()}`;
+    if (modalStartTime) {
+      finalStr += ` (${modalStartTime}${modalEndTime ? ` às ${modalEndTime}` : ""})`;
+    }
+
+    const current = schedule[activeDayIndex] || [];
+    setSchedule(prev => ({
+      ...prev,
+      [activeDayIndex]: [...current, finalStr]
+    }));
+    setActiveDayIndex(null);
+  };
 
   useEffect(() => {
     async function loadSchedule() {
@@ -96,11 +128,31 @@ export default function ScheduleView() {
         const dayIndex = date.getDay(); // 0(Sun) - 6(Sat)
         
         if (dayIndex >= 1 && dayIndex <= 5) {
-          // simple heuristic: if it looks like a class "Aula 7º Ano", "7º A"
           const title = ev.summary || "Aula";
-          // let's just add the title directly if it's short, or let the user filter it
-          if (!newSchedule[dayIndex].includes(title)) {
-            newSchedule[dayIndex].push(title);
+          
+          let numAulas = 1;
+          let startTimeStr = "";
+          let endTimeStr = "";
+
+          if (ev.start?.dateTime && ev.end?.dateTime) {
+            const startD = new Date(ev.start.dateTime);
+            const endD = new Date(ev.end.dateTime);
+            const diffMinutes = Math.round((endD.getTime() - startD.getTime()) / 60000);
+            if (diffMinutes > 75) {
+              numAulas = 2;
+            }
+            // format times for visual feedback
+            startTimeStr = startD.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            endTimeStr = endD.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          }
+          
+          let finalStr = `${numAulas} ${numAulas > 1 ? "Aulas" : "Aula"} - ${title}`;
+          if (startTimeStr) {
+            finalStr += ` (${startTimeStr}${endTimeStr ? ` às ${endTimeStr}` : ""})`;
+          }
+
+          if (!newSchedule[dayIndex].includes(finalStr)) {
+            newSchedule[dayIndex].push(finalStr);
           }
         }
       }
@@ -166,45 +218,117 @@ export default function ScheduleView() {
             <div className="p-4 flex-1 flex flex-col gap-3 min-h-[300px] overflow-y-auto">
                {(schedule[day.index] || []).map((turma, idx) => (
                   <div key={idx} className="bg-indigo-50 border border-indigo-100 text-indigo-800 rounded-xl px-3 py-2 flex items-center justify-between group shadow-sm">
-                     <span className="font-medium text-sm pr-2 truncate">{turma}</span>
+                     <span className="font-medium text-sm pr-2 shrink">{turma}</span>
                      <button
                         onClick={() => handleRemoveTurma(day.index, idx)}
-                        className="text-indigo-400 hover:text-red-500 opacity-50 group-hover:opacity-100 transition-opacity"
+                        className="text-indigo-400 hover:text-red-500 opacity-50 group-hover:opacity-100 transition-opacity shrink-0"
                      >
                        <X size={16} />
                      </button>
                   </div>
                ))}
 
-               {activeDayIndex === day.index ? (
-                 <div className="mt-2">
-                   <input
-                     autoFocus
-                     type="text"
-                     value={newTurmaValue}
-                     onChange={(e) => setNewTurmaValue(e.target.value)}
-                     onKeyDown={(e) => {
-                       if (e.key === 'Enter') handleAddTurma(day.index);
-                       if (e.key === 'Escape') setActiveDayIndex(null);
-                     }}
-                     onBlur={() => handleAddTurma(day.index)}
-                     className="w-full text-sm rounded-xl border border-indigo-300 focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 transition-shadow px-3 py-2 outline-none bg-white shadow-sm font-medium"
-                     placeholder="Ex: 7º Ano A"
-                   />
-                 </div>
-               ) : (
-                 <button
-                   onClick={() => setActiveDayIndex(day.index)}
-                   className="mt-2 w-full py-2 flex items-center justify-center gap-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-colors border border-dashed border-slate-200 hover:border-indigo-200"
-                 >
-                   <Plus size={16} />
-                   <span className="text-sm font-medium">Adicionar Aula</span>
-                 </button>
-               )}
+               <button
+                 onClick={() => handleOpenAddModal(day.index)}
+                 className="mt-2 w-full py-2 flex items-center justify-center gap-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-50 rounded-xl transition-colors border border-dashed border-slate-200 hover:border-indigo-200"
+               >
+                 <Plus size={16} />
+                 <span className="text-sm font-medium">Adicionar Aula</span>
+               </button>
             </div>
           </div>
         ))}
       </div>
+
+      {/* Add Modal */}
+      {activeDayIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-xl max-w-sm w-full border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-800">
+                Adicionar {DAYS.find(d => d.index === activeDayIndex)?.name}
+              </h3>
+              <button 
+                onClick={() => setActiveDayIndex(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5 pt-1">
+                  Turma
+                </label>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Ex: 7º Ano A - Matemática"
+                  value={modalTurmaValue}
+                  onChange={(e) => setModalTurmaValue(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5 pt-1">
+                  Quantidade de Aulas
+                </label>
+                <div className="flex bg-slate-50 rounded-xl p-1 border border-slate-200">
+                  <button
+                    onClick={() => setModalAulasCount(1)}
+                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${modalAulasCount === 1 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
+                  >
+                    1 Aula (50m)
+                  </button>
+                  <button
+                    onClick={() => setModalAulasCount(2)}
+                    className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${modalAulasCount === 2 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200/50'}`}
+                  >
+                    2 Aulas (1h40m)
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 pt-1">
+                    Horário Início
+                  </label>
+                  <input
+                    type="time"
+                    value={modalStartTime}
+                    onChange={(e) => setModalStartTime(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-bold text-slate-700 mb-1.5 pt-1">
+                    Horário Fim <span className="font-normal text-slate-400">(Opcional)</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={modalEndTime}
+                    onChange={(e) => setModalEndTime(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  onClick={handleConfirmAddModal}
+                  disabled={!modalTurmaValue.trim()}
+                  className="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-md shadow-indigo-600/20 hover:bg-indigo-700 hover:shadow-indigo-600/30 transition-all disabled:opacity-50 disabled:shadow-none"
+                >
+                  Adicionar à Grade
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

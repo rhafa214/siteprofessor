@@ -332,13 +332,46 @@ export default function LessonPlan() {
       for (const turma of selectedBimestralClasses) {
         setGenerationProgress(`Gerando plano para ${turma}...`);
         
+        // Descobrir dias da semana da turma
+        const diasTurma: string[] = [];
+        let totalAulasSemana = 0;
+        
+        if (schedule) {
+          const diasMap: Record<number, string> = { 1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta", 5: "Sexta" };
+          Object.entries(schedule).forEach(([diaNum, turmas]) => {
+            let aulasNoDia = 0;
+            (turmas as string[]).forEach(t => {
+              const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/º/g, "°").replace(/\s+/g, "");
+              const td = normalizeStr(t);
+              const md = normalizeStr(turma);
+              // matches class name
+              if (td === md || td.includes(md) || md.includes(td.replace(/^[0-9]+aulas?-/, ""))) {
+                // look for '2 Aulas'
+                const match = t.match(/^(\d+)\s+Aulas?\s+-/i);
+                if (match) {
+                  aulasNoDia += parseInt(match[1], 10);
+                } else {
+                  aulasNoDia += 1; // standard string is 1 class
+                }
+              }
+            });
+
+            if (aulasNoDia > 0) {
+              totalAulasSemana += aulasNoDia;
+              if (!diasTurma.includes(diasMap[Number(diaNum)])) {
+                diasTurma.push(diasMap[Number(diaNum)]);
+              }
+            }
+          });
+        }
+
         const schedString = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
           ? `\n\n[GRADE DE HORÁRIOS EXATA DO PROFESSOR (ACESSO EXCLUSIVO)]:\n` +
-            `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
-            `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
-            `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
-            `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
-            `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
+            `Segunda-feira: ${schedule[1]?.join(" | ") || "Nenhuma"}\n` +
+            `Terça-feira: ${schedule[2]?.join(" | ") || "Nenhuma"}\n` +
+            `Quarta-feira: ${schedule[3]?.join(" | ") || "Nenhuma"}\n` +
+            `Quinta-feira: ${schedule[4]?.join(" | ") || "Nenhuma"}\n` +
+            `Sexta-feira: ${schedule[5]?.join(" | ") || "Nenhuma"}\n` +
             `\nVOCÊ DEVE: Analisar a grade acima e procurar pelas aulas da turma "${turma}". Se houver uma turma com nome parecido (ex. "6º B" ou "6B" sendo equivalente a "6°B - Matemática"), considere como sendo a mesmíssima turma. Uma vez descobertos os dias da semana que essa turma aparece na grade, CONTE quantas vezes ela aparece no total da semana.` 
           : `\n\n[GRADE DE HORÁRIOS]: Não cadastrada/vazia. Estime genericaamente 4 a 5 aulas semanais.`;
 
@@ -359,7 +392,9 @@ INFORMAÇÕES OFICIAIS DE CALENDÁRIO:
 ${schedString}
 
 INFORMAÇÕES EXATAS DA TURMA:
-- **MATEMÁTICA OBRIGATÓRIA**: Utilizando a quantidade de aulas semanais dessa turma (encontrada na grade), multiplique pelas semanas do ${selectedBimestralBimestre}º bimestre e DESCONTE rigorosamente os feriados que caírem EXATAMENTE nos dias de aula letivos desta turma específica. Defina um **NÚMERO EXATO** de aulas previstas para o bimestre. Diga explicitamente seu raciocínio matemático para o desconto.
+- Dia(s) da semana letivo(s) da turma: **${diasTurma.length > 0 ? diasTurma.join(", ") : "Não definidos"}**.
+- Aulas semanais: **${totalAulasSemana > 0 ? totalAulasSemana : "Estimar 4-5"}**.
+- **MATEMÁTICA OBRIGATÓRIA**: Utilizando a quantidade de aulas semanais dessa turma (encontrada na grade: ${totalAulasSemana || "estimado"}), multiplique pelas semanas do ${selectedBimestralBimestre}º bimestre e DESCONTE rigorosamente os feriados que caírem EXATAMENTE nos dias de aula letivos desta turma específica. Defina um **NÚMERO EXATO** de aulas previstas para o bimestre. Diga explicitamente seu raciocínio matemático para o desconto.
 
 ${curriculum ? `[MATRIZ/ESCOPO CURRICULAR DO PROFESSOR]: \n\`\`\`\n${curriculum}\n\`\`\`\n` : `[ESCOPO OFICIAL (FALLBACK)]: \n\`\`\`json\n${JSON.stringify(curriculumData)}\n\`\`\``}
 ${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE]:\n${jarvisDocs.map(d => `[${d.title}]\n${d.content}`).join("\n\n")}` : ""}
@@ -371,7 +406,7 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
 **1. Ficha Técnica**
 - **Turma:** ${turma}
 - **Bimestre:** ${selectedBimestralBimestre}º Bimestre
-- **Dias de Aula da Turma:** (Mostre os dias exatos em que a turma tem aula baseado na grade, ex: **Segundas, Terças e Quintas-feiras**).
+- **Dias de Aula da Turma:** (Mostre os dias exatos em que a turma tem aula baseado na grade, ex: **${diasTurma.length > 0 ? diasTurma.join(", ") : "Segundas, Terças e Quintas-feiras"}**).
 - **Carga Horária Estimada Mapeada:** (Apresente o cálculo exato de aulas descontados os feriados e emendas. Destaque em negrito. Ex: "**44 aulas planejadas**").
 
 **2. Visão Geral do Bimestre (Análise Jarvis)**
