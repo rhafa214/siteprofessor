@@ -11,8 +11,9 @@ export default function AddonSidebar() {
   const [bimestre, setBimestre] = useState<number>(getCurrentBimestre());
   const [searchTerm, setSearchTerm] = useState("");
   const [insertedIds, setInsertedIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<"aulas" | "aes">("aulas");
+  const [activeTab, setActiveTab] = useState<"aulas" | "aes" | "settings">("aulas");
   const [customAulas, setCustomAulas] = useLocalStorage<Aula[]>("customAulasData", []);
+  const [userGeminiKey, setUserGeminiKey] = useLocalStorage<string>("userGeminiKey", "");
   const [isExtractingPDF, setIsExtractingPDF] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -26,10 +27,18 @@ export default function AddonSidebar() {
       try {
         const { extractTextFromFile } = await import("../lib/fileExtraction");
         const { getGeminiClient } = await import("../lib/gemini");
+        const { GoogleGenAI } = await import("@google/genai");
         
-        const ai = getGeminiClient();
+        let ai = null;
+        if (userGeminiKey) {
+          ai = new GoogleGenAI({ apiKey: userGeminiKey });
+        } else {
+          ai = getGeminiClient();
+        }
+        
         if (!ai) {
-          alert("Erro: Configure uma chave do Gemini para processar PDFs.");
+          alert("Erro: Configure sua CHAVE de API do Gemini na aba de Configurações para processar PDFs.");
+          setActiveTab("settings");
           setIsExtractingPDF(false);
           return;
         }
@@ -50,7 +59,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 Texto:
 ${text.substring(0, 35000)}`;
 
-        const modelsToTry = ["gemini-1.5-flash", "gemini-2.0-flash", "gemini-2.5-flash"];
+        const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-1.5-pro", "gemini-2.0-flash-lite-preview-02-05", "gemini-2.0-flash"];
         let response = null;
         let lastError = null;
 
@@ -372,6 +381,15 @@ ${text.substring(0, 35000)}`;
               >
                 Aprendizagens (AE)
               </button>
+              <button 
+                onClick={() => setActiveTab("settings")}
+                className={`w-12 py-2 flex justify-center items-center text-center border-b-2 transition-colors ${
+                  activeTab === "settings" ? "border-[#8257E5] text-[#8257E5]" : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                }`}
+                title="Configurações (Chave API)"
+              >
+                ⚙️
+              </button>
             </div>
           </div>
         )}
@@ -467,7 +485,7 @@ ${text.substring(0, 35000)}`;
                 })}
               </div>
             )
-          ) : (
+          ) : activeTab === "aes" ? (
             aes.length === 0 ? (
               <p className="text-center text-slate-500 text-sm mt-4">
                 Nenhuma aprendizagem essencial encontrada.
@@ -562,6 +580,26 @@ ${text.substring(0, 35000)}`;
                 })}
               </div>
             )
+          ) : (
+            <div className="bg-white border text-sm border-slate-200 rounded-xl p-4 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-2">Configurações de IA</h3>
+              <p className="text-slate-600 mb-4 text-xs">
+                Para extrair dados do seu próprio PDF de matriz curricular, forneça uma chave de API do Google Gemini (gratuita).
+              </p>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold text-slate-700">Gemini API Key</label>
+                <input
+                  type="password"
+                  value={userGeminiKey}
+                  onChange={(e) => setUserGeminiKey(e.target.value)}
+                  placeholder="AIzaSy..."
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:border-[#8257E5]"
+                />
+                <p className="text-[10px] text-slate-500">
+                  Sua chave fica salva apenas no seu navegador. Obtenha a sua em <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-indigo-600 underline">aistudio.google.com</a>.
+                </p>
+              </div>
+            </div>
           )
         )}
       </div>
