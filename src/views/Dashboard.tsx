@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   BotMessageSquare,
   Send,
@@ -17,6 +17,7 @@ import {
   History,
   X,
   BookOpen,
+  BellRing,
 } from "lucide-react";
 import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -71,6 +72,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
   );
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [isLembretesOpen, setIsLembretesOpen] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [emailContent, setEmailContent] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
@@ -1212,7 +1214,7 @@ Bimestres escolares:
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-6 lg:h-96 h-auto">
+          <div className="flex flex-col gap-4 lg:h-[450px] h-auto">
             {/* Chat Area */}
             <div className="flex-1 flex flex-col bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-96 md:h-full">
               <div
@@ -1276,42 +1278,12 @@ Bimestres escolares:
               </form>
             </div>
 
-            {/* Reminders List */}
-            <div className="w-full md:w-1/3 flex flex-col justify-between h-auto md:h-full">
-              <div>
-                <h4 className="text-sm font-bold text-slate-700 mb-3 border-b border-slate-100 pb-2">
-                  Seus Lembretes
-                </h4>
-                {reminders.length === 0 ? (
-                  <p className="text-xs text-slate-400 italic">
-                    Nenhum lembrete ativo.
-                  </p>
-                ) : (
-                  <ul className="space-y-2 overflow-y-auto max-h-40 scrollbar-thin pr-2">
-                    {reminders.map((rem, i) => (
-                      <li
-                        key={i}
-                        className="flex justify-between items-start gap-2 bg-slate-50 p-2 rounded-lg text-sm text-slate-700 group border border-slate-100"
-                      >
-                        <span className="leading-tight">{rem}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeReminder(i)}
-                          className="text-slate-300 opacity-0 group-hover:opacity-100 hover:text-red-500 transition-all shrink-0"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
+            <div className="flex justify-start">
               <button
                 type="button"
                 onClick={handleEfapeToggle}
                 className={cn(
-                  "w-full py-2.5 rounded-xl text-sm font-bold border transition-colors mt-4",
+                  "px-6 py-2.5 rounded-xl text-sm font-bold border transition-colors",
                   efapeDone
                     ? "bg-emerald-50 text-emerald-600 border-emerald-200"
                     : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50",
@@ -1467,6 +1439,72 @@ Bimestres escolares:
           </motion.div>
         </div>
       )}
+      {/* Floating Reminders Widget */}
+      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+        <AnimatePresence>
+          {isLembretesOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
+              className="bg-white border text-left border-slate-200 shadow-xl rounded-2xl w-80 mb-4 overflow-hidden flex flex-col"
+            >
+              <div className="p-4 border-b border-slate-100 bg-amber-50 relative flex items-center gap-2">
+                <BellRing size={18} className="text-amber-500" />
+                <h4 className="font-bold text-slate-800">Seus Lembretes</h4>
+                <button
+                  onClick={() => setIsLembretesOpen(false)}
+                  className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="p-4 max-h-[300px] overflow-y-auto scrollbar-thin bg-slate-50">
+                {reminders.length === 0 ? (
+                  <div className="text-center py-8 text-slate-400 text-sm">
+                    Nenhum lembrete ativo no momento.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {reminders.map((rem, i) => (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        key={i}
+                        className="bg-amber-100 p-3 rounded-xl text-slate-800 shadow-sm border border-amber-200 group relative rotate-1 hover:rotate-0 transition-transform"
+                      >
+                        <span className="leading-snug pr-6 block text-sm font-medium">{rem}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeReminder(i)}
+                          className="absolute top-1.5 right-1.5 text-amber-600/50 hover:text-red-600 hover:bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shrink-0"
+                          title="Marcar como concluído"
+                        >
+                          <CheckCircle2 size={16} />
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <button
+          onClick={() => setIsLembretesOpen(!isLembretesOpen)}
+          className="bg-amber-400 hover:bg-amber-500 text-amber-950 p-4 rounded-full shadow-lg transition-transform hover:scale-105 active:scale-95 flex items-center justify-center relative"
+        >
+          <BellRing size={24} />
+          {reminders.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-sm border-2 border-white">
+              {reminders.length}
+            </span>
+          )}
+        </button>
+      </div>
+
     </motion.div>
   );
 }
