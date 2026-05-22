@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import Papa from "papaparse";
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { getCurrentBimestre } from "../lib/constants";
-import { dbAulas, dbAEs } from "../data/guiaPedagogico";
+import { dbAulas, dbAEs, Aula } from "../data/guiaPedagogico";
 import { bnccHabilidades } from "../data/bnccHabilidades";
-import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft } from "lucide-react";
+import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft, Upload } from "lucide-react";
 
 export default function AddonSidebar() {
   const [selectedAno, setSelectedAno] = useState<number | null>(null);
@@ -10,6 +12,107 @@ export default function AddonSidebar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [insertedIds, setInsertedIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<"aulas" | "aes">("aulas");
+  const [customAulas, setCustomAulas] = useLocalStorage<Aula[]>("customAulasData", []);
+  const [isExtractingPDF, setIsExtractingPDF] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.name.endsWith('.pdf')) {
+      setIsExtractingPDF(true);
+      try {
+        const { extractTextFromFile } = await import("../lib/fileExtraction");
+        const { getGeminiClient } = await import("../lib/gemini");
+        
+        const ai = getGeminiClient();
+        if (!ai) {
+          alert("Erro: Configure uma chave do Gemini para processar PDFs.");
+          setIsExtractingPDF(false);
+          return;
+        }
+
+        const text = await extractTextFromFile(file);
+
+        const prompt = `Analise o seguinte plano/escopo de aulas e o converta para um JSON. O JSON DEVE SER um array de objetos. 
+Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero como number, os outros como string):
+- ano (ex: 6 para 6º ano)
+- bimestre (1 a 4)
+- numero (numero da aula)
+- titulo (titulo da aula)
+- conteudo
+- objetivos
+- habilidades (codigos das habilidades citadas)
+- aprendizagemEssencial
+
+Texto:
+${text.substring(0, 35000)}`;
+
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: prompt,
+          config: {
+            responseMimeType: "application/json"
+          }
+        });
+
+        if (response.text) {
+           const parsed = JSON.parse(response.text);
+           if(Array.isArray(parsed)){
+             setCustomAulas(prev => [...prev, ...parsed]);
+             alert("Escopo PDF importado com sucesso!");
+           } else {
+             alert("Erro ao formatar resposta do PDF.");
+           }
+        }
+      } catch (err: any) {
+        console.error(err);
+        alert("Erro no processamento do PDF: " + err.message);
+      } finally {
+        setIsExtractingPDF(false);
+      }
+    } else if (file.name.endsWith('.json')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const json = JSON.parse(e.target?.result as string);
+          if (Array.isArray(json)) {
+            setCustomAulas(json);
+            alert("Escopo importado com sucesso (JSON)!");
+          }
+        } catch (err) {
+          alert("Erro ao ler JSON: verifique o formato do arquivo.");
+        }
+      };
+      reader.readAsText(file);
+    } else if (file.name.endsWith('.csv')) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          const parsed = results.data.map((row: any) => ({
+            ano: Number(row.ano),
+            bimestre: Number(row.bimestre),
+            numero: Number(row.numero),
+            titulo: row.titulo || '',
+            conteudo: row.conteudo || '',
+            objetivos: row.objetivos || '',
+            habilidades: row.habilidades || '',
+            aprendizagemEssencial: row.aprendizagemEssencial || ''
+          }));
+          setCustomAulas(parsed);
+          alert("Escopo importado com sucesso (CSV)!");
+        },
+        error: (error) => {
+          alert("Erro ao ler CSV: " + error.message);
+        }
+      });
+    } else {
+      alert("Formato não suportado. Use .csv ou .json");
+    }
+  };
 
   const formatAulasList = (numbers: number[]) => {
     if (numbers.length === 0) return "";
@@ -41,7 +144,8 @@ export default function AddonSidebar() {
   };
 
   // Filter aulas
-  const aulas = dbAulas.filter(
+  const constAllAulas = [...dbAulas, ...customAulas];
+  const aulas = constAllAulas.filter(
     (aula) => {
       if (aula.ano !== selectedAno || aula.bimestre !== bimestre) return false;
       const title = String(aula.titulo || aula.conteudo || "").toLowerCase();
@@ -157,8 +261,8 @@ export default function AddonSidebar() {
     >
       {/* Header compact - Sticky */}
       <div className="sticky top-0 z-20 bg-white shadow-sm">
-        <div className="bg-[#8257E5] text-white p-3 shadow-md">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="bg-[#8257E5] text-white p-3 shadow-md flex justify-between items-center">
+          <div className="flex items-center gap-2">
             {selectedAno ? (
               <button onClick={() => setSelectedAno(null)} className="hover:bg-white/20 p-1 -ml-1 rounded-full text-white transition-colors">
                 <ChevronLeft size={16} />
@@ -170,24 +274,44 @@ export default function AddonSidebar() {
               {selectedAno ? `${selectedAno}º Ano` : "Escopo EduAssistente"}
             </h1>
           </div>
-
-          {selectedAno && (
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <select
-                  value={bimestre}
-                  onChange={(e) => setBimestre(Number(e.target.value))}
-                  className="w-full bg-white/20 border border-white/30 text-white rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-slate-800"
-                >
-                  <option value={1}>1º Bim</option>
-                  <option value={2}>2º Bim</option>
-                  <option value={3}>3º Bim</option>
-                  <option value={4}>4º Bim</option>
-                </select>
-              </div>
-            </div>
-          )}
+          
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative"
+            title="Importar Meu Escopo (PDF/CSV/JSON)"
+            disabled={isExtractingPDF}
+          >
+            {isExtractingPDF ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+            ) : (
+              <Upload size={16} />
+            )}
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleFileUpload} 
+            accept=".csv,.json,.pdf" 
+            className="hidden" 
+          />
         </div>
+
+        {selectedAno && (
+          <div className="bg-[#8257E5] px-3 pb-3">
+            <div className="flex-1">
+              <select
+                value={bimestre}
+                onChange={(e) => setBimestre(Number(e.target.value))}
+                className="w-full bg-white/20 border border-white/30 text-white rounded-lg text-xs px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-slate-800"
+              >
+                <option value={1}>1º Bim</option>
+                <option value={2}>2º Bim</option>
+                <option value={3}>3º Bim</option>
+                <option value={4}>4º Bim</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Search */}
         {selectedAno && (
