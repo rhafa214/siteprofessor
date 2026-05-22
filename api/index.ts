@@ -13,9 +13,9 @@ app.post("/api/parse-curriculum", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "Nenhum arquivo enviado." });
     }
     
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+      return res.status(500).json({ error: "GEMINI_API_KEY (ou VITE_GEMINI_API_KEY) não configurada no servidor." });
     }
 
     const { ano = "6", bimestre = "1" } = req.body;
@@ -67,9 +67,9 @@ app.post("/api/parse-curriculum", upload.single("file"), async (req, res) => {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!apiKey) {
-        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        res.status(500).json({ error: "GEMINI_API_KEY (ou VITE_GEMINI_API_KEY) não configurada no servidor." });
         return;
       }
 
@@ -132,9 +132,9 @@ app.post("/api/extract-text", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "Nenhum arquivo enviado." });
     }
     
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      return res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+      return res.status(500).json({ error: "GEMINI_API_KEY (ou VITE_GEMINI_API_KEY) não configurada no servidor." });
     }
 
     const ai = new GoogleGenAI({ apiKey, httpOptions: { headers: { 'User-Agent': 'aistudio-build' } } });
@@ -176,9 +176,9 @@ app.post("/api/parse-addon-curriculum", upload.single("file"), async (req, res) 
       return;
     }
     
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+      res.status(500).json({ error: "GEMINI_API_KEY (ou VITE_GEMINI_API_KEY) não configurada no servidor." });
       return;
     }
 
@@ -242,9 +242,9 @@ Extraia todas as aulas contidas no documento.`;
 app.post("/api/generate-eval-report", async (req, res) => {
   try {
     const { turma, tarefas, matific, provaPaulista } = req.body;
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
-      res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+      res.status(500).json({ error: "GEMINI_API_KEY (ou VITE_GEMINI_API_KEY) não configurada no servidor." });
       return;
     }
 
