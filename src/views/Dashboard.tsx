@@ -18,6 +18,7 @@ import {
   X,
   BookOpen,
   BellRing,
+  Trash2,
 } from "lucide-react";
 import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -73,6 +74,8 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [isLembretesOpen, setIsLembretesOpen] = useState(false);
+  const [reminderToDelete, setReminderToDelete] = useState<number | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [emailContent, setEmailContent] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
@@ -1472,17 +1475,32 @@ Bimestres escolares:
                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         key={i}
-                        className="bg-amber-100 p-3 rounded-xl text-slate-800 shadow-sm border border-amber-200 group relative rotate-1 hover:rotate-0 transition-transform"
+                        className="bg-amber-100 p-3 rounded-xl text-slate-800 shadow-sm border border-amber-200"
                       >
-                        <span className="leading-snug pr-6 block text-sm font-medium">{rem}</span>
-                        <button
-                          type="button"
-                          onClick={() => removeReminder(i)}
-                          className="absolute top-1.5 right-1.5 text-amber-600/50 hover:text-red-600 hover:bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all shrink-0"
-                          title="Marcar como concluído"
-                        >
-                          <CheckCircle2 size={16} />
-                        </button>
+                        <div className="flex justify-between items-start gap-2">
+                           <span className="leading-snug block text-sm font-medium flex-1">{rem}</span>
+                           <div className="flex gap-1 shrink-0">
+                               <button
+                                 type="button"
+                                 onClick={() => removeReminder(i)}
+                                 className="text-amber-600 hover:text-emerald-600 hover:bg-white rounded-full p-1.5 transition-all"
+                                 title="Marcar como concluído"
+                               >
+                                 <CheckCircle2 size={16} />
+                               </button>
+                               <button
+                                 type="button"
+                                 onClick={() => {
+                                   setReminderToDelete(i);
+                                   setIsDeleteModalOpen(true);
+                                 }}
+                                 className="text-amber-600 hover:text-red-600 hover:bg-white rounded-full p-1.5 transition-all"
+                                 title="Apagar lembrete"
+                               >
+                                 <Trash2 size={16} />
+                               </button>
+                           </div>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -1504,6 +1522,58 @@ Bimestres escolares:
           )}
         </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {isDeleteModalOpen && reminderToDelete !== null && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+              onClick={() => {
+                setIsDeleteModalOpen(false);
+                setReminderToDelete(null);
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl p-6 shadow-2xl relative w-full max-w-sm border border-slate-200 z-10"
+            >
+              <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4 mx-auto">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 text-center mb-2">Excluir Lembrete</h3>
+              <p className="text-slate-500 text-center text-sm mb-6">
+                Tem certeza que deseja excluir este lembrete permanentemente?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsDeleteModalOpen(false);
+                    setReminderToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    removeReminder(reminderToDelete);
+                    setIsDeleteModalOpen(false);
+                    setReminderToDelete(null);
+                  }}
+                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-bold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                >
+                  Excluir
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </motion.div>
   );
