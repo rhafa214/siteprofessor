@@ -34,12 +34,24 @@ export default function SchoolAssessments({ defaultTab = "bimestral" }: { defaul
   const [selectedTurma, setSelectedTurma] = useLocalStorage<string | null>("assessments_selectedTurma", null);
 
   const [gradesData, setGradesData] = useLocalStorage<Record<string, GradeRecord[]>>("assessments_grades", {});
+  const [assessmentsMeta, setAssessmentsMeta] = useLocalStorage<Record<string, { title: string, date: string }>>("assessments_meta", {});
 
   const currentKey = `${selectedTurma}_${activeTab}`;
   const currentGrades = gradesData[currentKey] || [];
+  const currentMeta = assessmentsMeta[currentKey] || { title: "", date: "" };
 
   const [newStudent, setNewStudent] = useState("");
   const [newGrade, setNewGrade] = useState("");
+
+  const handleUpdateMeta = (field: "title" | "date", value: string) => {
+    setAssessmentsMeta(prev => ({
+      ...prev,
+      [currentKey]: {
+        ...(prev[currentKey] || { title: "", date: "" }),
+        [field]: value
+      }
+    }));
+  };
 
   const syncStudentsWithDatabase = async () => {
     if (!user || !selectedTurma) {
@@ -249,8 +261,24 @@ export default function SchoolAssessments({ defaultTab = "bimestral" }: { defaul
         </div>
       </div>
 
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row gap-4 justify-between items-center">
-        <div className="relative w-full max-w-md">
+      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row gap-4 justify-between items-center">
+        <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full">
+          <input
+            type="text"
+            placeholder="Título da Avaliação (Ex: Prova Bimestral)"
+            value={currentMeta.title}
+            onChange={(e) => handleUpdateMeta("title", e.target.value)}
+            className="w-full sm:max-w-xs px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <input
+            type="date"
+            value={currentMeta.date}
+            onChange={(e) => handleUpdateMeta("date", e.target.value)}
+            className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700"
+          />
+        </div>
+
+        <div className="relative w-full xl:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             type="text"
@@ -261,103 +289,120 @@ export default function SchoolAssessments({ defaultTab = "bimestral" }: { defaul
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full xl:w-auto justify-end">
             <button
                onClick={copyReport}
-               className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors"
+               className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors shrink-0"
             >
-               <Copy size={16} /> Copiar Reprovados ({totalReprovados})
+               <Copy size={16} /> Copiar
             </button>
             <button
                onClick={generateReport}
-               className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors"
+               className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 text-sm font-bold rounded-xl flex items-center gap-2 transition-colors shrink-0"
             >
-               <Download size={16} /> Doc Reprovados
+               <Download size={16} /> Reprovados
             </button>
         </div>
       </div>
 
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-6">
-          <form onSubmit={handleAddGrade} className="flex gap-2 flex-1">
-              <input
-                 type="text"
-                 placeholder="Nome do Aluno"
-                 value={newStudent}
-                 onChange={(e) => setNewStudent(e.target.value)}
-                 className="flex-1 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
-              />
-              <input
-                 type="number"
-                 step="0.1"
-                 min="0"
-                 max="10"
-                 placeholder="Nota"
-                 value={newGrade}
-                 onChange={(e) => setNewGrade(e.target.value)}
-                 className="w-24 px-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500"
-              />
-              <button type="submit" className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-colors">
-                 <Plus size={20} />
-              </button>
-          </form>
-          <button
-              onClick={syncStudentsWithDatabase}
-              disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl font-bold text-sm shadow-sm transition-colors shrink-0"
-          >
-              {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
-              {isSyncing ? "Sincronizando..." : "Puxar Alunos do Banco"}
-          </button>
-        </div>
+      <div className="flex-1 p-0 overflow-auto">
+        <div className="p-6 border-b border-slate-100 bg-white">
+          <div className="flex flex-col lg:flex-row justify-between lg:items-center gap-4 mb-4">
+            <form onSubmit={handleAddGrade} className="flex gap-2 flex-1 max-w-xl">
+                <input
+                   type="text"
+                   placeholder="Adicionar nome de um aluno..."
+                   value={newStudent}
+                   onChange={(e) => setNewStudent(e.target.value)}
+                   className="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white"
+                />
+                <input
+                   type="number"
+                   step="0.1"
+                   min="0"
+                   max="10"
+                   placeholder="Nota"
+                   value={newGrade}
+                   onChange={(e) => setNewGrade(e.target.value)}
+                   className="w-24 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:bg-white"
+                />
+                <button type="submit" className="bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition-colors">
+                   <Plus size={20} />
+                </button>
+            </form>
+            <button
+                onClick={syncStudentsWithDatabase}
+                disabled={isSyncing}
+                className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold text-sm transition-colors shrink-0"
+            >
+                {isSyncing ? <Loader2 size={16} className="animate-spin" /> : <Users size={16} />}
+                {isSyncing ? "Sincronizando..." : "Puxar Alunos da Planilha (Matific/Tarefas)"}
+            </button>
+          </div>
 
-        <div className="flex gap-4 mb-4">
-           <div className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-bold">
-              Aprovados (≥ 5): {totalAprovados}
-           </div>
-           <div className="px-3 py-1 bg-red-50 text-red-700 rounded-lg text-sm font-bold">
-              Abaixo de 5: {totalReprovados}
-           </div>
+          <div className="flex gap-4">
+             <div className="px-3 py-1 bg-green-50 text-green-700 rounded-lg text-sm font-bold">
+                Aprovados (≥ 5): {totalAprovados}
+             </div>
+             <div className="px-3 py-1 bg-red-50 text-red-700 rounded-lg text-sm font-bold">
+                Abaixo de 5: {totalReprovados}
+             </div>
+          </div>
         </div>
 
         {filteredGrades.length === 0 ? (
-           <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-300">
+           <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-50 border-t border-slate-200 h-full">
               <BookOpen className="w-12 h-12 text-slate-300 mb-4" />
               <h3 className="text-lg font-bold text-slate-700 mb-2">Nenhuma nota registrada</h3>
-              <p className="text-sm text-slate-500">Adicione os alunos e notas no formulário acima.</p>
+              <p className="text-sm text-slate-500 max-w-sm">Adicione os alunos manualmente ou clique em "Puxar Alunos da Planilha" para importar a lista de alunos.</p>
            </div>
         ) : (
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredGrades.map(record => {
-                 const isReprovado = typeof record.grade === 'number' && record.grade < 5;
-                 const isAprovado = typeof record.grade === 'number' && record.grade >= 5;
+           <div className="w-full min-w-[600px]">
+             <table className="w-full text-left border-collapse">
+               <thead>
+                 <tr className="border-b border-slate-200 bg-slate-50/80 sticky top-0 z-10 backdrop-blur-sm">
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-12 text-center">Nº</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Aluno</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-32 text-center">Nota</th>
+                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider w-20 text-center">Ação</th>
+                 </tr>
+               </thead>
+               <tbody className="divide-y divide-slate-100">
+                 {filteredGrades.map((record, index) => {
+                    const isReprovado = typeof record.grade === 'number' && record.grade < 5;
+                    const isAprovado = typeof record.grade === 'number' && record.grade >= 5;
 
-                 return (
-                    <div key={record.id} className={`p-4 rounded-xl border flex items-center justify-between ${
-                       isReprovado ? 'bg-red-50/50 border-red-200' : isAprovado ? 'bg-green-50/50 border-green-200' : 'bg-white border-slate-200'
-                    }`}>
-                       <div className="flex-1 truncate mr-4 text-sm font-medium text-slate-700">
-                          {record.studentName}
-                       </div>
-                       <div className="flex items-center gap-2">
-                          <input
-                             type="number"
-                             step="0.1"
-                             min="0"
-                             max="10"
-                             value={record.grade}
-                             onChange={(e) => updateGrade(record.id, e.target.value)}
-                             className={`w-16 px-2 py-1 text-center font-bold text-sm bg-white border rounded focus:outline-none ${
-                                isReprovado ? 'text-red-600 border-red-300' : isAprovado ? 'text-green-600 border-green-300' : 'text-slate-700 border-slate-200'
-                             }`}
-                          />
-                          <button onClick={() => removeGrade(record.id)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
-                             <Trash2 size={16} />
-                          </button>
-                       </div>
-                    </div>
-                 )
-              })}
+                    return (
+                       <tr key={record.id} className="hover:bg-slate-50/80 transition-colors group">
+                          <td className="px-6 py-3 text-sm font-medium text-slate-400 text-center">
+                            {index + 1}
+                          </td>
+                          <td className="px-6 py-3 text-sm font-medium text-slate-700">
+                             {record.studentName}
+                          </td>
+                          <td className="px-6 py-3 flex justify-center">
+                             <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="10"
+                                value={record.grade}
+                                onChange={(e) => updateGrade(record.id, e.target.value)}
+                                className={`w-20 px-3 py-1.5 text-center font-bold text-sm bg-white border rounded lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+                                   isReprovado ? 'text-red-700 border-red-300 bg-red-50' : isAprovado ? 'text-green-700 border-green-300 bg-green-50' : 'text-slate-700 border-slate-200'
+                                }`}
+                             />
+                          </td>
+                          <td className="px-6 py-3 text-center">
+                             <button onClick={() => removeGrade(record.id)} className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                                <Trash2 size={18} />
+                             </button>
+                          </td>
+                       </tr>
+                    )
+                 })}
+               </tbody>
+             </table>
            </div>
         )}
       </div>
