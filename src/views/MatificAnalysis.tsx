@@ -420,7 +420,10 @@ export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre
           ) : (
             turmasList.map((turma) => {
               const bKey = selectedBimestre.replace("º Bimestre", "");
-              const localData = localStorage.getItem(`matificAnalysis_${bKey}_${turma}`);
+              let localData = localStorage.getItem(`matificAnalysis_${bKey}_${turma}`);
+              if (!localData && bKey === "2") {
+                 localData = localStorage.getItem(`matificAnalysis_${turma}`);
+              }
               let studentsCount = 0;
               let weeksCount = 0;
               if (localData) {

@@ -424,7 +424,10 @@ export default function TaskAnalysis({ selectedBimestre }: { selectedBimestre: s
           ) : (
             turmasList.map((turma) => {
               const bKey = selectedBimestre.replace("º Bimestre", "");
-              const localData = localStorage.getItem(`taskAnalysis_${bKey}_${turma}`);
+              let localData = localStorage.getItem(`taskAnalysis_${bKey}_${turma}`);
+              if (!localData && bKey === "2") {
+                 localData = localStorage.getItem(`taskAnalysis_${turma}`);
+              }
               let studentsCount = 0;
               let tasksCount = 0;
               if (localData) {

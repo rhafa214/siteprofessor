@@ -40,9 +40,20 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
     setAiReport("");
     try {
       const bKey = selectedBimestre.replace("º Bimestre", "");
-      const taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma!}`));
-      const matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", `${bKey}_${selectedTurma!}`));
-      const paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", `${bKey}_${selectedTurma!}`));
+      let taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma!}`));
+      if (!taskDoc.exists() && bKey === "2") {
+        taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma!));
+      }
+
+      let matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", `${bKey}_${selectedTurma!}`));
+      if (!matificDoc.exists() && bKey === "2") {
+        matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", selectedTurma!));
+      }
+
+      let paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", `${bKey}_${selectedTurma!}`));
+      if (!paulistaDoc.exists() && bKey === "2") {
+        paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma!));
+      }
       
       const payload = {
          turma: selectedTurma,
@@ -184,9 +195,19 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
 
 export default function EvaluationsView() {
   const [activeTab, setActiveTab] = useState<"tarefas" | "matific" | "paulista" | "media" | "bimestral" | "simulado" | null>(null);
-  const [selectedBimestre, setSelectedBimestre] = useLocalStorage("evaluations_bimestre", "1º Bimestre");
+
+  const getCurrentBimestre = () => {
+    const month = new Date().getMonth();
+    if (month < 4) return "1º Bimestre";
+    if (month < 7) return "2º Bimestre";
+    if (month < 9) return "3º Bimestre";
+    return "4º Bimestre";
+  };
+
+  const [selectedBimestre, setSelectedBimestre] = useState(getCurrentBimestre());
 
   const bimestres = ["1º Bimestre", "2º Bimestre", "3º Bimestre", "4º Bimestre"];
+
 
   if (activeTab) {
     return (
