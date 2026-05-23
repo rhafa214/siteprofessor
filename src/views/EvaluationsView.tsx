@@ -4,7 +4,7 @@ import TaskAnalysis from "./TaskAnalysis";
 import ProvaPaulistaAnalysis from "./ProvaPaulistaAnalysis";
 import SchoolAssessments from "./SchoolAssessments";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, ClipboardCheck, FileText, BarChart, BrainCircuit, Loader2, BookOpen, Trophy } from "lucide-react";
+import { Calculator, ClipboardCheck, FileText, BarChart, BrainCircuit, Loader2, BookOpen, Trophy, ChevronDown } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAlert } from "../contexts/AlertContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -14,7 +14,7 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 // Temporary placeholder for Media / IA report
 import { GoogleGenAI } from "@google/genai";
 
-function MediaView() {
+function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
   const { user } = useAuth();
   const { showAlert } = useAlert();
   const [turmasList] = useLocalStorage<string[]>(
@@ -39,9 +39,10 @@ function MediaView() {
     setLoading(true);
     setAiReport("");
     try {
-      const taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma!));
-      const matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", selectedTurma!));
-      const paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma!));
+      const bKey = selectedBimestre.replace("º Bimestre", "");
+      const taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma!}`));
+      const matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", `${bKey}_${selectedTurma!}`));
+      const paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", `${bKey}_${selectedTurma!}`));
       
       const payload = {
          turma: selectedTurma,
@@ -183,36 +184,51 @@ function MediaView() {
 
 export default function EvaluationsView() {
   const [activeTab, setActiveTab] = useState<"tarefas" | "matific" | "paulista" | "media" | "bimestral" | "simulado" | null>(null);
+  const [selectedBimestre, setSelectedBimestre] = useLocalStorage("evaluations_bimestre", "1º Bimestre");
+
+  const bimestres = ["1º Bimestre", "2º Bimestre", "3º Bimestre", "4º Bimestre"];
 
   if (activeTab) {
     return (
       <div className="h-full flex flex-col bg-slate-50/50">
-        <div className="bg-white border-b border-slate-200 p-4 shrink-0 flex items-center gap-4">
-          <button
-            onClick={() => setActiveTab(null)}
-            className="p-2 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
-            title="Voltar para módulos"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">
-              {activeTab === "tarefas" && "Controle de Tarefas"}
-              {activeTab === "matific" && "Matific"}
-              {activeTab === "paulista" && "Prova Paulista"}
-              {activeTab === "media" && "Relatório das Turmas"}
-              {activeTab === "bimestral" && "Avaliação Bimestral"}
-              {activeTab === "simulado" && "Simulado"}
-            </h1>
+        <div className="bg-white border-b border-slate-200 p-4 shrink-0 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setActiveTab(null)}
+              className="p-2 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
+              title="Voltar para módulos"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">
+                {activeTab === "tarefas" && "Controle de Tarefas"}
+                {activeTab === "matific" && "Matific"}
+                {activeTab === "paulista" && "Prova Paulista"}
+                {activeTab === "media" && "Relatório das Turmas"}
+                {activeTab === "bimestral" && "Avaliação Bimestral"}
+                {activeTab === "simulado" && "Simulado"}
+              </h1>
+            </div>
+          </div>
+          <div className="relative">
+            <select
+              value={selectedBimestre}
+              onChange={(e) => setSelectedBimestre(e.target.value)}
+              className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2 pl-4 pr-10 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              {bimestres.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto relative p-4 md:p-6 pb-24">
-          {activeTab === "tarefas" && <TaskAnalysis />}
-          {activeTab === "matific" && <MatificAnalysis />}
-          {activeTab === "paulista" && <ProvaPaulistaAnalysis />}
-          {activeTab === "media" && <MediaView />}
-          {activeTab === "bimestral" && <SchoolAssessments defaultTab="bimestral" />}
-          {activeTab === "simulado" && <SchoolAssessments defaultTab="simulado" />}
+        <div className="flex-1 overflow-y-auto relative p-4 md:p-6 pb-24 flex flex-col">
+          {activeTab === "tarefas" && <TaskAnalysis selectedBimestre={selectedBimestre} />}
+          {activeTab === "matific" && <MatificAnalysis selectedBimestre={selectedBimestre} />}
+          {activeTab === "paulista" && <ProvaPaulistaAnalysis selectedBimestre={selectedBimestre} />}
+          {activeTab === "media" && <MediaView selectedBimestre={selectedBimestre} />}
+          {activeTab === "bimestral" && <SchoolAssessments defaultTab="bimestral" selectedBimestre={selectedBimestre} />}
+          {activeTab === "simulado" && <SchoolAssessments defaultTab="simulado" selectedBimestre={selectedBimestre} />}
         </div>
       </div>
     );
@@ -230,6 +246,16 @@ export default function EvaluationsView() {
             <p className="text-sm text-slate-500 mt-1 font-medium">
               Gestão de notas, engajamento e relatórios de alunos
             </p>
+          </div>
+          <div className="relative">
+            <select
+              value={selectedBimestre}
+              onChange={(e) => setSelectedBimestre(e.target.value)}
+              className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2 pl-4 pr-10 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-slate-100 transition-colors cursor-pointer shadow-sm"
+            >
+              {bimestres.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
           </div>
         </div>
       </div>

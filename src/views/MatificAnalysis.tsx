@@ -44,7 +44,7 @@ interface ClassData {
 
 const defaultClassData: ClassData = { students: [], weeks: [], minutes: {} };
 
-export default function MatificAnalysis() {
+export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre: string }) {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const { showAlert } = useAlert();
@@ -71,17 +71,30 @@ export default function MatificAnalysis() {
     const loadData = async () => {
       setIsLoading(true);
       try {
+        const bKey = selectedBimestre.replace("º Bimestre", "");
         if (user) {
-          const docRef = doc(db, "users", user.uid, "matificAnalysis", selectedTurma);
+          const docRef = doc(db, "users", user.uid, "matificAnalysis", `${bKey}_${selectedTurma}`);
           const snap = await getDoc(docRef);
           if (snap.exists()) {
             setClassData(snap.data() as ClassData);
+          } else if (bKey === "2") {
+            const oldRef = doc(db, "users", user.uid, "matificAnalysis", selectedTurma);
+            const oldSnap = await getDoc(oldRef);
+            if (oldSnap.exists()) {
+              setClassData(oldSnap.data() as ClassData);
+            } else {
+              const localData = localStorage.getItem(`matificAnalysis_${bKey}_${selectedTurma}`) || localStorage.getItem(`matificAnalysis_${selectedTurma}`);
+              setClassData(localData ? JSON.parse(localData) : defaultClassData);
+            }
           } else {
-            const localData = localStorage.getItem(`matificAnalysis_${selectedTurma}`);
+            const localData = localStorage.getItem(`matificAnalysis_${bKey}_${selectedTurma}`);
             setClassData(localData ? JSON.parse(localData) : defaultClassData);
           }
         } else {
-          const localData = localStorage.getItem(`matificAnalysis_${selectedTurma}`);
+          let localData = localStorage.getItem(`matificAnalysis_${bKey}_${selectedTurma}`);
+          if (!localData && bKey === "2") {
+             localData = localStorage.getItem(`matificAnalysis_${selectedTurma}`);
+          }
           setClassData(localData ? JSON.parse(localData) : defaultClassData);
         }
       } catch (e) {
@@ -95,13 +108,14 @@ export default function MatificAnalysis() {
 
   const saveClassData = async (newData: ClassData) => {
     setClassData(newData);
+    const bKey = selectedBimestre.replace("º Bimestre", "");
     try {
       if (user) {
         setIsSaving(true);
-        await setDoc(doc(db, "users", user.uid, "matificAnalysis", selectedTurma!), newData);
+        await setDoc(doc(db, "users", user.uid, "matificAnalysis", `${bKey}_${selectedTurma!}`), newData);
         setIsSaving(false);
       }
-      localStorage.setItem(`matificAnalysis_${selectedTurma}`, JSON.stringify(newData));
+      localStorage.setItem(`matificAnalysis_${bKey}_${selectedTurma}`, JSON.stringify(newData));
     } catch (e) {
       console.error("Error saving matific data", e);
       setIsSaving(false);
@@ -120,7 +134,8 @@ export default function MatificAnalysis() {
     
     try {
       setIsSyncing(true);
-      const snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma));
+      const bKey = selectedBimestre.replace("º Bimestre", "");
+      const snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`));
       if (snap.exists()) {
         const td = snap.data();
         if (td && td.students && Array.isArray(td.students)) {
@@ -212,7 +227,8 @@ export default function MatificAnalysis() {
     // Alimenta o banco principal (Controle de Tarefas / Banco de Alunos) se logado
     if (user && selectedTurma && addedStudents.length > 0) {
        try {
-         const docRef = doc(db, "users", user.uid, "taskAnalysis", selectedTurma);
+         const bKey = selectedBimestre.replace("º Bimestre", "");
+         const docRef = doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`);
          const snap = await getDoc(docRef);
          if (snap.exists()) {
            const dbData = snap.data();
@@ -362,10 +378,9 @@ export default function MatificAnalysis() {
 
   const handleDeleteTurma = async (e: React.MouseEvent, turma: string) => {
     e.stopPropagation();
-    if (await confirm({ title: "Excluir Turma", message: `Tem certeza que deseja excluir a turma "${turma}" permanentemente?` })) {
-      const newList = (turmasList || []).filter((t) => t !== turma);
-      setTurmasList(newList);
-      localStorage.removeItem(`matificAnalysis_${turma}`);
+    if (await confirm({ title: "Excluir Turma deste Bimestre", message: `Tem certeza que deseja excluir os dados desta turma do ${selectedBimestre} permanentemente?` })) {
+      const bKey = selectedBimestre.replace("º Bimestre", "");
+      localStorage.removeItem(`matificAnalysis_${bKey}_${turma}`);
     }
   };
 
@@ -404,7 +419,8 @@ export default function MatificAnalysis() {
             </div>
           ) : (
             turmasList.map((turma) => {
-              const localData = localStorage.getItem(`matificAnalysis_${turma}`);
+              const bKey = selectedBimestre.replace("º Bimestre", "");
+              const localData = localStorage.getItem(`matificAnalysis_${bKey}_${turma}`);
               let studentsCount = 0;
               let weeksCount = 0;
               if (localData) {

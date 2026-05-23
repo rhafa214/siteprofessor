@@ -42,7 +42,7 @@ interface ClassData {
 // Default empty class
 const defaultClassData: ClassData = { students: [], tasks: [], grades: {} };
 
-export default function TaskAnalysis() {
+export default function TaskAnalysis({ selectedBimestre }: { selectedBimestre: string }) {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const { showAlert } = useAlert();
@@ -69,6 +69,7 @@ export default function TaskAnalysis() {
     // Load from local or Firebase
     const loadData = async () => {
       setIsLoading(true);
+      const bKey = selectedBimestre.replace("º Bimestre", "");
       try {
         if (user) {
           const docRef = doc(
@@ -76,22 +77,34 @@ export default function TaskAnalysis() {
             "users",
             user.uid,
             "taskAnalysis",
-            selectedTurma,
+            `${bKey}_${selectedTurma}`,
           );
           const snap = await getDoc(docRef);
           if (snap.exists()) {
             setClassData(snap.data() as ClassData);
+          } else if (bKey === "2") {
+            const oldRef = doc(db, "users", user.uid, "taskAnalysis", selectedTurma);
+            const oldSnap = await getDoc(oldRef);
+            if (oldSnap.exists()) {
+              setClassData(oldSnap.data() as ClassData);
+            } else {
+              const localData = localStorage.getItem(`taskAnalysis_${bKey}_${selectedTurma}`) || localStorage.getItem(`taskAnalysis_${selectedTurma}`);
+              setClassData(localData ? JSON.parse(localData) : defaultClassData);
+            }
           } else {
             // Check local storage fallback
             const localData = localStorage.getItem(
-              `taskAnalysis_${selectedTurma}`,
+              `taskAnalysis_${bKey}_${selectedTurma}`,
             );
             setClassData(localData ? JSON.parse(localData) : defaultClassData);
           }
         } else {
-          const localData = localStorage.getItem(
-            `taskAnalysis_${selectedTurma}`,
+          let localData = localStorage.getItem(
+            `taskAnalysis_${bKey}_${selectedTurma}`,
           );
+          if (!localData && bKey === "2") {
+             localData = localStorage.getItem(`taskAnalysis_${selectedTurma}`);
+          }
           setClassData(localData ? JSON.parse(localData) : defaultClassData);
         }
       } catch (e) {
@@ -107,19 +120,20 @@ export default function TaskAnalysis() {
   // Save changes
   const saveClassData = async (newData: ClassData) => {
     setClassData(newData);
+    const bKey = selectedBimestre.replace("º Bimestre", "");
     try {
       if (user) {
         // Save to firebase
         setIsSaving(true);
         await setDoc(
-          doc(db, "users", user.uid, "taskAnalysis", selectedTurma),
+          doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`),
           newData,
         );
         setIsSaving(false);
       }
       // Always save to local storage as backup
       localStorage.setItem(
-        `taskAnalysis_${selectedTurma}`,
+        `taskAnalysis_${bKey}_${selectedTurma}`,
         JSON.stringify(newData),
       );
     } catch (e) {
@@ -359,14 +373,15 @@ export default function TaskAnalysis() {
     e.stopPropagation();
     if (
       await confirm({
-        title: "Excluir Turma",
-        message: `Tem certeza que deseja excluir a turma "${turma}" permanentemente? Isso apagará todas as tarefas e notas associadas.`,
+        title: "Excluir Turma deste Bimestre",
+        message: `Tem certeza que deseja excluir os dados da turma "${turma}" para o ${selectedBimestre}? Isso apagará todas as tarefas e notas associadas a este período.`,
         isDestructive: true,
       })
     ) {
-      const newList = (turmasList || []).filter((t) => t !== turma);
-      setTurmasList(newList);
-      localStorage.removeItem(`taskAnalysis_${turma}`);
+      const bKey = selectedBimestre.replace("º Bimestre", "");
+      localStorage.removeItem(`taskAnalysis_${bKey}_${turma}`);
+      // Em uma aplicação real, excluiríamos do Firebase também ou da listagem global, 
+      // mas aqui a listagem é global para todos os bimestres.
     }
   };
 
@@ -408,7 +423,8 @@ export default function TaskAnalysis() {
             </div>
           ) : (
             turmasList.map((turma) => {
-              const localData = localStorage.getItem(`taskAnalysis_${turma}`);
+              const bKey = selectedBimestre.replace("º Bimestre", "");
+              const localData = localStorage.getItem(`taskAnalysis_${bKey}_${turma}`);
               let studentsCount = 0;
               let tasksCount = 0;
               if (localData) {

@@ -14,7 +14,7 @@ interface ClassData { students: Student[]; exams: Exam[]; grades: Record<string,
 
 const defaultClassData: ClassData = { students: [], exams: [], grades: {} };
 
-export default function ProvaPaulistaAnalysis() {
+export default function ProvaPaulistaAnalysis({ selectedBimestre }: { selectedBimestre: string }) {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const { showAlert } = useAlert();
@@ -30,7 +30,7 @@ export default function ProvaPaulistaAnalysis() {
     ],
   );
   
-  const [selectedTurma, setSelectedTurma] = useLocalStorage<string | null>("pp_selectedTurma", null);
+  const [selectedTurma, setSelectedTurma] = useState<string | null>(null);
   const [classData, setClassData] = useState<ClassData>(defaultClassData);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -40,16 +40,30 @@ export default function ProvaPaulistaAnalysis() {
     const loadData = async () => {
       setIsLoading(true);
       try {
+        const bKey = selectedBimestre.replace("º Bimestre", "");
         if (user) {
-          const docRef = doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma);
+          const docRef = doc(db, "users", user.uid, "paulistaAnalysis", `${bKey}_${selectedTurma}`);
           const snap = await getDoc(docRef);
           if (snap.exists()) { setClassData(snap.data() as ClassData); }
+          else if (bKey === "2") {
+            const oldRef = doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma);
+            const oldSnap = await getDoc(oldRef);
+            if (oldSnap.exists()) {
+              setClassData(oldSnap.data() as ClassData);
+            } else {
+              const localData = localStorage.getItem(`pp_${bKey}_${selectedTurma}`) || localStorage.getItem(`pp_${selectedTurma}`);
+              setClassData(localData ? JSON.parse(localData) : defaultClassData);
+            }
+          }
           else {
-            const localData = localStorage.getItem(`pp_${selectedTurma}`);
+            const localData = localStorage.getItem(`pp_${bKey}_${selectedTurma}`);
             setClassData(localData ? JSON.parse(localData) : defaultClassData);
           }
         } else {
-          const localData = localStorage.getItem(`pp_${selectedTurma}`);
+          let localData = localStorage.getItem(`pp_${bKey}_${selectedTurma}`);
+          if (!localData && bKey === "2") {
+             localData = localStorage.getItem(`pp_${selectedTurma}`);
+          }
           setClassData(localData ? JSON.parse(localData) : defaultClassData);
         }
       } catch (e) {
@@ -61,13 +75,14 @@ export default function ProvaPaulistaAnalysis() {
 
   const saveClassData = async (newData: ClassData) => {
     setClassData(newData);
+    const bKey = selectedBimestre.replace("º Bimestre", "");
     try {
       if (user) {
         setIsSaving(true);
-        await setDoc(doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma), newData);
+        await setDoc(doc(db, "users", user.uid, "paulistaAnalysis", `${bKey}_${selectedTurma}`), newData);
         setIsSaving(false);
       }
-      localStorage.setItem(`pp_${selectedTurma}`, JSON.stringify(newData));
+      localStorage.setItem(`pp_${bKey}_${selectedTurma}`, JSON.stringify(newData));
     } catch (e) {
       console.error("Error saving data", e);
       setIsSaving(false);
@@ -92,7 +107,8 @@ export default function ProvaPaulistaAnalysis() {
     }
     setIsLoading(true);
     try {
-       const taskRef = doc(db, "users", user.uid, "taskAnalysis", selectedTurma);
+       const bKey = selectedBimestre.replace("º Bimestre", "");
+       const taskRef = doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`);
        const snap = await getDoc(taskRef);
        if (snap.exists() && snap.data().students) {
           const studentsFromTasks = snap.data().students;
