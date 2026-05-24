@@ -51,7 +51,6 @@ export default function Topbar({
     diario: "Registro de Aulas",
     grade: "Grade de Horários",
     agenda: "Agenda Estratégica",
-    arquivos: "Explorador Drive",
     plano: "Plano de Aula",
     tarefas: "Checklist",
     "controle-tarefas": "Controle de Tarefas",

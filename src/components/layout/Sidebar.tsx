@@ -91,12 +91,6 @@ export default function Sidebar({
       icon: Map,
       group: "Recursos",
     },
-    {
-      id: "arquivos",
-      label: "Explorador Drive",
-      icon: FolderTree,
-      group: "Recursos",
-    },
     { id: "plano", label: "Plano de Aula", icon: PenTool, group: "Recursos" },
     { id: "tarefas", label: "Checklist", icon: ListTodo, group: "Recursos" },
     {

@@ -2,7 +2,6 @@ export type ViewType =
   | "dashboard"
   | "diario"
   | "agenda"
-  | "arquivos"
   | "plano"
   | "tarefas"
   | "conhecimento"

@@ -19,6 +19,7 @@ import {
   BookOpen,
   BellRing,
   Trash2,
+  FolderTree,
 } from "lucide-react";
 import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -1244,6 +1245,18 @@ Bimestres escolares:
                 className="text-amber-500 group-hover:text-amber-600 transition-colors"
               />
               Plataforma Teachy (IA)
+            </a>
+            <a
+              href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:border-blue-300 hover:bg-blue-100 transition-all group text-blue-900 font-bold"
+            >
+              <FolderTree
+                size={20}
+                className="text-blue-500 group-hover:text-blue-600 transition-colors"
+              />
+              Meu Google Drive
             </a>
           </div>
         </div>

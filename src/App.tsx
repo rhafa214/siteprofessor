@@ -16,7 +16,6 @@ import Topbar from "./components/layout/Topbar";
 import Dashboard from "./views/Dashboard";
 import ClassJournal from "./views/ClassJournal";
 import Agenda from "./views/Agenda";
-import DriveExplorer from "./views/DriveExplorer";
 import LessonPlan from "./views/LessonPlan";
 import Tasks from "./views/Tasks";
 import KnowledgeBase from "./views/KnowledgeBase";
@@ -30,6 +29,7 @@ import JarvisBaseView from "./views/JarvisBaseView";
 import GuiaPedagogicoView from "./views/GuiaPedagogicoView";
 import ProfileView from "./views/ProfileView";
 import AddonSidebar from "./views/AddonSidebar";
+import AddonAvaliacoesSidebar from "./views/AddonAvaliacoesSidebar";
 import ScheduleView from "./views/ScheduleView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
@@ -37,6 +37,9 @@ import { useAuth } from "./contexts/AuthContext";
 function App() {
   if (typeof window !== "undefined" && window.location.pathname === "/addon") {
     return <AddonSidebar />;
+  }
+  if (typeof window !== "undefined" && window.location.pathname === "/addon-avaliacoes") {
+    return <AddonAvaliacoesSidebar />;
   }
 
   const [currentView, setCurrentView] = useState<ViewType>("dashboard");
@@ -282,7 +285,6 @@ function App() {
             {currentView === "grade" && <ScheduleView />}
             {currentView === "diario" && <ClassJournal />}
             {currentView === "agenda" && <Agenda />}
-            {currentView === "arquivos" && <DriveExplorer />}
             {currentView === "plano" && <LessonPlan />}
             {currentView === "tarefas" && <Tasks />}
             {currentView === "avaliacoes" && <EvaluationsView />}
