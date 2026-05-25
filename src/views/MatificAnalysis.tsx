@@ -24,6 +24,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
 import { useAlert } from "../contexts/AlertContext";
 import { extractTextFromFile } from "../lib/fileExtraction";
+import { extractStudents } from "../studentExtractor";
 
 interface Student {
   id: string;
@@ -182,7 +183,7 @@ export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre
 
   const handleImportStudents = async (mode: "replace" | "merge") => {
     if (!studentNamesInput.trim()) return;
-    const lines = studentNamesInput.split("\n").map((l) => l.trim()).filter((l) => l);
+    const lines = extractStudents(studentNamesInput);
     
     let newStudents = mode === "replace" ? [] : [...classData.students];
     const newMinutes = { ...classData.minutes };
@@ -272,23 +273,7 @@ export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre
     try {
       const text = await extractTextFromFile(file);
       if (text) {
-        const rows = text.split("\n").map((r) => r.trim()).filter((r) => r);
-        let extractedNames: string[] = [];
-        for (const row of rows) {
-          if (row.toLowerCase().includes("situação") || row.toLowerCase().includes("nº de chamada")) continue;
-          if (row.includes(";")) {
-            const parts = row.split(";");
-            if (parts.length >= 2) {
-              const name = parts[1].trim();
-              const status = parts.length >= 3 ? parts[2].trim().toLowerCase() : "ativo";
-              if (name && isNaN(Number(name)) && status === "ativo") {
-                extractedNames.push(name);
-              }
-            }
-          } else {
-            if (row.length > 2) extractedNames.push(row);
-          }
-        }
+        const extractedNames = extractStudents(text);
         setStudentNamesInput(extractedNames.join("\n"));
         setIsImportModalOpen(true);
       }

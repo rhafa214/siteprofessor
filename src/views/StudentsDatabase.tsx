@@ -26,6 +26,7 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { extractTextFromFile } from "../lib/fileExtraction";
+import { extractStudents } from "../studentExtractor";
 
 interface StudentData {
   id: string;
@@ -171,36 +172,7 @@ export default function StudentsDatabase() {
   const handleImportStudents = async (mode: "replace" | "merge") => {
     if (!importTargetTurma || !user) return;
 
-    const rows = importText
-      .split("\n")
-      .map((r) => r.trim())
-      .filter((r) => r);
-    const extractedNames: string[] = [];
-
-    for (const row of rows) {
-      if (
-        row.toLowerCase().includes("situação") ||
-        row.toLowerCase().includes("nº de chamada")
-      ) {
-        continue; // Cabeçalho
-      }
-
-      if (row.includes(";")) {
-        const parts = row.split(";");
-        if (parts.length >= 2) {
-          const name = parts[1].trim();
-          const status =
-            parts.length >= 3 ? parts[2].trim().toLowerCase() : "ativo";
-          if (name && isNaN(Number(name)) && status === "ativo") {
-            extractedNames.push(name);
-          }
-        }
-      } else {
-        if (row.length > 2) {
-          extractedNames.push(row);
-        }
-      }
-    }
+    const extractedNames = extractStudents(importText);
 
     try {
       const docRef = doc(

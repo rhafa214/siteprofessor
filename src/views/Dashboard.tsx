@@ -20,6 +20,7 @@ import {
   BellRing,
   Trash2,
   FolderTree,
+  Clock,
 } from "lucide-react";
 import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -121,6 +122,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     { id: string; nome: string; data: string; dataFim?: string }[]
   >([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const lembretesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -281,6 +283,12 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+    const timer = setTimeout(() => {
+      if (scrollRef.current) {
+         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+      }
+    }, 150);
+    return () => clearTimeout(timer);
   }, [chatMessages, isTyping, activeStreamingMessage]);
 
   // Compute events
@@ -787,13 +795,14 @@ Bimestres escolares:
       className="space-y-6 lg:space-y-8 pb-10"
     >
       {/* Hero Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 lg:pb-8 border-b border-slate-200">
-        <div>
-          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-slate-900 mb-2">
-            Olá, Professor {user?.displayName?.split(" ")[0] || ""}!
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 lg:pb-8 border-b border-slate-200/60 relative">
+        <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none" />
+        <div className="relative z-10">
+          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 bg-clip-text text-transparent flex items-center gap-2">
+            Olá, <span className="font-medium text-slate-400 text-2xl lg:text-3xl">Professor</span> {user?.displayName?.split(" ")[0] || "!"} <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
           </h1>
-          <p className="text-indigo-600 font-semibold text-lg">
-            {getSmartPhrase()}
+          <p className="text-indigo-600 font-bold text-lg flex items-center gap-2">
+            <Sparkles size={16} className="text-amber-400" /> {getSmartPhrase()}
           </p>
           <p className="text-slate-500 text-sm mt-1">
             {now.toLocaleDateString("pt-BR", {
@@ -811,16 +820,18 @@ Bimestres escolares:
           )}
         </div>
 
-        <div className="w-full md:w-72 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex justify-between text-xs font-bold text-slate-500 uppercase mb-2">
-            <span>Jornada (07h-16h)</span>
-            <span className="text-indigo-600">{progress}%</span>
+        <div className="w-full md:w-72 bg-gradient-to-b from-white to-slate-50/50 p-5 rounded-2xl border border-slate-200/60 shadow-sm relative z-10">
+          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
+            <span className="flex items-center gap-1.5"><Clock size={12} /> Jornada Diária</span>
+            <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{progress}%</span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
             <div
-              className="h-full bg-indigo-500 rounded-full transition-all duration-1000 ease-out"
+              className="h-full bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full transition-all duration-1000 ease-out relative"
               style={{ width: `${progress}%` }}
-            />
+            >
+              <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1017,7 +1028,7 @@ Bimestres escolares:
                   return (
                     <div>
                       <h2 className="text-2xl font-bold tracking-tight mb-3">
-                        Agenda Livre!
+                        Nenhum compromisso próximo
                       </h2>
                       <p className="text-indigo-100 text-sm">
                         Não há eventos marcados para os próximos dias no
@@ -1207,50 +1218,62 @@ Bimestres escolares:
         </div>
 
         {/* Sistemas de Apoio */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col h-auto lg:h-[340px]">
-          <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
-            Sistemas de Apoio
+        <div className="bg-gradient-to-b from-white to-slate-50/30 border border-slate-200/80 rounded-3xl p-6 shadow-sm flex flex-col h-full w-full">
+          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
+            <FolderTree size={14} className="text-slate-300" /> Navegação Rápida
           </div>
-          <div className="grid grid-cols-2 gap-3 flex-1">
+          <div className="grid grid-cols-2 gap-4 w-full flex-1">
             <a
               href="https://saladofuturo.educacao.sp.gov.br/"
               target="_blank"
               rel="noopener noreferrer"
               title="Sala do Futuro"
-              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
+              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
-              <img src="/sala-do-futuro.png" alt="Sala do Futuro" className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100 group-hover:bg-indigo-100 transition-colors">
+                <img src="https://saladofuturo.educacao.sp.gov.br/images/logo.png" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} alt="Sala do Futuro" className="h-6 w-auto drop-shadow-sm group-hover:scale-110 transition-transform" />
+                <span className="hidden text-sm font-black tracking-tighter text-indigo-600">SF</span>
+              </div>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-indigo-700 text-center transition-colors">Sala do Futuro</span>
             </a>
+            
             <a
               href="https://avaefape.educacao.sp.gov.br/"
               target="_blank"
               rel="noopener noreferrer"
               title="AVA / Leia SP"
-              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
+              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
-              <img src="/leia-sp.png" alt="Leia SP" className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 group-hover:bg-blue-100 transition-colors">
+                <span className="font-black text-xs tracking-tighter text-blue-700 group-hover:scale-110 transition-transform">EFAPE</span>
+              </div>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-blue-700 text-center transition-colors">AVA EFAPE</span>
             </a>
+
             <a
-              href="https://cmspweb.ip.tv/"
+              href="https://app.teachy.com.br/"
               target="_blank"
               rel="noopener noreferrer"
-              title="Tarefas SP / CMSP"
-              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
+              title="Plataforma Teachy"
+              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
-              <img src="/tarefas-sp.png" alt="Tarefas SP" className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
+              <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 group-hover:bg-amber-100 transition-colors">
+                <span className="font-black text-xl text-amber-500 group-hover:scale-110 transition-transform italic">t</span>
+              </div>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-amber-700 text-center transition-colors">Teachy</span>
             </a>
+
             <a
               href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1"
               target="_blank"
               rel="noopener noreferrer"
               title="Meu Google Drive"
-              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
+              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-emerald-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" 
-                alt="Google Drive" 
-                className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" 
-              />
+              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Google Drive" className="w-6 h-6 group-hover:scale-110 transition-transform" />
+              </div>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-emerald-700 text-center transition-colors">Google Drive</span>
             </a>
           </div>
         </div>
@@ -1322,6 +1345,7 @@ Bimestres escolares:
                     <span className="ml-1 inline-block w-1.5 h-4 bg-indigo-400 animate-pulse align-middle" />
                   </div>
                 )}
+                <div ref={messagesEndRef} className="h-1" />
               </div>
               <form
                 onSubmit={handleChat}
@@ -1434,84 +1458,106 @@ Bimestres escolares:
       )}
 
       {/* Email Modal */}
-      {selectedEmail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-            onClick={() => setSelectedEmail(null)}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white rounded-3xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col relative overflow-hidden"
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-slate-100 bg-slate-50 shrink-0">
-              <div className="pr-10">
-                <h2 className="text-xl font-bold text-slate-800 leading-tight mb-2">
-                  {selectedEmail.subject}
-                </h2>
-                <div className="flex items-center gap-3 text-sm text-slate-500">
-                  <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-                    <span className="font-bold text-slate-700">
-                      {selectedEmail.from}
+      <AnimatePresence>
+        {selectedEmail && (
+          <div className="fixed inset-0 z-50 flex justify-end">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-slate-900/20 backdrop-blur-sm"
+              onClick={() => setSelectedEmail(null)}
+            />
+            <motion.div
+              initial={{ x: "100%", opacity: 0.5 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0.5 }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="bg-white shadow-[0_0_40px_-10px_rgba(0,0,0,0.1)] w-full max-w-3xl flex flex-col relative z-10 h-full border-l border-slate-200"
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between p-8 border-b border-slate-100 bg-white shrink-0 relative z-10">
+                <div className="pr-10">
+                  <h2 className="text-3xl font-extrabold text-slate-900 leading-tight mb-4 font-serif">
+                    {selectedEmail.subject}
+                  </h2>
+                  <div className="flex items-center gap-4 text-sm text-slate-500">
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-lg border border-indigo-200 shrink-0">
+                      {selectedEmail.from.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-bold text-slate-800 text-base">
+                        {selectedEmail.from}
+                      </span>
+                      <span className="text-xs font-medium text-slate-400">
+                        {new Date(selectedEmail.date).toLocaleString("pt-BR", {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedEmail(null)}
+                  className="p-2.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all absolute top-8 right-8"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-white relative">
+                {isEmailLoading ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-4">
+                    <Loader2 size={40} className="animate-spin text-indigo-500" />
+                    <span className="text-sm font-medium tracking-wide">
+                      Carregando mensagem...
                     </span>
                   </div>
-                  <span>
-                    {new Date(selectedEmail.date).toLocaleString("pt-BR")}
-                  </span>
-                </div>
+                ) : emailContent ? (
+                  <div
+                    dangerouslySetInnerHTML={{ __html: emailContent }}
+                    className="prose prose-slate prose-lg max-w-none break-words
+                      prose-a:text-indigo-600 hover:prose-a:text-indigo-800
+                      prose-p:leading-relaxed prose-p:text-slate-700
+                      prose-headings:font-bold prose-headings:text-slate-900"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-3">
+                    <Mail size={40} className="opacity-20" />
+                    <p className="text-base font-medium">
+                      Não foi possível carregar o conteúdo deste e-mail.
+                    </p>
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => setSelectedEmail(null)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-200 rounded-xl transition-colors absolute top-6 right-6"
-              >
-                <X size={24} />
-              </button>
-            </div>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6 bg-white min-h-[300px] relative">
-              {isEmailLoading ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-3">
-                  <Loader2 size={32} className="animate-spin text-indigo-500" />
-                  <span className="text-sm font-medium">
-                    Carregando conteúdo do e-mail...
-                  </span>
-                </div>
-              ) : emailContent ? (
-                <div
-                  dangerouslySetInnerHTML={{ __html: emailContent }}
-                  className="prose prose-slate max-w-none text-sm break-words"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-400 gap-2">
-                  <Mail size={32} className="opacity-20" />
-                  <p className="text-sm">
-                    Não foi possível carregar o conteúdo deste e-mail.
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end shrink-0">
-              <button
-                onClick={() => {
-                  window.open(
-                    `https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`,
-                    "_blank",
-                  );
-                }}
-                className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 font-bold text-sm rounded-xl transition-colors"
-              >
-                <ArrowRight size={16} /> Abrir no Gmail
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+              {/* Footer */}
+              <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-between items-center shrink-0">
+                <span className="text-xs text-slate-400 font-medium">
+                  {selectedEmail.snippet?.substring(0, 50)}...
+                </span>
+                <button
+                  onClick={() => {
+                    window.open(
+                      `https://mail.google.com/mail/u/0/#inbox/${selectedEmail.id}`,
+                      "_blank",
+                    );
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white hover:bg-indigo-700 font-bold text-sm rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5"
+                >
+                  Responder no Gmail <ArrowRight size={16} />
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
       {/* Floating Reminders Widget */}
       <div ref={lembretesRef} className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
         <AnimatePresence>
