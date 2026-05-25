@@ -328,10 +328,12 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     }
   }
 
+  const sortedClassLogs = classLogs ? [...classLogs].sort((a, b) => b.id - a.id) : [];
+
   const logForCurrentTurma = currentTurma
-    ? classLogs?.find((l) => l.turma === currentTurma)
+    ? sortedClassLogs.find((l) => l.turma === currentTurma)
     : null;
-  const latestLog = classLogs && classLogs.length > 0 ? classLogs[0] : null;
+  const latestLog = sortedClassLogs.length > 0 ? sortedClassLogs[0] : null;
 
   // Verificar se a aula está acabando
   let isClassEndingSoon = false;
@@ -1209,54 +1211,46 @@ Bimestres escolares:
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
             Sistemas de Apoio
           </div>
-          <div className="flex flex-col gap-3 flex-1 justify-center">
+          <div className="grid grid-cols-2 gap-3 flex-1">
             <a
               href="https://saladofuturo.educacao.sp.gov.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group text-slate-700 font-bold"
+              title="Sala do Futuro"
+              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
             >
-              <School
-                size={20}
-                className="text-slate-400 group-hover:text-indigo-600 transition-colors"
-              />
-              Sala do Futuro
+              <img src="/sala-do-futuro.png" alt="Sala do Futuro" className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
             </a>
             <a
               href="https://avaefape.educacao.sp.gov.br/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group text-slate-700 font-bold"
+              title="AVA / Leia SP"
+              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
             >
-              <Laptop
-                size={20}
-                className="text-slate-400 group-hover:text-indigo-600 transition-colors"
-              />
-              AVA EFAPE
+              <img src="/leia-sp.png" alt="Leia SP" className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
             </a>
             <a
-              href="https://app.teachy.com.br/"
+              href="https://cmspweb.ip.tv/"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-4 rounded-2xl border border-amber-100 bg-amber-50 hover:border-amber-300 hover:bg-amber-100 transition-all group text-amber-900 font-bold"
+              title="Tarefas SP / CMSP"
+              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
             >
-              <Sparkles
-                size={20}
-                className="text-amber-500 group-hover:text-amber-600 transition-colors"
-              />
-              Plataforma Teachy (IA)
+              <img src="/tarefas-sp.png" alt="Tarefas SP" className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" />
             </a>
             <a
               href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-4 rounded-2xl border border-blue-100 bg-blue-50 hover:border-blue-300 hover:bg-blue-100 transition-all group text-blue-900 font-bold"
+              title="Meu Google Drive"
+              className="flex items-center justify-center p-4 rounded-2xl border border-slate-100 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50 transition-all group aspect-[2/1]"
             >
-              <FolderTree
-                size={20}
-                className="text-blue-500 group-hover:text-blue-600 transition-colors"
+              <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" 
+                alt="Google Drive" 
+                className="max-h-12 w-auto object-contain filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all" 
               />
-              Meu Google Drive
             </a>
           </div>
         </div>
