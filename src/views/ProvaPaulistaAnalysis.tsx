@@ -108,8 +108,12 @@ export default function ProvaPaulistaAnalysis({ selectedBimestre }: { selectedBi
     setIsLoading(true);
     try {
        const bKey = selectedBimestre.replace("º Bimestre", "");
-       const taskRef = doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`);
-       const snap = await getDoc(taskRef);
+       let taskRef = doc(db, "users", user.uid, "taskAnalysis", selectedTurma);
+       let snap = await getDoc(taskRef);
+       if (!snap.exists()) {
+         taskRef = doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`);
+         snap = await getDoc(taskRef);
+       }
        if (snap.exists() && snap.data().students) {
           const studentsFromTasks = snap.data().students;
           const newGrades = { ...classData.grades };
@@ -117,7 +121,7 @@ export default function ProvaPaulistaAnalysis({ selectedBimestre }: { selectedBi
           saveClassData({ ...classData, students: studentsFromTasks, grades: newGrades });
           showAlert("Alunos sincronizados com sucesso!", "Sucesso", "success");
        } else {
-          showAlert("Nenhum aluno encontrado no Controle de Tarefas para esta turma.", "Aviso", "warning");
+          showAlert("Nenhum aluno encontrado no Banco de Alunos ou Controle de Tarefas para esta turma.", "Aviso", "warning");
        }
     } catch (err) {
        console.error(err);

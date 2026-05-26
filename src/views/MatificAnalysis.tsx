@@ -136,7 +136,11 @@ export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre
     try {
       setIsSyncing(true);
       const bKey = selectedBimestre.replace("º Bimestre", "");
-      const snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`));
+      let snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma));
+      if (!snap.exists()) {
+         snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`));
+      }
+      
       if (snap.exists()) {
         const td = snap.data();
         if (td && td.students && Array.isArray(td.students)) {

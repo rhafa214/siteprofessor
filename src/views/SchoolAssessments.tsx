@@ -70,7 +70,12 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
     
     try {
       setIsSyncing(true);
-      const snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`));
+      const bKey = selectedBimestre.replace("º Bimestre", "");
+      let snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma));
+      if (!snap.exists()) {
+        snap = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma}`));
+      }
+      
       if (snap.exists()) {
         const td = snap.data();
         if (td && td.students && Array.isArray(td.students)) {
