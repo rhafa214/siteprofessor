@@ -20,7 +20,10 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
     let allGrades: number[] = [];
     let turmas = selectedTurma ? [selectedTurma] : (turmasList || []);
 
-    const turmasStats: Record<string, { total: number, approved: number, reproved: number, sum: number }> = {};
+    const turmasStats: Record<string, { total: number, excellent: number, regular: number, critical: number, sum: number }> = {};
+
+    let highestGrade: number | null = null;
+    let lowestGrade: number | null = null;
 
     turmas.forEach(turma => {
       // Assuming activeTab is bimestral
@@ -30,69 +33,82 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
       const validGrades = data.filter(g => typeof g.grade === 'number') as { studentName: string, grade: number }[];
       allGrades.push(...validGrades.map(g => g.grade));
       
+      validGrades.forEach(g => {
+         if (highestGrade === null || g.grade > highestGrade) highestGrade = g.grade;
+         if (lowestGrade === null || g.grade < lowestGrade) lowestGrade = g.grade;
+      });
+
       turmasStats[turma] = {
         total: validGrades.length,
-        approved: validGrades.filter(g => g.grade >= 5).length,
-        reproved: validGrades.filter(g => g.grade < 5).length,
+        excellent: validGrades.filter(g => g.grade > 7).length,
+        regular: validGrades.filter(g => g.grade >= 5 && g.grade <= 7).length,
+        critical: validGrades.filter(g => g.grade < 5).length,
         sum: validGrades.reduce((acc, g) => acc + g.grade, 0)
       };
     });
 
     const totalStudents = allGrades.length;
-    const approved = allGrades.filter(g => g >= 5).length;
-    const reproved = allGrades.filter(g => g < 5).length;
+    const excellent = allGrades.filter(g => g > 7).length;
+    const regular = allGrades.filter(g => g >= 5 && g <= 7).length;
+    const critical = allGrades.filter(g => g < 5).length;
     const average = totalStudents > 0 ? (allGrades.reduce((acc, g) => acc + g, 0) / totalStudents).toFixed(1) : "0.0";
 
     const chartData = selectedTurma ? 
       (gradesData[`${selectedBimestre}_${selectedTurma}_bimestral`] || [])
         .filter(g => typeof g.grade === 'number')
-        .map((g: any) => ({ name: g.studentName.split(' ')[0], grade: g.grade, fill: g.grade >= 5 ? '#22c55e' : '#ef4444' }))
+        .map((g: any) => ({ name: g.studentName, grade: g.grade, fill: g.grade > 7 ? '#10b981' : g.grade >= 5 ? '#f59e0b' : '#f43f5e' }))
       : 
       turmas.map(t => ({
         name: t,
         media: turmasStats[t].total > 0 ? Number((turmasStats[t].sum / turmasStats[t].total).toFixed(1)) : 0,
       }));
 
-    const seriesChartData = useMemo(() => {
-        if (selectedTurma) return [];
+    let seriesChartData: any[] = [];
+    if (!selectedTurma) {
         // Group by series (e.g. "6º ano", "7º ano")
-        const seriesData: Record<string, { total: number, sum: number, approved: number, reproved: number }> = {};
+        const seriesData: Record<string, { total: number, sum: number, excellent: number, regular: number, critical: number }> = {};
         turmas.forEach(t => {
             const seriesMatch = t.match(/^(\d+)°/);
             if (seriesMatch) {
                 const sLabel = `${seriesMatch[1]}º anos`;
                 if (!seriesData[sLabel]) {
-                    seriesData[sLabel] = { total: 0, sum: 0, approved: 0, reproved: 0 };
+                    seriesData[sLabel] = { total: 0, sum: 0, excellent: 0, regular: 0, critical: 0 };
                 }
                 const st = turmasStats[t];
                 seriesData[sLabel].total += st.total;
                 seriesData[sLabel].sum += st.sum;
-                seriesData[sLabel].approved += st.approved;
-                seriesData[sLabel].reproved += st.reproved;
+                seriesData[sLabel].excellent += st.excellent;
+                seriesData[sLabel].regular += st.regular;
+                seriesData[sLabel].critical += st.critical;
             }
         });
         
-        return Object.keys(seriesData).map(k => ({
+        seriesChartData = Object.keys(seriesData).map(k => ({
             name: k,
-            Aprovados: seriesData[k].approved,
-            Reprovados: seriesData[k].reproved,
+            Excelente: seriesData[k].excellent,
+            Regular: seriesData[k].regular,
+            Crítico: seriesData[k].critical,
             Média: seriesData[k].total > 0 ? Number((seriesData[k].sum / seriesData[k].total).toFixed(1)) : 0
         }));
-    }, [turmas, turmasStats, selectedTurma]);
+    }
 
     return {
       totalStudents,
-      approved,
-      reproved,
+      excellent,
+      regular,
+      critical,
       average,
       chartData,
-      seriesChartData
+      seriesChartData,
+      highestGrade,
+      lowestGrade
     };
   }, [gradesData, selectedBimestre, turmasList, selectedTurma]);
 
   const pieData = [
-    { name: 'Aprovados', value: stats.approved, fill: '#10b981' },
-    { name: 'Reprovados', value: stats.reproved, fill: '#f43f5e' }
+    { name: 'Excelente (>7.0)', value: stats.excellent, fill: '#10b981' },
+    { name: 'Regular (5.0-7.0)', value: stats.regular, fill: '#f59e0b' },
+    { name: 'Crítico (<5.0)', value: stats.critical, fill: '#f43f5e' }
   ];
 
   if (stats.totalStudents === 0) {
@@ -108,72 +124,129 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
   return (
     <div className="flex flex-col gap-6">
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
-             <Users size={24} />
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
+        <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+             <Users size={20} className="lg:w-6 lg:h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Total de Alunos</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.totalStudents}</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
-             <FileCheck size={24} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Aprovados</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.approved}</p>
+          <div className="text-center sm:text-left">
+            <p className="text-[11px] lg:text-sm font-medium text-slate-500 leading-tight">Alunos</p>
+            <p className="text-lg lg:text-2xl font-bold text-slate-800">{stats.totalStudents}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shrink-0">
-             <FileCheck size={24} />
+        <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
+             <FileCheck size={20} className="lg:w-6 lg:h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Reprovados</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.reproved}</p>
+          <div className="text-center sm:text-left">
+            <p className="text-[11px] lg:text-sm font-medium text-slate-500 leading-tight">Excelente</p>
+            <p className="text-lg lg:text-2xl font-bold text-slate-800">{stats.excellent}</p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
-             <BrainCircuit size={24} />
+        <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
+             <FileCheck size={20} className="lg:w-6 lg:h-6" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-slate-500">Média Geral</p>
-            <p className="text-2xl font-bold text-slate-800">{stats.average}</p>
+          <div className="text-center sm:text-left">
+            <p className="text-[11px] lg:text-sm font-medium text-slate-500 leading-tight">Regular</p>
+            <p className="text-lg lg:text-2xl font-bold text-slate-800">{stats.regular}</p>
+          </div>
+        </div>
+        <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center shrink-0">
+             <FileCheck size={20} className="lg:w-6 lg:h-6" />
+          </div>
+          <div className="text-center sm:text-left">
+            <p className="text-[11px] lg:text-sm font-medium text-slate-500 leading-tight">Crítico</p>
+            <p className="text-lg lg:text-2xl font-bold text-slate-800">{stats.critical}</p>
+          </div>
+        </div>
+        <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+             <BrainCircuit size={20} className="lg:w-6 lg:h-6" />
+          </div>
+          <div className="text-center sm:text-left">
+            <p className="text-[11px] lg:text-sm font-medium text-slate-500 leading-tight">Média</p>
+            <p className="text-lg lg:text-2xl font-bold text-slate-800">{stats.average}</p>
+          </div>
+        </div>
+        <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+          <div className="w-10 h-10 lg:w-12 lg:h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center shrink-0">
+             <BarChart2 size={20} className="lg:w-6 lg:h-6" />
+          </div>
+          <div className="text-center sm:text-left flex flex-col">
+            <p className="text-[11px] lg:text-sm font-medium text-slate-500 leading-tight">Alta / Baixa</p>
+            <p className="text-lg lg:text-xl font-bold text-slate-800 mt-0.5">
+               <span className="text-emerald-600">{stats.highestGrade !== null ? stats.highestGrade : "-"}</span> / <span className="text-rose-600">{stats.lowestGrade !== null ? stats.lowestGrade : "-"}</span>
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Gráficos */}
+      {/* Gráficos / Tabela */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col h-full">
            <h3 className="text-lg font-bold text-slate-800 mb-6">
-              {selectedTurma ? "Notas dos Alunos" : "Média por Turma"}
+              {selectedTurma ? `Notas dos Alunos - ${selectedTurma}` : "Média por Turma"}
            </h3>
-           <div className="h-72 w-full">
-             <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.chartData as any} margin={{ top: 5, right: 0, left: -20, bottom: 5 }}>
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis />
-                  <Tooltip cursor={{ fill: '#f1f5f9' }} />
-                  <Bar dataKey={selectedTurma ? "grade" : "media"} radius={[4, 4, 0, 0]}>
-                    {selectedTurma && stats.chartData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                    {!selectedTurma && stats.chartData.map((entry: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill="#6366f1" />
-                    ))}
-                  </Bar>
-                </BarChart>
-             </ResponsiveContainer>
-           </div>
+           
+           {selectedTurma ? (
+             <div className="flex-1 overflow-x-auto border border-slate-200 rounded-xl">
+               <table className="w-full text-left text-sm text-slate-600">
+                 <thead className="bg-slate-50 text-slate-700 uppercase font-semibold text-xs border-b border-slate-200">
+                   <tr>
+                     <th className="px-6 py-4">Nome do Aluno</th>
+                     <th className="px-6 py-4 text-center">Nota</th>
+                     <th className="px-6 py-4 text-center">Situação</th>
+                   </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-200 bg-white">
+                   {stats.chartData.map((aluno: any, idx: number) => (
+                     <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                       <td className="px-6 py-3 font-medium text-slate-800">{aluno.name}</td>
+                       <td className="px-6 py-3 text-center">
+                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                           aluno.grade > 7 ? 'bg-emerald-100 text-emerald-700' : 
+                           aluno.grade >= 5 ? 'bg-amber-100 text-amber-700' : 
+                           'bg-rose-100 text-rose-700'
+                         }`}>
+                           {aluno.grade}
+                         </span>
+                       </td>
+                       <td className="px-6 py-3 text-center font-medium">
+                           {aluno.grade > 7 ? (
+                               <span className="text-emerald-600">Excelente</span>
+                           ) : aluno.grade >= 5 ? (
+                               <span className="text-amber-600">Regular</span>
+                           ) : (
+                               <span className="text-rose-600">Crítico</span>
+                           )}
+                       </td>
+                     </tr>
+                   ))}
+                 </tbody>
+               </table>
+             </div>
+           ) : (
+             <div className="w-full h-80">
+               <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats.chartData as any} margin={{ top: 5, right: 20, left: -20, bottom: 5 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <Tooltip cursor={{ fill: '#f1f5f9' }} />
+                    <Bar dataKey="media" radius={[4, 4, 0, 0]}>
+                      {stats.chartData.map((entry: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill="#6366f1" />
+                      ))}
+                    </Bar>
+                  </BarChart>
+               </ResponsiveContainer>
+             </div>
+           )}
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
-           <h3 className="text-lg font-bold text-slate-800 mb-2 w-full">Taxa de Aprovação</h3>
+           <h3 className="text-lg font-bold text-slate-800 mb-2 w-full">Distribuição de Notas</h3>
            <div className="h-64 w-full flex items-center justify-center relative">
                <ResponsiveContainer width="100%" height="100%">
                  <PieChart>
@@ -194,10 +267,17 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
                    <Tooltip />
                  </PieChart>
                </ResponsiveContainer>
-               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="text-3xl font-bold text-slate-800">{Math.round((stats.approved / stats.totalStudents) * 100)}%</span>
+               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
                   <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Aprovados</span>
+                  <span className="text-2xl font-black text-slate-800 leading-tight">
+                    {stats.totalStudents > 0 ? Math.round(((stats.excellent + stats.regular) / stats.totalStudents) * 100) : 0}%
+                  </span>
                </div>
+           </div>
+           <div className="w-full flex justify-center gap-4 mt-2 text-xs">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div><span className="text-slate-600 font-medium">Excel.</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-500"></div><span className="text-slate-600 font-medium">Regul.</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div><span className="text-slate-600 font-medium">Crítico</span></div>
            </div>
         </div>
       </div>
@@ -215,8 +295,9 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="Aprovados" fill="#10b981" radius={[4, 4, 0, 0]} stackId="a" />
-                  <Bar dataKey="Reprovados" fill="#f43f5e" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="Excelente" fill="#10b981" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="Regular" fill="#f59e0b" radius={[4, 4, 0, 0]} stackId="a" />
+                  <Bar dataKey="Crítico" fill="#f43f5e" radius={[4, 4, 0, 0]} stackId="a" />
                 </BarChart>
              </ResponsiveContainer>
            </div>

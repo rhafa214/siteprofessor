@@ -154,7 +154,8 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
     }
 
     const table = new Table({
-       width: { size: 9000, type: WidthType.DXA },
+       width: { size: 10000, type: WidthType.DXA },
+       columnWidths: [8000, 2000],
        borders: {
            top: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
            bottom: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
@@ -171,7 +172,7 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
                 new TableCell({
                    shading: { fill: "F1F5F9", type: ShadingType.CLEAR, color: "auto" },
                    margins: { top: 100, bottom: 100, left: 150, right: 150 },
-                   width: { size: 7000, type: WidthType.DXA },
+                   width: { size: 8000, type: WidthType.DXA },
                    children: [new Paragraph({ children: [new TextRun({ text: "Nome do Aluno", bold: true, color: "334155", font: "Helvetica" })], alignment: AlignmentType.LEFT })],
                 }),
                 new TableCell({
@@ -187,7 +188,7 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
              new TableRow({
                 children: [
                    new TableCell({
-                      width: { size: 7000, type: WidthType.DXA },
+                      width: { size: 8000, type: WidthType.DXA },
                       margins: { top: 80, bottom: 80, left: 150, right: 150 },
                       children: [new Paragraph({ children: [new TextRun({ text: r.studentName, color: "475569", font: "Helvetica" })] })],
                    }),
