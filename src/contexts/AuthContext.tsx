@@ -60,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Requisitar os escopos necessários para Agenda, Drive e Email
     provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
     provider.addScope("https://www.googleapis.com/auth/drive.readonly");
+    provider.addScope("https://www.googleapis.com/auth/drive.file");
     provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
 
     // Forçar a tela de consentimento para garantir que os escopos sejam solicitados

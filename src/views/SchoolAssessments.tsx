@@ -1,11 +1,16 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
-import { BookOpen, FileCheck, Search, Trophy, Plus, Copy, Trash2, Download, Users, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { BookOpen, FileCheck, Search, Trophy, Plus, Copy, Trash2, Download, Users, Loader2, FolderOpen } from "lucide-react";
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ShadingType } from "docx";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useAuth } from "../contexts/AuthContext";
 import { useAlert } from "../contexts/AlertContext";
+import { useConfirm } from "../contexts/ConfirmContext";
+import { usePrompt } from "../contexts/PromptContext";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import DriveFolderPickerModal from "../components/DriveFolderPickerModal";
+import BimestralReportView from "../components/BimestralReportView";
 
 interface GradeRecord {
   id: string;
@@ -14,8 +19,10 @@ interface GradeRecord {
 }
 
 export default function SchoolAssessments({ defaultTab = "bimestral", selectedBimestre }: { defaultTab?: "bimestral" | "simulado", selectedBimestre: string }) {
-  const { user } = useAuth();
+  const { user, accessToken } = useAuth();
   const { showAlert } = useAlert();
+  const { confirm } = useConfirm();
+  const { prompt } = usePrompt();
   const [activeTab, setActiveTab] = useState<"bimestral" | "simulado">(defaultTab);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -34,6 +41,9 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
 
   const [gradesData, setGradesData] = useLocalStorage<Record<string, GradeRecord[]>>("assessments_grades", {});
   const [assessmentsMeta, setAssessmentsMeta] = useLocalStorage<Record<string, { title: string, date: string }>>("assessments_meta", {});
+
+  const [isDrivePickerOpen, setIsDrivePickerOpen] = useState(false);
+  const [reportDataToSave, setReportDataToSave] = useState<{ fileName: string, blob: Blob } | null>(null);
 
   const bKey = selectedBimestre.replace("º Bimestre", "");
   const currentKey = `${selectedBimestre}_${selectedTurma}_${activeTab}`;
@@ -136,27 +146,165 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
     }));
   };
 
-  const generateReport = () => {
+  const generateReport = async () => {
     const reprovados = currentGrades.filter(g => typeof g.grade === 'number' && g.grade < 5);
     if (reprovados.length === 0) {
-      alert("Nenhum aluno reprovado nesta lista.");
+      showAlert("Nenhum aluno reprovado nesta lista.", "info");
       return;
     }
 
-    let text = `Relatório de Alunos Reprovados - Avaliação\n`;
-    text += `Turma: ${selectedTurma}\n\n`;
-    reprovados.forEach(r => {
-      text += `- ${r.studentName} | Nota: ${r.grade}\n`;
+    const table = new Table({
+       width: { size: 9000, type: WidthType.DXA },
+       borders: {
+           top: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+           bottom: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+           left: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+           right: { style: BorderStyle.SINGLE, size: 2, color: "E2E8F0" },
+           insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+           insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "E2E8F0" },
+       },
+       rows: [
+          // Header Row
+          new TableRow({
+             tableHeader: true,
+             children: [
+                new TableCell({
+                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR, color: "auto" },
+                   margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                   width: { size: 7000, type: WidthType.DXA },
+                   children: [new Paragraph({ children: [new TextRun({ text: "Nome do Aluno", bold: true, color: "334155", font: "Helvetica" })], alignment: AlignmentType.LEFT })],
+                }),
+                new TableCell({
+                   shading: { fill: "F1F5F9", type: ShadingType.CLEAR, color: "auto" },
+                   margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                   width: { size: 2000, type: WidthType.DXA },
+                   children: [new Paragraph({ children: [new TextRun({ text: "Nota", bold: true, color: "334155", font: "Helvetica" })], alignment: AlignmentType.CENTER })],
+                }),
+             ],
+          }),
+          // Data Rows
+          ...reprovados.map(r => 
+             new TableRow({
+                children: [
+                   new TableCell({
+                      width: { size: 7000, type: WidthType.DXA },
+                      margins: { top: 80, bottom: 80, left: 150, right: 150 },
+                      children: [new Paragraph({ children: [new TextRun({ text: r.studentName, color: "475569", font: "Helvetica" })] })],
+                   }),
+                   new TableCell({
+                      width: { size: 2000, type: WidthType.DXA },
+                      margins: { top: 80, bottom: 80, left: 150, right: 150 },
+                      shading: { fill: "FEF2F2", type: ShadingType.CLEAR, color: "auto" },
+                      children: [new Paragraph({ children: [new TextRun({ text: r.grade?.toString() || "", color: "DC2626", bold: true, font: "Helvetica" })], alignment: AlignmentType.CENTER })],
+                   }),
+                ],
+             })
+          ),
+       ]
     });
 
-    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Reprovados_${selectedTurma}_${activeTab}.txt`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const doc = new Document({
+       sections: [
+         {
+            properties: {},
+            children: [
+               new Paragraph({
+                  children: [new TextRun({ text: "Relatório de Alunos Reprovados", bold: true, size: 32, font: "Helvetica", color: "1E293B" })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 200 },
+               }),
+               new Paragraph({
+                  children: [new TextRun({ text: `Turma: ${selectedTurma}`, bold: true, size: 24, font: "Helvetica", color: "64748B" })],
+                  alignment: AlignmentType.CENTER,
+                  spacing: { after: 400 },
+               }),
+               table
+            ]
+         }
+       ]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const fileName = `Reprovados_${selectedTurma}_${activeTab}.docx`;
+
+    const saveToDrive = await confirm({
+      title: "Salvar no Drive",
+      message: `Deseja salvar o relatório direto no Google Drive em vez de baixar?`,
+      confirmText: "Salvar no Drive",
+      cancelText: "Apenas Baixar"
+    });
+
+    if (saveToDrive) {
+       if (!accessToken) {
+          showAlert("Você precisa confirmar o login do Google com permissão do Drive para salvar arquivos.", "warning");
+          return;
+       }
+       setReportDataToSave({ fileName, blob });
+       setIsDrivePickerOpen(true);
+    } else {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
+  const handleUploadToDrive = async (folderId: string, folderName: string) => {
+    setIsDrivePickerOpen(false);
+    if (!reportDataToSave || !accessToken) return;
+    
+    try {
+        setIsSyncing(true);
+        const metadata = {
+           name: reportDataToSave.fileName,
+           parents: [folderId]
+        };
+        
+        // 1. Iniciate resumable upload
+        const initRes = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable', {
+           method: 'POST',
+           headers: {
+             Authorization: `Bearer ${accessToken}`,
+             'Content-Type': 'application/json',
+           },
+           body: JSON.stringify(metadata)
+        });
+        
+        if (!initRes.ok) {
+           const errText = await initRes.text();
+           console.error("Upload init error", errText);
+           throw new Error("Erro ao iniciar upload");
+        }
+        
+        const uploadUrl = initRes.headers.get("Location");
+        if (!uploadUrl) throw new Error("Location header missing");
+        
+        // 2. Upload file content
+        const uploadRes = await fetch(uploadUrl, {
+           method: 'PUT',
+           body: reportDataToSave.blob,
+           headers: {
+              'Content-Type': reportDataToSave.blob.type || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+           }
+        });
+        
+        if (uploadRes.ok) {
+           showAlert(`Relatório salvo na pasta "${folderName}" com sucesso!`, "success");
+        } else {
+           const errText = await uploadRes.text();
+           console.error("Upload file error", errText);
+           showAlert("Erro ao salvar no Google Drive. Verifique se o login foi recarregado.", "error");
+        }
+    } catch (error) {
+        console.error("Error saving to drive", error);
+        showAlert("Ocorreu um erro ao comunicar com o Google Drive.", "error");
+    } finally {
+        setIsSyncing(false);
+        setReportDataToSave(null);
+    }
   };
 
   const copyReport = () => {
@@ -176,36 +324,63 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
     alert("Copiado para a área de transferência!");
   };
 
+  const [subTab, setSubTab] = useState<"lancamento" | "relatorio">("lancamento");
+
   if (!selectedTurma) {
     return (
       <div className="flex flex-col h-full bg-slate-50/50">
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {!turmasList || turmasList.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
-              <BookOpen className="w-12 h-12 text-slate-400 mb-4" />
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhuma Turma Adicionada</h2>
-            </div>
-          ) : (
-            turmasList.map((turma) => (
-              <motion.div
-                key={turma}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
-                onClick={() => setSelectedTurma(turma)}
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <BookOpen size={24} />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800 leading-tight">
-                    {turma}
-                  </h3>
+        {defaultTab === "bimestral" && (
+            <div className="px-4 pt-4 shrink-0">
+                <div className="flex bg-slate-200/50 p-1 rounded-xl w-fit max-w-full overflow-x-auto">
+                    <button
+                        onClick={() => setSubTab("lancamento")}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${subTab === "lancamento" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                        Lançamento de Notas
+                    </button>
+                    <button
+                        onClick={() => setSubTab("relatorio")}
+                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${subTab === "relatorio" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                    >
+                        Relatório Geral (Séries)
+                    </button>
                 </div>
-              </motion.div>
-            ))
-          )}
-        </div>
+            </div>
+        )}
+
+        {subTab === "relatorio" && defaultTab === "bimestral" ? (
+             <div className="p-4 flex-1 overflow-auto">
+                <BimestralReportView gradesData={gradesData} selectedBimestre={selectedBimestre} turmasList={turmasList || []} />
+             </div>
+        ) : (
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {!turmasList || turmasList.length === 0 ? (
+                <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
+                <BookOpen className="w-12 h-12 text-slate-400 mb-4" />
+                <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhuma Turma Adicionada</h2>
+                </div>
+            ) : (
+                turmasList.map((turma) => (
+                <motion.div
+                    key={turma}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
+                    onClick={() => { setSelectedTurma(turma); setSubTab("lancamento"); }}
+                >
+                    <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                        <BookOpen size={24} />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 leading-tight">
+                        {turma}
+                    </h3>
+                    </div>
+                </motion.div>
+                ))
+            )}
+            </div>
+        )}
       </div>
     );
   }
@@ -226,10 +401,32 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
             </button>
             <h2 className="text-xl font-bold text-slate-800">{selectedTurma}</h2>
           </div>
+          {defaultTab === "bimestral" && (
+            <div className="flex bg-slate-100 p-1 rounded-xl w-fit">
+                <button
+                    onClick={() => setSubTab("lancamento")}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${subTab === "lancamento" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                    Lançamento
+                </button>
+                <button
+                    onClick={() => setSubTab("relatorio")}
+                    className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${subTab === "relatorio" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                >
+                    Relatório da Turma
+                </button>
+            </div>
+          )}
         </div>
 
-      <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row gap-4 justify-between items-center">
-        <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full">
+      {subTab === "relatorio" && defaultTab === "bimestral" ? (
+         <div className="p-4 flex-1 overflow-auto bg-slate-50">
+            <BimestralReportView gradesData={gradesData} selectedBimestre={selectedBimestre} selectedTurma={selectedTurma} />
+         </div>
+      ) : (
+          <>
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col xl:flex-row gap-4 justify-between items-center">
+            <div className="flex flex-col sm:flex-row gap-2 flex-1 w-full">
           <input
             type="text"
             placeholder="Título da Avaliação (Ex: Prova Bimestral)"
@@ -329,7 +526,16 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
            </div>
         )}
       </div>
+          </>
+      )}
      </div>
+     
+     <DriveFolderPickerModal
+        isOpen={isDrivePickerOpen}
+        onClose={() => setIsDrivePickerOpen(false)}
+        onSelect={handleUploadToDrive}
+        accessToken={accessToken || ""}
+     />
     </div>
   );
 }

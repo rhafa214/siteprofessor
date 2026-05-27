@@ -671,12 +671,12 @@ export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full relative z-10 flex flex-col max-h-[85vh]"
+              className="bg-white rounded-3xl shadow-2xl p-6 md:p-8 max-w-xl w-full relative z-10 flex flex-col max-h-[90vh] overflow-hidden"
             >
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">
+              <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2 shrink-0">
                 Atualizar Lista de Alunos
               </h2>
-              <p className="text-slate-500 mb-6 font-medium leading-relaxed">
+              <p className="text-slate-500 mb-6 font-medium leading-relaxed shrink-0">
                 Cole a lista de nomes abaixo ou faça upload de um CSV/TXT para a turma{" "}
                 <span className="bg-slate-100 px-2 rounded">
                   {selectedTurma}
@@ -684,50 +684,54 @@ export default function MatificAnalysis({ selectedBimestre }: { selectedBimestre
                 . Você pode optar por adicionar apenas os novos ou substituir a lista inteira.
               </p>
 
-              <div className="flex-1 overflow-y-auto pr-2 mb-6 min-h-[250px]">
+              <div className="flex-1 min-h-0 mb-6 overflow-y-auto">
                 <textarea
                   value={studentNamesInput}
                   onChange={(e) => setStudentNamesInput(e.target.value)}
-                  className="w-full h-full min-h-[250px] p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-none whitespace-pre"
+                  className="w-full h-full min-h-[150px] p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm resize-none whitespace-pre"
                   placeholder={`Maria da Silva\nJoão Souza\n...`}
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100 flex-wrap">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  accept=".csv,.txt,.pdf,.docx"
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-6 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 border border-slate-200"
-                >
-                  <Upload size={18} /> Carregar Arquivo
-                </button>
-                <div className="flex-1 hidden md:block"></div>
-                <button
-                  onClick={() => setIsImportModalOpen(false)}
-                  className="px-4 py-3 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => handleImportStudents("merge")}
-                  disabled={!studentNamesInput.trim()}
-                  className="px-4 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-md shadow-emerald-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
-                >
-                  Adicionar Novos
-                </button>
-                <button
-                  onClick={() => handleImportStudents("replace")}
-                  disabled={!studentNamesInput.trim()}
-                  className="px-4 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-md shadow-indigo-200 disabled:opacity-50 disabled:shadow-none flex items-center gap-2 justify-center"
-                >
-                  Substituir Lista
-                </button>
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4 pt-5 border-t border-slate-100 shrink-0">
+                <div className="flex justify-center w-full md:w-auto shrink-0">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    accept=".csv,.txt,.pdf,.docx"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full md:w-auto px-5 py-2.5 bg-slate-50 text-slate-700 font-bold rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-2 border border-slate-200 text-sm whitespace-nowrap"
+                  >
+                    <Upload size={16} /> Upload Arquivo
+                  </button>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row flex-wrap justify-center md:justify-end items-center gap-2 w-full md:w-auto shrink-0">
+                  <button
+                    onClick={() => setIsImportModalOpen(false)}
+                    className="w-full sm:w-auto px-4 py-2.5 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleImportStudents("replace")}
+                    disabled={!studentNamesInput.trim()}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-rose-50 text-rose-700 font-bold rounded-xl hover:bg-rose-100 transition-colors disabled:opacity-50 text-sm whitespace-nowrap"
+                  >
+                    Substituir Todos
+                  </button>
+                  <button
+                    onClick={() => handleImportStudents("merge")}
+                    disabled={!studentNamesInput.trim()}
+                    className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50 text-sm whitespace-nowrap"
+                  >
+                    Adicionar Novos
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>
