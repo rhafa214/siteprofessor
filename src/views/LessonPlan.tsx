@@ -49,18 +49,10 @@ import { usePrompt } from "../contexts/PromptContext";
 
 import { useJarvisKnowledge } from "../hooks/useJarvisKnowledge";
 
-let aiClient: GoogleGenAI | null = null;
+import { getGeminiClient } from "../lib/gemini";
+
 function getAI() {
-  if (!aiClient) {
-    const key =
-      process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    if (key) {
-      try {
-        aiClient = new GoogleGenAI({ apiKey: key });
-      } catch (e) {}
-    }
-  }
-  return aiClient;
+  return getGeminiClient();
 }
 
 interface Message {

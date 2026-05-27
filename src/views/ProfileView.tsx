@@ -14,12 +14,11 @@ import {
 } from "lucide-react";
 import { auth } from "../lib/firebase";
 
-export default function ProfileView({
-  setCurrentView,
-}: {
-  setCurrentView: (v: any) => void;
-}) {
+import { useAppStore } from "../store/useAppStore";
+
+export default function ProfileView() {
   const { user, logout } = useAuth();
+  const { setCurrentView } = useAppStore();
 
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [photoURL, setPhotoURL] = useState(user?.photoURL || "");

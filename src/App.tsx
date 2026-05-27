@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion } from "motion/react";
 import {
   Brain,
@@ -13,37 +13,48 @@ import {
 } from "lucide-react";
 import Sidebar from "./components/layout/Sidebar";
 import Topbar from "./components/layout/Topbar";
-import Dashboard from "./views/Dashboard";
-import ClassJournal from "./views/ClassJournal";
-import Agenda from "./views/Agenda";
-import LessonPlan from "./views/LessonPlan";
-import Tasks from "./views/Tasks";
-import KnowledgeBase from "./views/KnowledgeBase";
-import TaskAnalysis from "./views/TaskAnalysis";
-import MatificAnalysis from "./views/MatificAnalysis";
-import StudentsDatabase from "./views/StudentsDatabase";
-import BannerAssistant from "./views/BannerAssistant";
-import Apostilas from "./views/Apostilas";
-import EvaluationsView from "./views/EvaluationsView";
-import JarvisBaseView from "./views/JarvisBaseView";
-import GuiaPedagogicoView from "./views/GuiaPedagogicoView";
-import ProfileView from "./views/ProfileView";
-import AddonSidebar from "./views/AddonSidebar";
-import AddonAvaliacoesSidebar from "./views/AddonAvaliacoesSidebar";
-import ScheduleView from "./views/ScheduleView";
 import type { ViewType } from "./lib/constants";
 import { useAuth } from "./contexts/AuthContext";
+import { useAppStore } from "./store/useAppStore";
+
+// Lazy-loaded views
+const Dashboard = lazy(() => import("./views/Dashboard"));
+const ClassJournal = lazy(() => import("./views/ClassJournal"));
+const Agenda = lazy(() => import("./views/Agenda"));
+const LessonPlan = lazy(() => import("./views/LessonPlan"));
+const Tasks = lazy(() => import("./views/Tasks"));
+const KnowledgeBase = lazy(() => import("./views/KnowledgeBase"));
+const TaskAnalysis = lazy(() => import("./views/TaskAnalysis"));
+const MatificAnalysis = lazy(() => import("./views/MatificAnalysis"));
+const StudentsDatabase = lazy(() => import("./views/StudentsDatabase"));
+const BannerAssistant = lazy(() => import("./views/BannerAssistant"));
+const Apostilas = lazy(() => import("./views/Apostilas"));
+const EvaluationsView = lazy(() => import("./views/EvaluationsView"));
+const JarvisBaseView = lazy(() => import("./views/JarvisBaseView"));
+const GuiaPedagogicoView = lazy(() => import("./views/GuiaPedagogicoView"));
+const ProfileView = lazy(() => import("./views/ProfileView"));
+const AddonSidebar = lazy(() => import("./views/AddonSidebar"));
+const AddonAvaliacoesSidebar = lazy(() => import("./views/AddonAvaliacoesSidebar"));
+const ScheduleView = lazy(() => import("./views/ScheduleView"));
+
 
 function App() {
   if (typeof window !== "undefined" && window.location.pathname === "/addon") {
-    return <AddonSidebar />;
+    return (
+      <Suspense fallback={<div className="flex h-screen w-full bg-slate-50 items-center justify-center"><Loader2 className="animate-spin text-indigo-600" size={32} /></div>}>
+        <AddonSidebar />
+      </Suspense>
+    );
   }
   if (typeof window !== "undefined" && window.location.pathname === "/addon-avaliacoes") {
-    return <AddonAvaliacoesSidebar />;
+    return (
+      <Suspense fallback={<div className="flex h-screen w-full bg-slate-50 items-center justify-center"><Loader2 className="animate-spin text-indigo-600" size={32} /></div>}>
+        <AddonAvaliacoesSidebar />
+      </Suspense>
+    );
   }
 
-  const [currentView, setCurrentView] = useState<ViewType>("dashboard");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { currentView, setCurrentView, isSidebarOpen, setSidebarOpen } = useAppStore();
   const { user, loading, loginWithGoogle } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -256,48 +267,38 @@ function App() {
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden print:hidden"
-          onClick={() => setIsSidebarOpen(false)}
+          onClick={() => setSidebarOpen(false)}
         />
       )}
       <div className="print:hidden h-full flex shrink-0">
-        <Sidebar
-          currentView={currentView}
-          setCurrentView={(v) => {
-            setCurrentView(v);
-            setIsSidebarOpen(false);
-          }}
-          isOpen={isSidebarOpen}
-          setIsOpen={setIsSidebarOpen}
-        />
+        <Sidebar />
       </div>
 
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:h-auto print:block">
         <div className="print:hidden">
-            <Topbar 
-              currentView={currentView} 
-              setIsSidebarOpen={setIsSidebarOpen} 
-              setCurrentView={setCurrentView}
-            />
+            <Topbar />
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 print:overflow-visible print:p-0 print:m-0">
           <div className="max-w-7xl mx-auto h-full print:max-w-none print:w-full print:h-auto">
-            {currentView === "dashboard" && (
-              <Dashboard setCurrentView={setCurrentView} />
-            )}
-            {currentView === "perfil" && <ProfileView setCurrentView={setCurrentView} />}
-            {currentView === "grade" && <ScheduleView />}
-            {currentView === "diario" && <ClassJournal />}
-            {currentView === "agenda" && <Agenda />}
-            {currentView === "plano" && <LessonPlan />}
-            {currentView === "tarefas" && <Tasks />}
-            {currentView === "avaliacoes" && <EvaluationsView />}
-            {currentView === "alunos" && <StudentsDatabase />}
-            {currentView === "conhecimento" && <KnowledgeBase />}
-            {currentView === "jarvis" && <JarvisBaseView />}
-            {currentView === "guia-pedagogico" && <GuiaPedagogicoView />}
-            {currentView === "banner" && <BannerAssistant />}
-            {currentView === "apostilas" && <Apostilas />}
+            <Suspense fallback={<div className="flex h-full w-full justify-center items-center"><Loader2 className="animate-spin text-indigo-600" size={32} /></div>}>
+              {currentView === "dashboard" && (
+                <Dashboard />
+              )}
+              {currentView === "perfil" && <ProfileView />}
+              {currentView === "grade" && <ScheduleView />}
+              {currentView === "diario" && <ClassJournal />}
+              {currentView === "agenda" && <Agenda />}
+              {currentView === "plano" && <LessonPlan />}
+              {currentView === "tarefas" && <Tasks />}
+              {currentView === "avaliacoes" && <EvaluationsView />}
+              {currentView === "alunos" && <StudentsDatabase />}
+              {currentView === "conhecimento" && <KnowledgeBase />}
+              {currentView === "jarvis" && <JarvisBaseView />}
+              {currentView === "guia-pedagogico" && <GuiaPedagogicoView />}
+              {currentView === "banner" && <BannerAssistant />}
+              {currentView === "apostilas" && <Apostilas />}
+            </Suspense>
           </div>
         </div>
       </main>

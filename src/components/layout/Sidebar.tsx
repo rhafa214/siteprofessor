@@ -27,20 +27,10 @@ import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../contexts/AuthContext";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { useAppStore } from "../../store/useAppStore";
 
-interface SidebarProps {
-  currentView: ViewType;
-  setCurrentView: (view: ViewType) => void;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-}
-
-export default function Sidebar({
-  currentView,
-  setCurrentView,
-  isOpen,
-  setIsOpen,
-}: SidebarProps) {
+export default function Sidebar() {
+  const { currentView, setCurrentView, isSidebarOpen, setSidebarOpen } = useAppStore();
   const { user, loginWithGoogle, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useLocalStorage("darkMode", false);
@@ -105,11 +95,11 @@ export default function Sidebar({
     <aside
       className={cn(
         "fixed inset-y-0 left-0 z-50 h-full w-72 bg-slate-950 text-white flex flex-col py-6 px-4 shrink-0 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:shadow-xl",
-        isOpen ? "translate-x-0" : "-translate-x-full",
+        isSidebarOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >
       <button
-        onClick={() => setIsOpen(false)}
+        onClick={() => setSidebarOpen(false)}
         className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white lg:hidden"
       >
         <X size={24} />
@@ -148,7 +138,10 @@ export default function Sidebar({
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setCurrentView(item.id as ViewType)}
+                    onClick={() => {
+                      setCurrentView(item.id as ViewType);
+                      setSidebarOpen(false);
+                    }}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition-all duration-200 text-sm font-medium",
                       isActive

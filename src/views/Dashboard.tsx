@@ -26,6 +26,7 @@ import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { cn } from "../lib/utils";
 import NewsCarousel from "../components/dashboard/NewsCarousel";
+import JarvisObservou from "../components/dashboard/JarvisObservou";
 import { GoogleGenAI, Type } from "@google/genai";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { useGmail } from "../hooks/useGmail";
@@ -33,27 +34,20 @@ import { useAuth } from "../contexts/AuthContext";
 import { useJarvisKnowledge } from "../hooks/useJarvisKnowledge";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { useAppStore } from "../store/useAppStore";
 
-let aiClient: GoogleGenAI | null = null;
+import { getGeminiClient } from "../lib/gemini";
+
 function getAI() {
-  if (!aiClient) {
-    const key =
-      process.env.GEMINI_API_KEY || import.meta.env.VITE_GEMINI_API_KEY;
-    if (key) {
-      // @ts-ignore - catch any initialization errors
-      try {
-        aiClient = new GoogleGenAI({ apiKey: key });
-      } catch (e) {}
-    }
-  }
-  return aiClient;
+  return getGeminiClient();
 }
 
 interface DashboardProps {
-  setCurrentView?: (view: any) => void;
+  // Not used anymore as we fetch from store
 }
 
-export default function Dashboard({ setCurrentView }: DashboardProps) {
+export default function Dashboard(props: DashboardProps) {
+  const { setCurrentView } = useAppStore();
   const { user, loginWithGoogle } = useAuth();
   const { curriculum, schoolModel, jarvisDocs, schedule } =
     useJarvisKnowledge();
@@ -889,137 +883,6 @@ Bimestres escolares:
         </div>
       </div>
 
-      {/* AI Context Card (Current Class Insight) */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-gradient-to-r from-indigo-50 leading-relaxed md:leading-normal to-purple-50 border border-indigo-100 rounded-3xl p-5 shadow-sm flex flex-col md:flex-row items-center gap-4 relative overflow-hidden"
-      >
-        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-          <Brain size={120} />
-        </div>
-        <div className="bg-indigo-100 text-indigo-600 w-12 h-12 rounded-full flex items-center justify-center shrink-0 shadow-sm border border-indigo-200 relative z-10">
-          <BotMessageSquare size={24} />
-        </div>
-        <div className="relative z-10 flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">
-              Jarvis Observou
-            </span>
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-            </span>
-          </div>
-          <div className="text-slate-700 font-medium text-sm max-w-4xl space-y-2">
-            {currentTurma ? (
-              logForCurrentTurma ? (
-                <div className="flex flex-col gap-1.5">
-                  <p>
-                    Professor, de acordo com o meu banco de dados sua próxima
-                    aula será no{" "}
-                    <strong className="text-indigo-700">{currentTurma}</strong>.
-                  </p>
-                  <p className="text-slate-600 bg-white/50 p-3 rounded-xl border border-indigo-100/50">
-                    Na última aula (
-                    <strong className="text-slate-800">
-                      {logForCurrentTurma.data}
-                    </strong>
-                    ) vocês trabalharam:{" "}
-                    <span className="italic text-slate-800">
-                      "{logForCurrentTurma.progresso}"
-                    </span>
-                  </p>
-                  {logForCurrentTurma.lembretes && (
-                    <p className="text-amber-700 font-semibold bg-amber-50 px-3 py-2 rounded-lg mt-1 w-fit border border-amber-200">
-                      📝 Lembrete da época: {logForCurrentTurma.lembretes}
-                    </p>
-                  )}
-                  <button
-                    onClick={() => setCurrentView?.("diario")}
-                    className="text-indigo-600 hover:text-indigo-800 mt-1 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors"
-                  >
-                    Ir para o Registro de Aulas &rarr;
-                  </button>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-1.5">
-                  <p>
-                    Vi que você está no{" "}
-                    <strong className="text-indigo-700">{currentTurma}</strong>{" "}
-                    agora, porém busquei nas aulas trabalhadas e não encontrei
-                    registros no seu{" "}
-                    <strong className="text-indigo-700">
-                      Registro de Aulas
-                    </strong>{" "}
-                    para essa turma.
-                  </p>
-                  <button
-                    onClick={() => setCurrentView?.("diario")}
-                    className="text-indigo-600 hover:text-indigo-800 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors"
-                  >
-                    Registrar uma Aula Agora &rarr;
-                  </button>
-                </div>
-              )
-            ) : latestLog ? (
-              <p>
-                No momento você não tem uma aula ativa na agenda ou está em seu
-                horário de estudos. Aproveite para planejar seus próximos
-                passos! Posso sugerir atividades ou exercícios com base no seu
-                registro mais recente com o{" "}
-                <strong className="text-indigo-700">{latestLog.turma}</strong>{" "}
-                sobre{" "}
-                <strong className="text-indigo-700">
-                  {latestLog.progresso}
-                </strong>
-                .
-              </p>
-            ) : (
-              <p>
-                No momento você não tem uma aula ativa na agenda ou está em seu
-                horário de estudos. Como ainda não encontrei registros no seu{" "}
-                <strong className="text-indigo-700">Registro de Aulas</strong>,
-                que tal aproveitar para se organizar, preparar novas aulas ou
-                corrigir avaliações?
-              </p>
-            )}
-
-            {isClassEndingSoon && (
-              <p className="text-orange-700 bg-orange-100 border border-orange-200 px-3 py-1.5 rounded-lg text-xs font-bold inline-flex items-center">
-                ⚠️ A aula logo vai acabar. Não esqueça de fazer a chamada e o
-                registro na Sala do Futuro!
-              </p>
-            )}
-          </div>
-        </div>
-        <div className="relative z-10 shrink-0 w-full md:w-auto mt-2 md:mt-0">
-          <button
-            onClick={() => {
-              const prompt =
-                currentTurma && logForCurrentTurma
-                  ? `Gere uma revisão rápida sobre o conteúdo: "${logForCurrentTurma.progresso}" que trabalhei com a turma ${currentTurma} na última aula.`
-                  : latestLog
-                    ? `Estou em um momento de estudo/planejamento. Me dê sugestões de atividades, dinâmicas e exercícios baseados no conteúdo "${latestLog.progresso}" que trabalhei recentemente com a turma ${latestLog.turma}.`
-                    : "Estou em um momento de estudo/planejamento. Me dê sugestões de como organizar minha semana e preparar minhas próximas aulas de forma criativa.";
-              setChatInput(prompt);
-              document
-                .getElementById("chat-section")
-                ?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="w-full md:w-auto bg-white text-indigo-600 border border-indigo-200 px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-indigo-50 transition-colors shadow-sm whitespace-nowrap flex items-center justify-center gap-2"
-          >
-            <Sparkles size={14} />{" "}
-            {currentTurma && logForCurrentTurma
-              ? "Sugerir Revisão"
-              : latestLog
-                ? "Sugerir Atividades"
-                : "Planejar Aulas"}
-          </button>
-        </div>
-      </motion.div>
-
       {/* Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Google Sync Status */}
@@ -1173,31 +1036,16 @@ Bimestres escolares:
           </div>
         </div>
 
-        {/* Prova Paulista Monitor - SHRUNK */}
-        <div className="bg-amber-50 border border-amber-100 rounded-3xl p-6 flex flex-col justify-center items-center shadow-sm text-center">
-          <div className="text-[10px] font-bold text-amber-800/60 uppercase tracking-widest mb-3">
-            Monitor de Eventos
-          </div>
-          <div className="flex items-center justify-center gap-4">
-            <div className="w-14 h-14 shrink-0 bg-amber-500 text-white rounded-2xl flex items-center justify-center text-xl font-black shadow-md shadow-amber-500/30">
-              {isHappeningNow ? "🚀" : diffP >= 0 ? diffP : "--"}
-            </div>
-            <div className="text-left">
-              <h3 className="text-base font-bold text-amber-900 leading-tight">
-                {nextProva ? nextProva.nome : "Sem eventos"}
-              </h3>
-              <p className="text-amber-700/80 text-xs mt-1 font-medium">
-                {nextProva
-                  ? isHappeningNow
-                    ? (nextProva as any).dataFim
-                      ? `Até ${new Date((nextProva as any).dataFim + "T00:00:00").toLocaleDateString("pt-BR")}`
-                      : `Acontecendo hoje!`
-                    : `Inicia em ${new Date(nextProva.data + "T00:00:00").toLocaleDateString("pt-BR")}`
-                  : "Calendário livre"}
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* Jarvis Observou */}
+        <JarvisObservou
+          currentTurma={currentTurma}
+          logForCurrentTurma={logForCurrentTurma}
+          latestLog={latestLog}
+          isClassEndingSoon={isClassEndingSoon}
+          setCurrentView={setCurrentView}
+          setChatInput={setChatInput}
+          document={document}
+        />
 
         {/* Emails / Inbox */}
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col h-auto lg:h-[340px]">

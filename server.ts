@@ -19,6 +19,66 @@ async function startServer() {
 
   app.use(express.json({ limit: "50mb" }));
   
+  // --- GEMINI API PROXY ---
+  app.use("/api/gemini-proxy", async (req, res) => {
+    try {
+      const gApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      if (!gApiKey) {
+        res.status(500).json({ error: "API Key missing server-side" });
+        return;
+      }
+
+      // targetUrl matches original logic, because req.url excludes the mount path in `app.use('/api/gemini-proxy', ...)`
+      // However, if the path contains search query, it's included in req.url
+      const targetUrl = `https://generativelanguage.googleapis.com${req.url}`;
+      
+      const headers: Record<string, string> = {
+        "x-goog-api-key": gApiKey,
+        "content-type": req.headers["content-type"] || "application/json",
+      };
+
+      if (req.headers["x-goog-api-client"]) {
+         headers["x-goog-api-client"] = req.headers["x-goog-api-client"] as string;
+      }
+
+      const fetchOptions: RequestInit = {
+        method: req.method,
+        headers,
+      };
+
+      if (req.method !== "GET" && req.method !== "HEAD") {
+        // Because of express.json, req.body is already an object, reconstruct it to string:
+        fetchOptions.body = JSON.stringify(req.body);
+      }
+
+      const response = await fetch(targetUrl, fetchOptions);
+
+      res.status(response.status);
+
+      response.headers.forEach((value, key) => {
+        // Skip content-encoding to avoid issues if we modify stream
+        if (key.toLowerCase() !== "content-encoding") {
+           res.setHeader(key, value);
+        }
+      });
+
+      if (response.body) {
+        const reader = response.body.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+        res.end();
+      } else {
+        res.end();
+      }
+    } catch (e: any) {
+      console.error("Gemini proxy error:", e);
+      res.status(500).json({ error: "Proxy server error: " + e.message });
+    }
+  });
+
   app.post("/api/parse-curriculum", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {

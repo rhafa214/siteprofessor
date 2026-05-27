@@ -3,22 +3,16 @@ import { Palmtree, Menu, LogIn, LogOut, User as UserIcon } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { DATAS_OFICIAIS } from "../../lib/constants";
 import { useAuth } from "../../contexts/AuthContext";
+import { useAppStore } from "../../store/useAppStore";
 
-export default function Topbar({
-  currentView,
-  setIsSidebarOpen,
-  setCurrentView,
-}: {
-  currentView: ViewType;
-  setIsSidebarOpen: (b: boolean) => void;
-  setCurrentView: (b: ViewType) => void;
-}) {
+export default function Topbar() {
   const [time, setTime] = useState(new Date());
   const [recessoInfo, setRecessoInfo] = useState<{
     days: number;
     nome: string;
   } | null>(null);
   const { user, loginWithGoogle, logout } = useAuth();
+  const { currentView, setCurrentView, setSidebarOpen } = useAppStore();
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -68,7 +62,7 @@ export default function Topbar({
     <header className="h-10 lg:h-12 bg-white border-b border-slate-200 px-4 lg:px-6 flex items-center justify-between shrink-0 z-10 shadow-sm print:hidden">
       <div className="flex items-center gap-3">
         <button
-          onClick={() => setIsSidebarOpen(true)}
+          onClick={() => setSidebarOpen(true)}
           className="p-1 lg:hidden text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
         >
           <Menu size={18} />

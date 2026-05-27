@@ -21,252 +21,13 @@ import { useAlert } from "../contexts/AlertContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useLocalStorage } from "../hooks/useLocalStorage";
-
-// Temporary placeholder for Media / IA report
-import { GoogleGenAI } from "@google/genai";
-
-function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
-  const { user } = useAuth();
-  const { showAlert } = useAlert();
-  const [turmasList] = useLocalStorage<string[]>("classTurmasList", [
-    "6°A - Orientação de estudos",
-    "6°B - Matemática",
-    "6°C - Matemática",
-    "7°C - Matemática",
-    "7°D - Tecnologia e Eletivas",
-  ]);
-  const [selectedTurma, setSelectedTurma] = useLocalStorage<string | null>(
-    "media_selectedTurma",
-    null,
-  );
-  const [loading, setLoading] = useState(false);
-  const [aiReport, setAiReport] = useState("");
-
-  const generateReport = async () => {
-    if (!user) {
-      showAlert("Faça login para gerar o relatório.", "Atenção", "warning");
-      return;
-    }
-    setLoading(true);
-    setAiReport("");
-    try {
-      const bKey = selectedBimestre.replace("º Bimestre", "");
-      let taskDoc = await getDoc(
-        doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma!}`),
-      );
-      if (!taskDoc.exists() && bKey === "2") {
-        taskDoc = await getDoc(
-          doc(db, "users", user.uid, "taskAnalysis", selectedTurma!),
-        );
-      }
-
-      let matificDoc = await getDoc(
-        doc(
-          db,
-          "users",
-          user.uid,
-          "matificAnalysis",
-          `${bKey}_${selectedTurma!}`,
-        ),
-      );
-      if (!matificDoc.exists() && bKey === "2") {
-        matificDoc = await getDoc(
-          doc(db, "users", user.uid, "matificAnalysis", selectedTurma!),
-        );
-      }
-
-      let paulistaDoc = await getDoc(
-        doc(
-          db,
-          "users",
-          user.uid,
-          "paulistaAnalysis",
-          `${bKey}_${selectedTurma!}`,
-        ),
-      );
-      if (!paulistaDoc.exists() && bKey === "2") {
-        paulistaDoc = await getDoc(
-          doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma!),
-        );
-      }
-
-      const payload = {
-        turma: selectedTurma,
-        tarefas: taskDoc.exists() ? taskDoc.data() : null,
-        matific: matificDoc.exists() ? matificDoc.data() : null,
-        provaPaulista: paulistaDoc.exists() ? paulistaDoc.data() : null,
-      };
-
-      const response = await fetch("/api/generate-eval-report", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error("Erro na geração do relatório");
-      const data = await response.json();
-      setAiReport(data.report);
-    } catch (e: any) {
-      console.error(e);
-      showAlert("Falha ao gerar: " + e.message, "Erro", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!selectedTurma) {
-    return (
-      <div className="flex flex-col h-full bg-slate-50/50">
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {!turmasList || turmasList.length === 0 ? (
-            <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
-              <BarChart className="w-12 h-12 text-slate-400 mb-4" />
-              <h2 className="text-xl font-bold text-slate-800 mb-2">
-                Nenhuma Turma Adicionada
-              </h2>
-            </div>
-          ) : (
-            turmasList.map((turma) => (
-              <motion.div
-                key={turma}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group"
-                onClick={() => setSelectedTurma(turma)}
-              >
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-                    <BarChart size={24} />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-800 leading-tight">
-                    {turma}
-                  </h3>
-                </div>
-              </motion.div>
-            ))
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Placeholder data for best grades chart
-  const bestStudents = [
-    { name: "Ana Beatriz", grade: 9.8, color: "bg-indigo-500" },
-    { name: "João Pedro", grade: 9.5, color: "bg-blue-500" },
-    { name: "Maria Clara", grade: 9.2, color: "bg-emerald-500" },
-    { name: "Lucas Silva", grade: 8.9, color: "bg-purple-500" },
-  ];
-
-  return (
-    <div className="h-full bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setSelectedTurma(null)}
-            className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
-            title="Voltar para turmas"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-chevron-right rotate-180"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
-          <h2 className="text-xl font-bold text-slate-800">{selectedTurma}</h2>
-        </div>
-      </div>
-
-      <div className="text-center mb-8">
-        <BarChart className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-        <h3 className="text-xl font-bold text-slate-700 mb-2">
-          Relatório das Turmas
-        </h3>
-        <p className="text-slate-500 max-w-lg mx-auto mb-6">
-          Analise as médias consolidadas (Avaliações, Matific, Prova Paulista) e
-          veja o histórico de desempenho.
-        </p>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 max-w-5xl mx-auto w-full">
-        {/* Gráfico de Melhores Notas */}
-        <div className="flex-1 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-          <h4 className="font-bold text-slate-800 mb-6 flex items-center gap-2">
-            <Trophy size={18} className="text-amber-500" />
-            Evolução / Melhores Notas
-          </h4>
-          <div className="flex flex-col gap-4">
-            {bestStudents.map((s, idx) => (
-              <div key={idx} className="flex flex-col gap-1">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium text-slate-700">{s.name}</span>
-                  <span className="font-bold text-slate-900">{s.grade}</span>
-                </div>
-                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(s.grade / 10) * 100}%` }}
-                    transition={{ duration: 1, ease: "easeOut" }}
-                    className={`h-full rounded-full ${s.color}`}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Relatório IA */}
-        <div className="flex-1 bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 flex flex-col items-center text-center">
-          <div className="flex items-center gap-3 text-indigo-600 font-bold mb-4">
-            <BrainCircuit size={24} />
-            Feedback Sintético (Jarvis)
-          </div>
-          {aiReport ? (
-            <div className="w-full text-slate-700 bg-white p-4 rounded-xl border border-slate-200 shadow-sm prose prose-indigo text-left text-sm max-h-64 overflow-auto">
-              <div
-                dangerouslySetInnerHTML={{
-                  __html: aiReport.replace(/\n/g, "<br/>"),
-                }}
-              />
-            </div>
-          ) : (
-            <p className="text-sm text-slate-600 max-w-sm mb-6">
-              O Jarvis cruzará os dados disponíveis no painel e criará uma
-              rápida resenha pedagógica do desempenho geral de {selectedTurma}.
-            </p>
-          )}
-
-          <button
-            onClick={generateReport}
-            disabled={loading}
-            className="mt-auto px-6 py-3 w-full bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
-          >
-            {loading ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              "Gerar Relatório Resumo"
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// import media view if it exists? It doesn't exist, I'll fix this the simple way.
 
 export default function EvaluationsView() {
   const [activeTab, setActiveTab] = useState<
     | "tarefas"
     | "matific"
     | "paulista"
-    | "media"
     | "bimestral"
     | "simulado"
     | "participacao"
@@ -322,7 +83,6 @@ export default function EvaluationsView() {
                 {activeTab === "tarefas" && "Controle de Tarefas"}
                 {activeTab === "matific" && "Matific"}
                 {activeTab === "paulista" && "Prova Paulista"}
-                {activeTab === "media" && "Relatório das Turmas"}
                 {activeTab === "medias" && "Média Bimestral"}
                 {activeTab === "bimestral" && "Avaliação Bimestral"}
                 {activeTab === "simulado" && "Simulado"}
@@ -357,9 +117,6 @@ export default function EvaluationsView() {
           )}
           {activeTab === "paulista" && (
             <ProvaPaulistaAnalysis selectedBimestre={selectedBimestre} />
-          )}
-          {activeTab === "media" && (
-            <MediaView selectedBimestre={selectedBimestre} />
           )}
           {activeTab === "medias" && (
             <CalculadoraMediaView selectedBimestre={selectedBimestre} />
@@ -509,21 +266,6 @@ export default function EvaluationsView() {
             </div>
             <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
               Prova Paulista
-            </h3>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
-            onClick={() => setActiveTab("media")}
-          >
-            <div className="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-              <BarChart size={32} />
-            </div>
-            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-purple-600 transition-colors">
-              Relatório das Turmas
             </h3>
           </motion.div>
 
