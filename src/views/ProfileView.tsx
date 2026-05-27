@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 import { updateProfile } from "firebase/auth";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   Camera,
   User,
@@ -11,8 +12,9 @@ import {
   ChevronRight,
   Save,
   LogOut,
+  ImagePlus,
 } from "lucide-react";
-import { auth } from "../lib/firebase";
+import { auth, storage } from "../lib/firebase";
 
 import { useAppStore } from "../store/useAppStore";
 
@@ -109,7 +111,7 @@ export default function ProfileView() {
 
             <div className="flex flex-col flex-1 min-w-0 font-medium">
               {isEditing ? (
-                <div className="flex flex-col gap-3 w-full">
+                 <div className="flex flex-col gap-3 w-full">
                   <label className="text-sm font-bold text-slate-600">
                     Nome de Exibição
                   </label>
@@ -120,15 +122,39 @@ export default function ProfileView() {
                     className="p-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-full"
                   />
                   <label className="text-sm font-bold text-slate-600 mt-2">
-                    URL da Nova Foto
+                    Foto de Perfil (Opcional)
                   </label>
-                  <input
-                    type="text"
-                    value={photoURL}
-                    onChange={(e) => setPhotoURL(e.target.value)}
-                    placeholder="https://suafoto.com/image.jpg"
-                    className="p-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none w-full"
-                  />
+                  <label className="flex items-center gap-2 px-4 py-3 border-2 border-dashed border-indigo-200 hover:border-indigo-400 bg-indigo-50/50 rounded-xl cursor-pointer transition-colors text-sm font-medium text-indigo-700 w-full text-center justify-center">
+                    <ImagePlus size={18} />
+                    <span>Escolher foto da Galeria</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          if (file.size > 5 * 1024 * 1024) {
+                            alert("A imagem deve ser menor que 5MB.");
+                            return;
+                          }
+                          setIsSaving(true);
+                          try {
+                            const ext = file.name.split('.').pop() || 'jpg';
+                            const storageRef = ref(storage, `users/${user.uid}/profile_${Date.now()}.${ext}`);
+                            await uploadBytes(storageRef, file);
+                            const url = await getDownloadURL(storageRef);
+                            setPhotoURL(url);
+                          } catch (err: any) {
+                            console.error(err);
+                            alert("Erro ao enviar imagem. Detalhe: " + err.message);
+                          } finally {
+                            setIsSaving(false);
+                          }
+                        }
+                      }}
+                    />
+                  </label>
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={() => setIsEditing(false)}

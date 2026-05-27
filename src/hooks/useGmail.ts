@@ -34,11 +34,15 @@ export function useGmail() {
           return;
         }
 
-        if (resList.status === 403) {
+        if (resList.status === 403 || resList.status === 429) {
           const errData = await resList.json().catch(() => null);
-          const errMsg =
-            errData?.error?.message ||
-            "Permissão negada ou API não ativada. Ao fazer login, marque a caixa de permissão do Gmail.";
+          let errMsg = errData?.error?.message || "";
+          
+          if (errMsg.includes("Rate exceeded") || resList.status === 429) {
+            errMsg = "O limite de acessos da API do Gmail foi atingido (Muitas requisições num curto período). Aguarde alguns minutos antes de tentar novamente.";
+          } else if (!errMsg) {
+            errMsg = "Permissão negada ou API não ativada. Ao fazer login, marque a caixa de permissão do Gmail.";
+          }
           setApiError(errMsg);
           return;
         }

@@ -166,6 +166,10 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
           alert(
             "A Inteligência Artificial está com alta demanda no momento. Por favor, aguarde alguns instantes e tente novamente.",
           );
+        } else if (errorMessage.includes("Rate exceeded") || errorMessage.includes("429")) {
+          alert(
+            "O limite de requisições à IA foi atingido (Rate exceeded). Aguarde alguns minutos e tente novamente.",
+          );
         } else {
           alert("Erro no processamento do PDF: " + errorMessage);
         }

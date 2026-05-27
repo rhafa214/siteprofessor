@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import {
   User,
   onAuthStateChanged,
@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     setAuthError(null);
     const provider = new GoogleAuthProvider();
 
@@ -79,9 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthError("Erro na autenticação: " + error.message);
       throw error;
     }
-  };
+  }, [setAccessToken]);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await signOut(auth);
       setAccessToken(null);
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthError("Erro ao sair: " + error.message);
       throw error;
     }
-  };
+  }, [setAccessToken]);
 
   return (
     <AuthContext.Provider

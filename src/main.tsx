@@ -6,17 +6,21 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ConfirmProvider } from "./contexts/ConfirmContext";
 import { AlertProvider } from "./contexts/AlertContext";
 import { PromptProvider } from "./contexts/PromptContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <AlertProvider>
-        <PromptProvider>
-          <ConfirmProvider>
-            <App />
-          </ConfirmProvider>
-        </PromptProvider>
-      </AlertProvider>
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AlertProvider>
+          <PromptProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </PromptProvider>
+        </AlertProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );
+

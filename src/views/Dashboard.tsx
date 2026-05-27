@@ -776,13 +776,20 @@ Bimestres escolares:
           { role: "bot", text: responseText },
         ]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      let errorMsg = error?.message || "Tente novamente em instantes.";
+      if (errorMsg.includes("Rate exceeded") || errorMsg.includes("429")) {
+        errorMsg = "Uau, limitei! Tivemos muitos acessos seguidos na nossa rede neural. Por favor, aguarde só uns minutinhos e me chame de novo!";
+      } else if (errorMsg.includes("API Key missing")) {
+        errorMsg = "A Chave da API (Gemini) não está configurada no servidor.";
+      }
+      
       setChatMessages((prev) => [
         ...prev,
         {
           role: "bot",
-          text: "Oops, houve um erro ao conectar com minha rede neural. Tente novamente em instantes.",
+          text: `Oops, houve um erro ao conectar com minha rede neural. Detalhe: ${errorMsg}`,
         },
       ]);
     } finally {

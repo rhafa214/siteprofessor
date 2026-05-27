@@ -94,7 +94,7 @@ export default function Sidebar() {
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 h-full w-72 bg-slate-950 text-white flex flex-col py-6 px-4 shrink-0 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:shadow-xl",
+        "fixed inset-y-0 left-0 z-50 h-full w-72 bg-slate-950 text-white flex flex-col py-6 px-4 shrink-0 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:shadow-xl print:hidden",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full",
       )}
     >

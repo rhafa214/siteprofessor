@@ -38,11 +38,16 @@ export function useGoogleCalendar() {
           return;
         }
 
-        if (res.status === 403) {
+        if (res.status === 403 || res.status === 429) {
           const errData = await res.json().catch(() => null);
-          const errMsg =
-            errData?.error?.message ||
-            "Permissão negada ou API não ativada. No momento do login, certifique-se de marcar a caixa de permissão para ler o Google Calendar (Agenda). Se você for o desenvolvedor, ative a Google Calendar API no Google Cloud Console.";
+          let errMsg = errData?.error?.message || "";
+          
+          if (errMsg.includes("Rate exceeded") || res.status === 429) {
+            errMsg = "O limite de acessos da API do Google Calendar foi atingido por excesso de consultas no momento. Aguarde alguns minutos e tente novamente.";
+          } else if (!errMsg) {
+             errMsg = "Permissão negada ou API não ativada. No momento do login, certifique-se de marcar a caixa de permissão para ler o Google Calendar (Agenda). Se você for o desenvolvedor, ative a Google Calendar API no Google Cloud Console.";
+          }
+          
           setApiError(errMsg);
           return;
         }
