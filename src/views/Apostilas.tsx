@@ -78,21 +78,21 @@ function ThumbnailRenderer({ url }: { url: string }) {
       />
     );
   }
-  
+
   if (driveId) {
     return (
-        <div className="absolute inset-0 w-full h-full bg-[#f8f9fa] flex items-center justify-center opacity-80">
-            <BookMarked size={48} className="text-slate-300" />
-        </div>
+      <div className="absolute inset-0 w-full h-full bg-[#f8f9fa] flex items-center justify-center opacity-80">
+        <BookMarked size={48} className="text-slate-300" />
+      </div>
     );
   }
 
   if (url.startsWith("local:")) {
     // Cannot easily preview IndexedDB Blob in thumbnail without async fetch, so show placeholder
     return (
-        <div className="absolute inset-0 w-full h-full bg-[#f8f9fa] flex items-center justify-center opacity-80">
-            <BookMarked size={48} className="text-slate-400" />
-        </div>
+      <div className="absolute inset-0 w-full h-full bg-[#f8f9fa] flex items-center justify-center opacity-80">
+        <BookMarked size={48} className="text-slate-400" />
+      </div>
     );
   }
 
@@ -108,9 +108,13 @@ export default function Apostilas() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newUrl, setNewUrl] = useState("");
-  const [newCategory, setNewCategory] = useState<"apostila" | "documento">("apostila");
+  const [newCategory, setNewCategory] = useState<"apostila" | "documento">(
+    "apostila",
+  );
   const [newBimester, setNewBimester] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"apostila" | "documento">("apostila");
+  const [activeTab, setActiveTab] = useState<"apostila" | "documento">(
+    "apostila",
+  );
   const [filterBimester, setFilterBimester] = useState<string>("all");
 
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
@@ -193,7 +197,11 @@ export default function Apostilas() {
     e.preventDefault();
     if (!user || !newTitle.trim()) return;
     if (!selectedFile && !newUrl.trim()) {
-      showAlert("Por favor, adicione um link ou selecione um arquivo.", "Aviso", "warning");
+      showAlert(
+        "Por favor, adicione um link ou selecione um arquivo.",
+        "Aviso",
+        "warning",
+      );
       return;
     }
 
@@ -202,7 +210,7 @@ export default function Apostilas() {
 
       let finalPdfUrl: string | undefined = newUrl.trim() || undefined;
       const docId = editingId || Math.random().toString(36).substring(7);
-      
+
       // If a file is selected, use local IndexedDB instead of Supabase
       if (selectedFile) {
         await savePdfLocal(docId, selectedFile);
@@ -242,7 +250,11 @@ export default function Apostilas() {
       setEditingId(null);
     } catch (e: any) {
       console.error(e);
-      showAlert(`Erro ao salvar apostila: ${e.message || "Erro desconhecido"}`, "Erro", "error");
+      showAlert(
+        `Erro ao salvar apostila: ${e.message || "Erro desconhecido"}`,
+        "Erro",
+        "error",
+      );
     } finally {
       setIsUploading(false);
     }
@@ -251,7 +263,13 @@ export default function Apostilas() {
   const handleDelete = async (e: React.MouseEvent, apo: Apostila) => {
     e.stopPropagation();
     if (!user) return;
-    if (await confirm({ title: "Excluir arquivo?", message: `Tem certeza que deseja remover ${apo.title}? Essa ação não poderá ser desfeita.`, isDestructive: true })) {
+    if (
+      await confirm({
+        title: "Excluir arquivo?",
+        message: `Tem certeza que deseja remover ${apo.title}? Essa ação não poderá ser desfeita.`,
+        isDestructive: true,
+      })
+    ) {
       try {
         await deleteDoc(doc(db, "users", user.uid, "apostilas", apo.id));
         if (apo.pdfUrl && apo.pdfUrl.startsWith("local:")) {
@@ -275,15 +293,13 @@ export default function Apostilas() {
     }
   };
 
-  const filteredApostilas = apostilas.filter(
-    (a) => {
-      if ((a.category || "apostila") !== activeTab) return false;
-      if (activeTab === "apostila" && filterBimester !== "all") {
-        if (a.bimester !== filterBimester) return false;
-      }
-      return true;
+  const filteredApostilas = apostilas.filter((a) => {
+    if ((a.category || "apostila") !== activeTab) return false;
+    if (activeTab === "apostila" && filterBimester !== "all") {
+      if (a.bimester !== filterBimester) return false;
     }
-  );
+    return true;
+  });
 
   return (
     <motion.div
@@ -373,7 +389,8 @@ export default function Apostilas() {
               Sua estante está vazia
             </h3>
             <p className="text-slate-500 max-w-sm">
-              Adicione o link ou envie o arquivo para visualizá-lo aqui rapidamente.
+              Adicione o link ou envie o arquivo para visualizá-lo aqui
+              rapidamente.
             </p>
           </div>
         ) : (
@@ -484,7 +501,9 @@ export default function Apostilas() {
                   </label>
                   <select
                     value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value as "apostila" | "documento")}
+                    onChange={(e) =>
+                      setNewCategory(e.target.value as "apostila" | "documento")
+                    }
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all cursor-pointer"
                   >
                     <option value="apostila">Apostila</option>
@@ -633,7 +652,7 @@ export default function Apostilas() {
               layoutId={`apo-${selectedApostila.id}`}
               className={`bg-[#1e1e1e] flex flex-col w-full h-full min-h-0 ${isFullscreen ? "max-w-none rounded-none" : "max-w-7xl rounded-none sm:rounded-2xl border border-white/5"} shadow-[0_0_80px_rgba(0,0,0,0.8)] overflow-hidden relative transition-all duration-300`}
             >
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.15, duration: 0.2 }}
@@ -643,7 +662,8 @@ export default function Apostilas() {
                   className={`p-3 px-5 flex items-center justify-between shrink-0 bg-[#252525] ${isFullscreen ? "absolute top-0 left-0 right-0 z-[60] bg-black/80 backdrop-blur-md opacity-0 hover:opacity-100 transition-opacity border-b border-white/10" : "border-b border-white/5 z-10"}`}
                 >
                   <h2 className="text-sm font-semibold text-white/90 truncate max-w-[50%] flex gap-2 items-center">
-                    <BookMarked size={16} className="text-white/50" /> {selectedApostila.title}
+                    <BookMarked size={16} className="text-white/50" />{" "}
+                    {selectedApostila.title}
                   </h2>
                   <div className="flex items-center gap-2">
                     <a
@@ -653,7 +673,9 @@ export default function Apostilas() {
                       className="p-2 bg-black/20 hover:bg-black/40 text-white rounded-xl transition-all flex items-center gap-1 text-sm font-medium backdrop-blur-sm"
                     >
                       <ExternalLink size={16} />{" "}
-                      <span className="hidden sm:inline">Abrir externamente</span>
+                      <span className="hidden sm:inline">
+                        Abrir externamente
+                      </span>
                     </a>
                     <button
                       onClick={() => {

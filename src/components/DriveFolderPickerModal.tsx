@@ -19,13 +19,17 @@ export default function DriveFolderPickerModal({
   isOpen,
   onClose,
   onSelect,
-  accessToken
+  accessToken,
 }: DriveFolderPickerModalProps) {
   const [folders, setFolders] = useState<DriveFolder[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<"starred" | "root" | "folder">("starred");
-  const [currentFolderNav, setCurrentFolderNav] = useState<{id: string, name: string}[]>([]);
-  
+  const [viewMode, setViewMode] = useState<"starred" | "root" | "folder">(
+    "starred",
+  );
+  const [currentFolderNav, setCurrentFolderNav] = useState<
+    { id: string; name: string }[]
+  >([]);
+
   useEffect(() => {
     if (isOpen && accessToken) {
       fetchFolders();
@@ -37,17 +41,23 @@ export default function DriveFolderPickerModal({
     try {
       let q = "";
       if (viewMode === "starred") {
-        q = "starred=true and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        q =
+          "starred=true and mimeType='application/vnd.google-apps.folder' and trashed=false";
       } else if (viewMode === "root") {
-        q = "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false";
+        q =
+          "'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false";
       } else if (viewMode === "folder" && currentFolderNav.length > 0) {
-        const currentFolderId = currentFolderNav[currentFolderNav.length - 1].id;
+        const currentFolderId =
+          currentFolderNav[currentFolderNav.length - 1].id;
         q = `'${currentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
       }
 
-      const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,starred)&orderBy=name`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
+      const res = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,starred)&orderBy=name`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       const data = await res.json();
       if (data.files) {
         setFolders(data.files);
@@ -61,7 +71,10 @@ export default function DriveFolderPickerModal({
 
   const handleFolderClick = (folder: DriveFolder) => {
     setViewMode("folder");
-    setCurrentFolderNav([...currentFolderNav, { id: folder.id, name: folder.name }]);
+    setCurrentFolderNav([
+      ...currentFolderNav,
+      { id: folder.id, name: folder.name },
+    ]);
   };
 
   const navigateToNav = (index: number) => {
@@ -86,7 +99,9 @@ export default function DriveFolderPickerModal({
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <h2 className="text-xl font-bold text-slate-800">Selecionar Pasta no Drive</h2>
+          <h2 className="text-xl font-bold text-slate-800">
+            Selecionar Pasta no Drive
+          </h2>
           <button
             onClick={onClose}
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
@@ -100,14 +115,25 @@ export default function DriveFolderPickerModal({
           {/* Sidebar */}
           <div className="w-48 border-r border-slate-100 bg-slate-50/50 p-4 shrink-0 flex flex-col gap-2">
             <button
-              onClick={() => { setViewMode("starred"); setCurrentFolderNav([]); }}
+              onClick={() => {
+                setViewMode("starred");
+                setCurrentFolderNav([]);
+              }}
               className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "starred" ? "bg-amber-50 text-amber-700" : "text-slate-600 hover:bg-slate-100"}`}
             >
-              <Star size={18} className={viewMode === "starred" ? "fill-amber-400 text-amber-400" : ""} />
+              <Star
+                size={18}
+                className={
+                  viewMode === "starred" ? "fill-amber-400 text-amber-400" : ""
+                }
+              />
               Favoritas
             </button>
             <button
-              onClick={() => { setViewMode("root"); setCurrentFolderNav([]); }}
+              onClick={() => {
+                setViewMode("root");
+                setCurrentFolderNav([]);
+              }}
               className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${viewMode === "root" || viewMode === "folder" ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-100"}`}
             >
               <Folder size={18} />
@@ -131,7 +157,7 @@ export default function DriveFolderPickerModal({
                     <ChevronRight size={14} className="text-slate-300" />
                     <button
                       onClick={() => navigateToNav(i)}
-                      className={`text-sm font-medium transition-colors ${i === currentFolderNav.length - 1 ? 'text-slate-800' : 'text-slate-500 hover:text-emerald-600'}`}
+                      className={`text-sm font-medium transition-colors ${i === currentFolderNav.length - 1 ? "text-slate-800" : "text-slate-500 hover:text-emerald-600"}`}
                     >
                       {nav.name}
                     </button>
@@ -142,7 +168,9 @@ export default function DriveFolderPickerModal({
 
             {viewMode === "starred" && (
               <div className="px-6 py-3 border-b border-slate-100 bg-white shrink-0">
-                <h3 className="text-sm font-medium text-slate-500">Pastas Favoritas</h3>
+                <h3 className="text-sm font-medium text-slate-500">
+                  Pastas Favoritas
+                </h3>
               </div>
             )}
 
@@ -166,10 +194,17 @@ export default function DriveFolderPickerModal({
                   >
                     <div className="flex items-center gap-3">
                       <Folder size={20} className="text-sky-500" />
-                      <span className="font-medium text-slate-700">{folder.name}</span>
+                      <span className="font-medium text-slate-700">
+                        {folder.name}
+                      </span>
                     </div>
                     <div className="flex items-center gap-3">
-                      {folder.starred && <Star size={16} className="fill-amber-400 text-amber-400" />}
+                      {folder.starred && (
+                        <Star
+                          size={16}
+                          className="fill-amber-400 text-amber-400"
+                        />
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -184,16 +219,20 @@ export default function DriveFolderPickerModal({
                 ))
               )}
             </div>
-            
+
             {/* Footer with a fallback current folder selection if we are inside a folder */}
             {viewMode === "folder" && currentFolderNav.length > 0 && (
               <div className="border-t border-slate-100 p-4 bg-slate-50 flex items-center justify-between shrink-0">
                 <span className="text-sm text-slate-600">
-                  Salvar em: <strong className="text-slate-800">{currentFolderNav[currentFolderNav.length - 1].name}</strong>
+                  Salvar em:{" "}
+                  <strong className="text-slate-800">
+                    {currentFolderNav[currentFolderNav.length - 1].name}
+                  </strong>
                 </span>
                 <button
                   onClick={() => {
-                    const currentFolder = currentFolderNav[currentFolderNav.length - 1];
+                    const currentFolder =
+                      currentFolderNav[currentFolderNav.length - 1];
                     onSelect(currentFolder.id, currentFolder.name);
                   }}
                   className="px-5 py-2 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors text-sm"
@@ -206,7 +245,10 @@ export default function DriveFolderPickerModal({
             {/* Special behavior for root or starred to select the whole space / create new folder */}
             {(viewMode === "root" || viewMode === "starred") && (
               <div className="border-t border-slate-100 p-4 bg-slate-50 flex items-center justify-between shrink-0">
-                 <span className="text-sm text-slate-500">Selecione uma pasta acima clicando em "Selecionar" ou entre nela.</span>
+                <span className="text-sm text-slate-500">
+                  Selecione uma pasta acima clicando em "Selecionar" ou entre
+                  nela.
+                </span>
               </div>
             )}
           </div>

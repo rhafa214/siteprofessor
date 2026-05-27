@@ -33,28 +33,40 @@ export default function AlertModal({
 
   const Icon = () => {
     switch (type) {
-      case "success": return <CheckCircle size={28} strokeWidth={2.5} />;
-      case "error": return <AlertCircle size={28} strokeWidth={2.5} />;
-      case "warning": return <AlertTriangle size={28} strokeWidth={2.5} />;
-      default: return <Info size={28} strokeWidth={2.5} />;
+      case "success":
+        return <CheckCircle size={28} strokeWidth={2.5} />;
+      case "error":
+        return <AlertCircle size={28} strokeWidth={2.5} />;
+      case "warning":
+        return <AlertTriangle size={28} strokeWidth={2.5} />;
+      default:
+        return <Info size={28} strokeWidth={2.5} />;
     }
   };
 
   const iconStyle = () => {
     switch (type) {
-      case "success": return "bg-emerald-50 text-emerald-500 shadow-emerald-100";
-      case "error": return "bg-rose-50 text-rose-500 shadow-rose-100";
-      case "warning": return "bg-amber-50 text-amber-500 shadow-amber-100";
-      default: return "bg-blue-50 text-blue-500 shadow-blue-100";
+      case "success":
+        return "bg-emerald-50 text-emerald-500 shadow-emerald-100";
+      case "error":
+        return "bg-rose-50 text-rose-500 shadow-rose-100";
+      case "warning":
+        return "bg-amber-50 text-amber-500 shadow-amber-100";
+      default:
+        return "bg-blue-50 text-blue-500 shadow-blue-100";
     }
   };
 
   const buttonStyle = () => {
     switch (type) {
-      case "success": return "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500/20";
-      case "error": return "bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500/20";
-      case "warning": return "bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500/20";
-      default: return "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500/20";
+      case "success":
+        return "bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500/20";
+      case "error":
+        return "bg-rose-600 text-white hover:bg-rose-700 focus:ring-rose-500/20";
+      case "warning":
+        return "bg-amber-600 text-white hover:bg-amber-700 focus:ring-amber-500/20";
+      default:
+        return "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500/20";
     }
   };
 
@@ -87,7 +99,9 @@ export default function AlertModal({
               </div>
 
               <div className="px-6 pt-10 pb-8 flex flex-col items-center">
-                <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-5 shadow-lg ${iconStyle()}`}>
+                <div
+                  className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-5 shadow-lg ${iconStyle()}`}
+                >
                   <Icon />
                 </div>
                 <h3 className="font-bold text-slate-800 text-xl tracking-tight mb-2">

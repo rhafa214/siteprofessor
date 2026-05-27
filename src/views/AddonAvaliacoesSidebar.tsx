@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { BookMarked, Search, ChevronLeft, Loader2, FileText } from "lucide-react";
+import {
+  BookMarked,
+  Search,
+  ChevronLeft,
+  Loader2,
+  FileText,
+} from "lucide-react";
 import { db } from "../lib/firebase";
 import { collection, onSnapshot } from "firebase/firestore";
 import { useAuth } from "../contexts/AuthContext";
@@ -19,7 +25,9 @@ export default function AddonAvaliacoesSidebar() {
   const { user } = useAuth();
   const [apostilas, setApostilas] = useState<Apostila[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedApostila, setSelectedApostila] = useState<Apostila | null>(null);
+  const [selectedApostila, setSelectedApostila] = useState<Apostila | null>(
+    null,
+  );
   const [localPdfBlob, setLocalPdfBlob] = useState<Blob | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,7 +53,7 @@ export default function AddonAvaliacoesSidebar() {
       (error) => {
         console.error("Firestore error:", error);
         setLoading(false);
-      }
+      },
     );
     return () => unsub();
   }, [user]);
@@ -63,7 +71,7 @@ export default function AddonAvaliacoesSidebar() {
   const filtered = apostilas.filter(
     (a) =>
       (a.category === "apostila" || !a.category) &&
-      a.title.toLowerCase().includes(searchTerm.toLowerCase())
+      a.title.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
@@ -94,7 +102,9 @@ export default function AddonAvaliacoesSidebar() {
             <FileText size={16} />
           )}
           <h1 className="font-bold text-base leading-tight tracking-tight flex-1 truncate">
-            {selectedApostila ? selectedApostila.title : "Montador de Avaliações"}
+            {selectedApostila
+              ? selectedApostila.title
+              : "Montador de Avaliações"}
           </h1>
         </div>
 
@@ -129,15 +139,13 @@ export default function AddonAvaliacoesSidebar() {
           </div>
         ) : selectedApostila ? (
           <div className="flex-1 w-full bg-[#1e1e1e]">
-            <PdfViewer
-              url={selectedApostila.pdfUrl}
-              fileData={localPdfBlob}
-            />
+            <PdfViewer url={selectedApostila.pdfUrl} fileData={localPdfBlob} />
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-6 text-center text-slate-500 relative z-10 bg-white m-4 rounded-xl shadow-sm border border-slate-100">
             <BookMarked size={32} className="mx-auto mb-3 text-slate-300" />
-            Nenhuma apostila encontrada. Adicione as apostilas na plataforma principal (Estante de Arquivos).
+            Nenhuma apostila encontrada. Adicione as apostilas na plataforma
+            principal (Estante de Arquivos).
           </div>
         ) : (
           <div className="p-3 grid grid-cols-2 gap-3 relative z-10">
@@ -147,7 +155,9 @@ export default function AddonAvaliacoesSidebar() {
                 onClick={() => handleSelectApostila(apo)}
                 className={`flex flex-col items-center justify-center text-center p-3 rounded-xl border border-slate-200 shadow-sm hover:border-indigo-400 hover:shadow-md transition-all ${apo.color || "bg-indigo-500"} bg-opacity-10 bg-white`}
               >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm mb-2 ${apo.color || "bg-indigo-500"}`}>
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm mb-2 ${apo.color || "bg-indigo-500"}`}
+                >
                   <BookMarked size={18} />
                 </div>
                 <span className="text-xs font-semibold text-slate-700 line-clamp-2">

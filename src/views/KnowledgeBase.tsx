@@ -262,8 +262,8 @@ export default function KnowledgeBase() {
               <Info size={16} className="mt-0.5 shrink-0" />
               <span>
                 Cole aqui o conteúdo da planilha do Estado (Currículo Paulista,
-                habilidades, materiais) ou anexe o PDF do Escopo-Sequência. Pode copiar as células da planilha e
-                colar direto aqui.
+                habilidades, materiais) ou anexe o PDF do Escopo-Sequência. Pode
+                copiar as células da planilha e colar direto aqui.
               </span>
             </p>
           </div>

@@ -129,7 +129,13 @@ export default function ClassJournal() {
   }, [user]);
 
   const handleDeleteLog = async (id: number) => {
-    if (await confirm({ title: "Excluir Registro", message: "Tem certeza que deseja excluir este registro?", isDestructive: true })) {
+    if (
+      await confirm({
+        title: "Excluir Registro",
+        message: "Tem certeza que deseja excluir este registro?",
+        isDestructive: true,
+      })
+    ) {
       setLogs(logs.filter((log) => log.id !== id));
       if (user) {
         deleteDoc(doc(db, "users", user.uid, "classLogs", id.toString())).catch(
@@ -177,7 +183,7 @@ export default function ClassJournal() {
       showAlert(
         "Por favor, preencha o resumo e selecione pelo menos um horário de aula.",
         "Atenção",
-        "warning"
+        "warning",
       );
       return;
     }

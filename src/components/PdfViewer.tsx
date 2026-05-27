@@ -21,7 +21,7 @@ import {
   Undo,
   Menu,
   X,
-  List
+  List,
 } from "lucide-react";
 import { getStroke } from "perfect-freehand";
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -227,29 +227,33 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
   const zoomOut = () => setScale((prev) => Math.max(prev - 0.2, 0.5));
 
   const [optimalHeight, setOptimalHeight] = useState(
-    typeof window !== "undefined" ? Math.max(400, window.innerHeight - 120) : 800
+    typeof window !== "undefined"
+      ? Math.max(400, window.innerHeight - 120)
+      : 800,
   );
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!wrapperRef.current) return;
-    
+
     const updateHeight = () => {
       if (wrapperRef.current) {
         // Leave room for toolbars and padding
         const newHeight = Math.max(400, wrapperRef.current.clientHeight - 80);
-        setOptimalHeight((prev) => Math.abs(prev - newHeight) > 10 ? newHeight : prev);
+        setOptimalHeight((prev) =>
+          Math.abs(prev - newHeight) > 10 ? newHeight : prev,
+        );
       }
     };
-    
+
     updateHeight();
-    
+
     let timeoutId: number;
     const observer = new ResizeObserver(() => {
       clearTimeout(timeoutId);
       timeoutId = window.setTimeout(updateHeight, 300);
     });
-    
+
     observer.observe(wrapperRef.current);
     return () => {
       observer.disconnect();
@@ -258,7 +262,10 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="flex flex-col h-full min-h-0 bg-[#1e1e1e] overflow-hidden relative">
+    <div
+      ref={wrapperRef}
+      className="flex flex-col h-full min-h-0 bg-[#1e1e1e] overflow-hidden relative"
+    >
       {useDriveIframe ? (
         <div className="flex flex-col w-full h-full relative">
           <div className="p-2 bg-amber-500/20 text-amber-200 text-xs text-center border-b border-amber-500/30 z-10 backdrop-blur-md shrink-0">
@@ -275,9 +282,7 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
       ) : (
         <>
           {/* Reader Area */}
-          <div 
-             className="flex-1 overflow-auto w-full h-full relative flex justify-center py-4 px-2 pdf-scrollbar scroll-smooth"
-          >
+          <div className="flex-1 overflow-auto w-full h-full relative flex justify-center py-4 px-2 pdf-scrollbar scroll-smooth">
             {loading && !errorMsg && (
               <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 z-10 bg-[#1e1e1e]">
                 <Loader2
@@ -331,7 +336,7 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
                               <List size={18} />
                               Índice
                             </h3>
-                            <button 
+                            <button
                               onClick={() => setShowOutline(false)}
                               className="p-1.5 hover:bg-white/10 rounded-full transition-colors"
                             >
@@ -339,9 +344,9 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
                             </button>
                           </div>
                           <div className="text-sm prose prose-invert max-w-none">
-                            <Outline 
+                            <Outline
                               onItemClick={({ pageNumber }) => {
-                                 goToPage(Number(pageNumber));
+                                goToPage(Number(pageNumber));
                               }}
                               className="text-white/80 hover:text-white"
                             />
@@ -351,7 +356,11 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
                     )}
                   </AnimatePresence>
 
-                  <AnimatePresence mode="wait" initial={false} custom={direction}>
+                  <AnimatePresence
+                    mode="wait"
+                    initial={false}
+                    custom={direction}
+                  >
                     <motion.div
                       key={pageNumber}
                       custom={direction}
@@ -376,7 +385,7 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
                       exit="exit"
                       transition={{
                         opacity: { duration: 0.2 },
-                        x: { type: "spring", stiffness: 300, damping: 30 }
+                        x: { type: "spring", stiffness: 300, damping: 30 },
                       }}
                       className="relative isolate w-full flex justify-center"
                     >
@@ -441,7 +450,6 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
                       </svg>
                     </motion.div>
                   </AnimatePresence>
-
                 </Document>
               </div>
             )}
@@ -521,26 +529,33 @@ export default function PdfViewer({ url, fileData }: PdfViewerProps) {
               </button>
 
               <div className="flex items-center gap-2">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={pageInput}
                   onChange={(e) => setPageInput(e.target.value)}
                   onBlur={() => {
                     const parsed = parseInt(pageInput, 10);
-                    if (!isNaN(parsed) && parsed >= 1 && numPages && parsed <= numPages) {
+                    if (
+                      !isNaN(parsed) &&
+                      parsed >= 1 &&
+                      numPages &&
+                      parsed <= numPages
+                    ) {
                       goToPage(parsed);
                     } else {
                       setPageInput(String(pageNumber));
                     }
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.currentTarget.blur();
                     }
                   }}
                   className="w-12 text-center bg-white/10 border border-white/20 rounded py-1 px-1 text-sm font-black text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                 />
-                <span className="text-white/50 font-normal">/ {numPages || "?"}</span>
+                <span className="text-white/50 font-normal">
+                  / {numPages || "?"}
+                </span>
               </div>
 
               <button

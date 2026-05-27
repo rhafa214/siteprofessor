@@ -124,7 +124,13 @@ export default function StudentsDatabase() {
   };
 
   const removeStudent = async (turmaId: string, studentId: string) => {
-    if (!(await confirm({ title: "Remover Aluno", message: "Tem certeza que deseja remover este aluno da turma?" }))) return;
+    if (
+      !(await confirm({
+        title: "Remover Aluno",
+        message: "Tem certeza que deseja remover este aluno da turma?",
+      }))
+    )
+      return;
 
     if (user) {
       try {
@@ -199,9 +205,9 @@ export default function StudentsDatabase() {
       extractedNames.forEach((name) => {
         const existing = classData.students?.find((s: any) => s.name === name);
         if (existing) {
-           if (mode === "replace") {
-             newStudentsList.push(existing);
-           }
+          if (mode === "replace") {
+            newStudentsList.push(existing);
+          }
         } else {
           newStudentsList.push({ id: crypto.randomUUID(), name });
         }
@@ -431,11 +437,14 @@ export default function StudentsDatabase() {
                 Atualizar Lista de Alunos
               </h2>
               <p className="text-slate-500 mb-6 font-medium leading-relaxed shrink-0">
-                Cole a lista de nomes abaixo ou faça upload de um CSV/PDF para a turma{" "}
+                Cole a lista de nomes abaixo ou faça upload de um CSV/PDF para a
+                turma{" "}
                 <span className="bg-slate-100 px-2 rounded">
                   {importTargetTurma}
                 </span>
-                . Você pode optar por adicionar apenas os novos ou substituir a lista inteira. Alunos com nomes já existentes manterão suas notas.
+                . Você pode optar por adicionar apenas os novos ou substituir a
+                lista inteira. Alunos com nomes já existentes manterão suas
+                notas.
               </p>
 
               <div className="flex-1 min-h-0 mb-6 overflow-y-auto">
@@ -463,13 +472,13 @@ export default function StudentsDatabase() {
                     <FileText size={16} /> Upload Arquivo
                   </button>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row flex-wrap justify-center md:justify-end items-center gap-2 w-full md:w-auto shrink-0">
                   <button
-                     onClick={() => setIsImportModalOpen(false)}
-                     className="w-full sm:w-auto px-4 py-2.5 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm"
+                    onClick={() => setIsImportModalOpen(false)}
+                    className="w-full sm:w-auto px-4 py-2.5 text-slate-500 font-bold rounded-xl hover:bg-slate-100 transition-colors text-sm"
                   >
-                     Cancelar
+                    Cancelar
                   </button>
                   <button
                     onClick={() => handleImportStudents("replace")}

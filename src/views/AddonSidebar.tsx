@@ -4,29 +4,47 @@ import { useLocalStorage } from "../hooks/useLocalStorage";
 import { getCurrentBimestre } from "../lib/constants";
 import { dbAulas, dbAEs, Aula } from "../data/guiaPedagogico";
 import { bnccHabilidades } from "../data/bnccHabilidades";
-import { BookOpen, PlusCircle, CheckCircle2, Search, ChevronLeft, Upload, Settings } from "lucide-react";
+import {
+  BookOpen,
+  PlusCircle,
+  CheckCircle2,
+  Search,
+  ChevronLeft,
+  Upload,
+  Settings,
+} from "lucide-react";
 
 export default function AddonSidebar() {
   const [selectedAno, setSelectedAno] = useState<number | null>(null);
   const [bimestre, setBimestre] = useState<number>(getCurrentBimestre());
   const [searchTerm, setSearchTerm] = useState("");
   const [insertedIds, setInsertedIds] = useState<Set<string>>(new Set());
-  const [activeTab, setActiveTab] = useState<"aulas" | "aes" | "settings">("aulas");
-  const [customAulas, setCustomAulas] = useLocalStorage<Aula[]>("customAulasData", []);
-  const [userGeminiKey, setUserGeminiKey] = useLocalStorage<string>("userGeminiKey", "");
+  const [activeTab, setActiveTab] = useState<"aulas" | "aes" | "settings">(
+    "aulas",
+  );
+  const [customAulas, setCustomAulas] = useLocalStorage<Aula[]>(
+    "customAulasData",
+    [],
+  );
+  const [userGeminiKey, setUserGeminiKey] = useLocalStorage<string>(
+    "userGeminiKey",
+    "",
+  );
   const [isExtractingPDF, setIsExtractingPDF] = useState(false);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.name.endsWith('.pdf')) {
+    if (file.name.endsWith(".pdf")) {
       setIsExtractingPDF(true);
       try {
         const { GoogleGenAI } = await import("@google/genai");
-        
+
         let ai = null;
         if (userGeminiKey) {
           ai = new GoogleGenAI({ apiKey: userGeminiKey });
@@ -34,22 +52,26 @@ export default function AddonSidebar() {
           try {
             const { getGeminiClient } = await import("../lib/gemini");
             ai = getGeminiClient();
-          } catch(e) {}
+          } catch (e) {}
         }
-        
+
         if (!ai) {
-          alert("Erro: Configure sua CHAVE de API do Gemini na aba de Configurações para processar PDFs.");
+          alert(
+            "Erro: Configure sua CHAVE de API do Gemini na aba de Configurações para processar PDFs.",
+          );
           setActiveTab("settings");
           setIsExtractingPDF(false);
           return;
         }
 
-        const toBase64 = (f: File) => new Promise<string>((resolve, reject) => {
+        const toBase64 = (f: File) =>
+          new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(f);
-            reader.onload = () => resolve((reader.result as string).split(",")[1]);
-            reader.onerror = error => reject(error);
-        });
+            reader.onload = () =>
+              resolve((reader.result as string).split(",")[1]);
+            reader.onerror = (error) => reject(error);
+          });
 
         const base64Data = await toBase64(file);
 
@@ -64,7 +86,11 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 - habilidades (codigos das habilidades citadas)
 - aprendizagemEssencial`;
 
-        const modelsToTry = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-2.0-flash"];
+        const modelsToTry = [
+          "gemini-1.5-pro",
+          "gemini-1.5-flash",
+          "gemini-2.0-flash",
+        ];
         let response = null;
         let lastError = null;
 
@@ -77,13 +103,13 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
                 {
                   inlineData: {
                     mimeType: "application/pdf",
-                    data: base64Data
-                  }
-                }
+                    data: base64Data,
+                  },
+                },
               ],
               config: {
-                responseMimeType: "application/json"
-              }
+                responseMimeType: "application/json",
+              },
             });
             if (response) break;
           } catch (e: any) {
@@ -93,7 +119,9 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
         }
 
         if (!response) {
-          throw lastError || new Error("Todos os modelos falharam na extração.");
+          throw (
+            lastError || new Error("Todos os modelos falharam na extração.")
+          );
         }
 
         let rawText = response.text || "";
@@ -105,33 +133,46 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
         }
 
         if (rawText) {
-           try {
-             const parsed = JSON.parse(rawText);
-             if (Array.isArray(parsed) && parsed.length > 0) {
-               setCustomAulas(prev => [...prev, ...parsed]);
-               alert(`Escopo PDF importado com sucesso! ${parsed.length} aulas extraídas.`);
-             } else {
-               alert(`O PDF foi processado, mas o formato não continha aulas válidas (encontrado: ${typeof parsed}).`);
-             }
-           } catch (parseError: any) {
-             console.error("Erro no JSON.parse:", parseError, rawText);
-             throw new Error(`Erro ao interpretar as aulas (JSON inválido retornado pela IA).`);
-           }
+          try {
+            const parsed = JSON.parse(rawText);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setCustomAulas((prev) => [...prev, ...parsed]);
+              alert(
+                `Escopo PDF importado com sucesso! ${parsed.length} aulas extraídas.`,
+              );
+            } else {
+              alert(
+                `O PDF foi processado, mas o formato não continha aulas válidas (encontrado: ${typeof parsed}).`,
+              );
+            }
+          } catch (parseError: any) {
+            console.error("Erro no JSON.parse:", parseError, rawText);
+            throw new Error(
+              `Erro ao interpretar as aulas (JSON inválido retornado pela IA).`,
+            );
+          }
         } else {
-           alert("Nenhuma aula foi extraída do PDF. O modelo retornou vazio.");
+          alert("Nenhuma aula foi extraída do PDF. O modelo retornou vazio.");
         }
       } catch (err: any) {
         console.error(err);
-        const errorMessage = typeof err.message === 'string' ? err.message : JSON.stringify(err);
-        if (errorMessage.includes("503") || errorMessage.includes("high demand") || errorMessage.includes("UNAVAILABLE")) {
-          alert("A Inteligência Artificial está com alta demanda no momento. Por favor, aguarde alguns instantes e tente novamente.");
+        const errorMessage =
+          typeof err.message === "string" ? err.message : JSON.stringify(err);
+        if (
+          errorMessage.includes("503") ||
+          errorMessage.includes("high demand") ||
+          errorMessage.includes("UNAVAILABLE")
+        ) {
+          alert(
+            "A Inteligência Artificial está com alta demanda no momento. Por favor, aguarde alguns instantes e tente novamente.",
+          );
         } else {
           alert("Erro no processamento do PDF: " + errorMessage);
         }
       } finally {
         setIsExtractingPDF(false);
       }
-    } else if (file.name.endsWith('.json')) {
+    } else if (file.name.endsWith(".json")) {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
@@ -145,7 +186,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
         }
       };
       reader.readAsText(file);
-    } else if (file.name.endsWith('.csv')) {
+    } else if (file.name.endsWith(".csv")) {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
@@ -154,18 +195,18 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
             ano: Number(row.ano),
             bimestre: Number(row.bimestre),
             numero: Number(row.numero),
-            titulo: row.titulo || '',
-            conteudo: row.conteudo || '',
-            objetivos: row.objetivos || '',
-            habilidades: row.habilidades || '',
-            aprendizagemEssencial: row.aprendizagemEssencial || ''
+            titulo: row.titulo || "",
+            conteudo: row.conteudo || "",
+            objetivos: row.objetivos || "",
+            habilidades: row.habilidades || "",
+            aprendizagemEssencial: row.aprendizagemEssencial || "",
           }));
           setCustomAulas(parsed);
           alert("Escopo importado com sucesso (CSV)!");
         },
         error: (error) => {
           alert("Erro ao ler CSV: " + error.message);
-        }
+        },
       });
     } else {
       alert("Formato não suportado. Use .csv ou .json");
@@ -191,11 +232,17 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
     return res.join(", ");
   };
 
-  const getDetalheAprendizagem = (ano: number, bimestre: number, codigo: string) => {
+  const getDetalheAprendizagem = (
+    ano: number,
+    bimestre: number,
+    codigo: string,
+  ) => {
     if (!codigo || codigo === "-") return codigo;
     const codigos = codigo.split(",").map((c) => c.trim());
     const detalhes = codigos.map((c) => {
-      const aeInfo = dbAEs.find((ae) => ae.ano === ano && ae.bimestre === bimestre && ae.id === c);
+      const aeInfo = dbAEs.find(
+        (ae) => ae.ano === ano && ae.bimestre === bimestre && ae.id === c,
+      );
       return aeInfo ? `${c} - ${aeInfo.titulo}` : c;
     });
     return detalhes.join("\n");
@@ -203,38 +250,39 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 
   // Filter aulas
   const constAllAulas = [...dbAulas, ...customAulas];
-  const aulas = constAllAulas.filter(
-    (aula) => {
-      if (aula.ano !== selectedAno || aula.bimestre !== bimestre) return false;
-      const title = String(aula.titulo || aula.conteudo || "").toLowerCase();
-      const obj = String(aula.objetivos || "").toLowerCase();
-      const num = String(aula.numero || "").toLowerCase();
-      const term = searchTerm.toLowerCase();
-      return title.includes(term) || obj.includes(term) || num.includes(term);
-    }
-  );
+  const aulas = constAllAulas.filter((aula) => {
+    if (aula.ano !== selectedAno || aula.bimestre !== bimestre) return false;
+    const title = String(aula.titulo || aula.conteudo || "").toLowerCase();
+    const obj = String(aula.objetivos || "").toLowerCase();
+    const num = String(aula.numero || "").toLowerCase();
+    const term = searchTerm.toLowerCase();
+    return title.includes(term) || obj.includes(term) || num.includes(term);
+  });
 
-  const aes = dbAEs.filter(
-    (ae) => {
-      if (ae.ano !== selectedAno || ae.bimestre !== bimestre) return false;
-      const title = String(ae.titulo || "").toLowerCase();
-      const id = String(ae.id || "").toLowerCase();
-      const term = searchTerm.toLowerCase();
-      return title.includes(term) || id.includes(term);
-    }
-  );
+  const aes = dbAEs.filter((ae) => {
+    if (ae.ano !== selectedAno || ae.bimestre !== bimestre) return false;
+    const title = String(ae.titulo || "").toLowerCase();
+    const id = String(ae.id || "").toLowerCase();
+    const term = searchTerm.toLowerCase();
+    return title.includes(term) || id.includes(term);
+  });
 
   const handleInsert = (aula: any, id: string) => {
     // Construct the text to insert
     const title = aula.titulo || aula.conteudo || "";
-    const aprendizagem = getDetalheAprendizagem(aula.ano, aula.bimestre, aula.aprendizagemEssencial || "");
-    const habilidades = Array.isArray(aula.habilidades) 
-      ? aula.habilidades.join(", ") 
+    const aprendizagem = getDetalheAprendizagem(
+      aula.ano,
+      aula.bimestre,
+      aula.aprendizagemEssencial || "",
+    );
+    const habilidades = Array.isArray(aula.habilidades)
+      ? aula.habilidades.join(", ")
       : aula.habilidades || "";
     const objetivos = aula.objetivos || "";
 
     let textToInsert = `Aula ${aula.numero}: ${title}\n`;
-    if (aprendizagem) textToInsert += `Aprendizagem Essencial: ${aprendizagem}\n`;
+    if (aprendizagem)
+      textToInsert += `Aprendizagem Essencial: ${aprendizagem}\n`;
     if (habilidades) textToInsert += `Habilidades: ${habilidades}\n`;
     if (objetivos) textToInsert += `Objetivos: ${objetivos}\n`;
     textToInsert += `\n`;
@@ -245,7 +293,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
         type: "INSERT_TEXT",
         text: textToInsert,
       },
-      "*"
+      "*",
     );
 
     // mark as inserted visually
@@ -263,8 +311,10 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 
   const handleInsertAE = (ae: any, id: string) => {
     let textToInsert = `Aprendizagem Essencial: ${ae.id}\n${ae.titulo}\n`;
-    if (ae.habilidadePriorizada) textToInsert += `Habilidade Priorizada: ${ae.habilidadePriorizada}\n`;
-    if (ae.habilidadesRelacionadas) textToInsert += `Habilidades Relacionadas: ${ae.habilidadesRelacionadas}\n`;
+    if (ae.habilidadePriorizada)
+      textToInsert += `Habilidade Priorizada: ${ae.habilidadePriorizada}\n`;
+    if (ae.habilidadesRelacionadas)
+      textToInsert += `Habilidades Relacionadas: ${ae.habilidadesRelacionadas}\n`;
     textToInsert += `\n`;
 
     window.parent.postMessage(
@@ -272,7 +322,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
         type: "INSERT_TEXT",
         text: textToInsert,
       },
-      "*"
+      "*",
     );
 
     setInsertedIds((prev) => new Set(prev).add(id));
@@ -296,25 +346,27 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
           <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center text-[#8257E5] font-bold text-lg group-hover:scale-110 transition-transform">
             {ano}º
           </div>
-          <span className="font-semibold text-slate-700 text-sm">{ano}º Ano</span>
+          <span className="font-semibold text-slate-700 text-sm">
+            {ano}º Ano
+          </span>
         </button>
       ))}
     </div>
   );
 
   return (
-    <div 
+    <div
       className="bg-slate-50 text-slate-800 font-sans flex flex-col"
       style={{
-        position: 'fixed',
+        position: "fixed",
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100%',
-        height: '100%',
-        overflowY: 'auto',
-        overflowX: 'hidden'
+        width: "100%",
+        height: "100%",
+        overflowY: "auto",
+        overflowX: "hidden",
       }}
     >
       {/* Header compact - Sticky */}
@@ -322,7 +374,10 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
         <div className="bg-[#8257E5] text-white p-3 shadow-md flex justify-between items-center">
           <div className="flex items-center gap-2">
             {selectedAno ? (
-              <button onClick={() => setSelectedAno(null)} className="hover:bg-white/20 p-1 -ml-1 rounded-full text-white transition-colors">
+              <button
+                onClick={() => setSelectedAno(null)}
+                className="hover:bg-white/20 p-1 -ml-1 rounded-full text-white transition-colors"
+              >
                 <ChevronLeft size={16} />
               </button>
             ) : (
@@ -332,16 +387,18 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
               {selectedAno ? `${selectedAno}º Ano` : "Escopo EduAssistente"}
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-1">
-            <button 
-              onClick={() => setActiveTab(activeTab === "settings" ? "aulas" : "settings")}
+            <button
+              onClick={() =>
+                setActiveTab(activeTab === "settings" ? "aulas" : "settings")
+              }
               className={`hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative ${activeTab === "settings" ? "bg-white/20" : ""}`}
               title="Configurações (Chave API)"
             >
               <Settings size={16} />
             </button>
-            <button 
+            <button
               onClick={() => fileInputRef.current?.click()}
               className="hover:bg-white/20 p-1.5 rounded-full transition-colors flex items-center justify-center relative"
               title="Importar Meu Escopo (PDF/CSV/JSON)"
@@ -354,12 +411,12 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
               )}
             </button>
           </div>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleFileUpload} 
-            accept=".csv,.json,.pdf" 
-            className="hidden" 
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".csv,.json,.pdf"
+            className="hidden"
           />
         </div>
 
@@ -391,27 +448,35 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
                 />
                 <input
                   type="text"
-                  placeholder={activeTab === "aulas" ? "Buscar aula ou termo..." : "Buscar aprendizagem..."}
+                  placeholder={
+                    activeTab === "aulas"
+                      ? "Buscar aula ou termo..."
+                      : "Buscar aprendizagem..."
+                  }
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-8 pr-3 py-1.5 bg-slate-100 border-none rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-[#8257E5]"
                 />
               </div>
             </div>
-            
+
             <div className="flex w-full">
-              <button 
+              <button
                 onClick={() => setActiveTab("aulas")}
                 className={`flex-1 py-2 text-xs font-semibold text-center border-b-2 transition-colors ${
-                  activeTab === "aulas" ? "border-[#8257E5] text-[#8257E5]" : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  activeTab === "aulas"
+                    ? "border-[#8257E5] text-[#8257E5]"
+                    : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 Aulas
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab("aes")}
                 className={`flex-1 py-2 text-xs font-semibold text-center border-b-2 transition-colors ${
-                  activeTab === "aes" ? "border-[#8257E5] text-[#8257E5]" : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                  activeTab === "aes"
+                    ? "border-[#8257E5] text-[#8257E5]"
+                    : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                 }`}
               >
                 Aprendizagens (AE)
@@ -425,12 +490,17 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
       <div className="flex-1 p-4 pb-12 relative">
         {activeTab === "settings" ? (
           <div className="bg-white border text-sm border-slate-200 rounded-xl p-4 shadow-sm">
-            <h3 className="font-bold text-slate-800 mb-2">Configurações de IA</h3>
+            <h3 className="font-bold text-slate-800 mb-2">
+              Configurações de IA
+            </h3>
             <p className="text-slate-600 mb-4 text-xs">
-              Para extrair dados do seu próprio PDF de matriz curricular, forneça uma chave de API do Google Gemini (gratuita).
+              Para extrair dados do seu próprio PDF de matriz curricular,
+              forneça uma chave de API do Google Gemini (gratuita).
             </p>
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-semibold text-slate-700">Gemini API Key</label>
+              <label className="text-xs font-semibold text-slate-700">
+                Gemini API Key
+              </label>
               <input
                 type="password"
                 value={userGeminiKey}
@@ -439,142 +509,79 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
                 className="w-full px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:border-[#8257E5]"
               />
               <p className="text-[10px] text-slate-500">
-                Sua chave fica salva apenas no seu navegador. Obtenha a sua em <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-indigo-600 underline">aistudio.google.com</a>.
+                Sua chave fica salva apenas no seu navegador. Obtenha a sua em{" "}
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  className="text-indigo-600 underline"
+                >
+                  aistudio.google.com
+                </a>
+                .
               </p>
             </div>
           </div>
         ) : !selectedAno ? (
           renderAnos()
         ) : activeTab === "aulas" ? (
-            aulas.length === 0 ? (
-              <p className="text-center text-slate-500 text-sm mt-4">
-                Nenhuma aula encontrada.
-              </p>
-            ) : (
-              <div className="relative border-l-2 border-indigo-100 ml-3 space-y-6">
-                {aulas.map((aula, index) => {
-                  const id = `${aula.ano}-${aula.bimestre}-${aula.numero}-${index}`;
-                  const isInserted = insertedIds.has(id);
-                  return (
-                    <div key={id} className="relative pl-6">
-                      <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-[#8257E5] z-10" />
+          aulas.length === 0 ? (
+            <p className="text-center text-slate-500 text-sm mt-4">
+              Nenhuma aula encontrada.
+            </p>
+          ) : (
+            <div className="relative border-l-2 border-indigo-100 ml-3 space-y-6">
+              {aulas.map((aula, index) => {
+                const id = `${aula.ano}-${aula.bimestre}-${aula.numero}-${index}`;
+                const isInserted = insertedIds.has(id);
+                return (
+                  <div key={id} className="relative pl-6">
+                    <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-white border-2 border-[#8257E5] z-10" />
 
-                      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
-                            Aula {aula.numero}
-                          </span>
-                          <h3 className="font-semibold text-sm text-slate-800 leading-tight">
-                            {aula.titulo || aula.conteudo}
-                          </h3>
-                        </div>
+                    <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0">
+                          Aula {aula.numero}
+                        </span>
+                        <h3 className="font-semibold text-sm text-slate-800 leading-tight">
+                          {aula.titulo || aula.conteudo}
+                        </h3>
+                      </div>
 
-                        <div className="flex flex-col gap-2 mb-3">
-                          {aula.aprendizagemEssencial && aula.aprendizagemEssencial !== "-" && (
+                      <div className="flex flex-col gap-2 mb-3">
+                        {aula.aprendizagemEssencial &&
+                          aula.aprendizagemEssencial !== "-" && (
                             <div>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Aprendizagem Essencial</span>
+                              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                                Aprendizagem Essencial
+                              </span>
                               <p className="text-xs text-slate-600 leading-snug whitespace-pre-wrap">
-                                {getDetalheAprendizagem(aula.ano, aula.bimestre, aula.aprendizagemEssencial)}
+                                {getDetalheAprendizagem(
+                                  aula.ano,
+                                  aula.bimestre,
+                                  aula.aprendizagemEssencial,
+                                )}
                               </p>
                             </div>
                           )}
 
-                          {(aula.habilidades && aula.habilidades.length > 0) && (
-                            <div>
-                              <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades</span>
-                              <div className="text-xs text-slate-600 leading-snug space-y-1">
-                                {(Array.isArray(aula.habilidades) ? aula.habilidades : aula.habilidades.split(",")).map(h => {
-                                  const code = h.trim();
-                                  const desc = bnccHabilidades[code];
-                                  return (
-                                    <p key={code} className="mb-1">
-                                      <span className="font-semibold">({code})</span>{desc ? ` ${desc}` : ""}
-                                    </p>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-
+                        {aula.habilidades && aula.habilidades.length > 0 && (
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Objetivos</span>
-                            <p className="text-xs text-slate-600 leading-snug">
-                              {aula.objetivos || "Sem objetivos cadastrados."}
-                            </p>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => handleInsert(aula, id)}
-                          className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
-                            isInserted
-                              ? "bg-green-100 text-green-700"
-                              : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
-                          }`}
-                        >
-                          {isInserted ? (
-                            <>
-                              <CheckCircle2 size={14} />
-                              Inserido!
-                            </>
-                          ) : (
-                            <>
-                              <PlusCircle size={14} />
-                              Inserir no Doc
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )
-          ) : activeTab === "aes" ? (
-            aes.length === 0 ? (
-              <p className="text-center text-slate-500 text-sm mt-4">
-                Nenhuma aprendizagem essencial encontrada.
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {aes.map((ae, index) => {
-                  const id = `ae-${ae.ano}-${ae.bimestre}-${ae.id}-${index}`;
-                  const isInserted = insertedIds.has(id);
-                  const aulasRelacionadas = dbAulas
-                    .filter(a => a.ano === ae.ano && a.bimestre === ae.bimestre && a.aprendizagemEssencial.split(',').map(s => s.trim()).includes(ae.id))
-                    .map(a => a.numero)
-                    .sort((a,b) => a - b);
-                  const aulasStr = formatAulasList(aulasRelacionadas);
-
-                  return (
-                    <div key={id} className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group">
-                      <div className="flex items-start gap-2 mb-2">
-                        <span className="bg-emerald-100 text-emerald-700 text-[10px] whitespace-nowrap font-bold px-2 py-0.5 rounded-full shrink-0">
-                          {ae.id}
-                        </span>
-                        <div className="flex-1">
-                          {aulasStr && (
-                            <div className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
-                              {aulasStr.includes("a") || aulasStr.includes(",") ? "Engloba as Aulas " : "Engloba a Aula "}{aulasStr}
-                            </div>
-                          )}
-                          <h3 className="font-semibold text-sm text-slate-800 leading-tight">
-                            {ae.titulo}
-                          </h3>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-col gap-2 mb-3">
-                        {ae.habilidadePriorizada && (
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidade Priorizada</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                              Habilidades
+                            </span>
                             <div className="text-xs text-slate-600 leading-snug space-y-1">
-                              {ae.habilidadePriorizada.split(",").map(h => {
+                              {(Array.isArray(aula.habilidades)
+                                ? aula.habilidades
+                                : aula.habilidades.split(",")
+                              ).map((h) => {
                                 const code = h.trim();
                                 const desc = bnccHabilidades[code];
                                 return (
                                   <p key={code} className="mb-1">
-                                    <span className="font-semibold">({code})</span>{desc ? ` ${desc}` : ""}
+                                    <span className="font-semibold">
+                                      ({code})
+                                    </span>
+                                    {desc ? ` ${desc}` : ""}
                                   </p>
                                 );
                               })}
@@ -582,30 +589,22 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
                           </div>
                         )}
 
-                        {ae.habilidadesRelacionadas && (
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">Habilidades Relacionadas</span>
-                            <div className="text-xs text-slate-600 leading-snug space-y-1">
-                              {ae.habilidadesRelacionadas.split(",").map(h => {
-                                const code = h.trim();
-                                const desc = bnccHabilidades[code];
-                                return (
-                                  <p key={code} className="mb-1">
-                                    <span className="font-semibold">({code})</span>{desc ? ` ${desc}` : ""}
-                                  </p>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                            Objetivos
+                          </span>
+                          <p className="text-xs text-slate-600 leading-snug">
+                            {aula.objetivos || "Sem objetivos cadastrados."}
+                          </p>
+                        </div>
                       </div>
 
                       <button
-                        onClick={() => handleInsertAE(ae, id)}
+                        onClick={() => handleInsert(aula, id)}
                         className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
                           isInserted
                             ? "bg-green-100 text-green-700"
-                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                            : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
                         }`}
                       >
                         {isInserted ? (
@@ -621,11 +620,131 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
                         )}
                       </button>
                     </div>
-                  );
-                })}
-              </div>
-            )
-          ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : activeTab === "aes" ? (
+          aes.length === 0 ? (
+            <p className="text-center text-slate-500 text-sm mt-4">
+              Nenhuma aprendizagem essencial encontrada.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {aes.map((ae, index) => {
+                const id = `ae-${ae.ano}-${ae.bimestre}-${ae.id}-${index}`;
+                const isInserted = insertedIds.has(id);
+                const aulasRelacionadas = dbAulas
+                  .filter(
+                    (a) =>
+                      a.ano === ae.ano &&
+                      a.bimestre === ae.bimestre &&
+                      a.aprendizagemEssencial
+                        .split(",")
+                        .map((s) => s.trim())
+                        .includes(ae.id),
+                  )
+                  .map((a) => a.numero)
+                  .sort((a, b) => a - b);
+                const aulasStr = formatAulasList(aulasRelacionadas);
+
+                return (
+                  <div
+                    key={id}
+                    className="bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-indigo-300 transition-colors group"
+                  >
+                    <div className="flex items-start gap-2 mb-2">
+                      <span className="bg-emerald-100 text-emerald-700 text-[10px] whitespace-nowrap font-bold px-2 py-0.5 rounded-full shrink-0">
+                        {ae.id}
+                      </span>
+                      <div className="flex-1">
+                        {aulasStr && (
+                          <div className="text-[10px] font-bold text-slate-400 uppercase mb-0.5">
+                            {aulasStr.includes("a") || aulasStr.includes(",")
+                              ? "Engloba as Aulas "
+                              : "Engloba a Aula "}
+                            {aulasStr}
+                          </div>
+                        )}
+                        <h3 className="font-semibold text-sm text-slate-800 leading-tight">
+                          {ae.titulo}
+                        </h3>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 mb-3">
+                      {ae.habilidadePriorizada && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                            Habilidade Priorizada
+                          </span>
+                          <div className="text-xs text-slate-600 leading-snug space-y-1">
+                            {ae.habilidadePriorizada.split(",").map((h) => {
+                              const code = h.trim();
+                              const desc = bnccHabilidades[code];
+                              return (
+                                <p key={code} className="mb-1">
+                                  <span className="font-semibold">
+                                    ({code})
+                                  </span>
+                                  {desc ? ` ${desc}` : ""}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {ae.habilidadesRelacionadas && (
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block mb-0.5">
+                            Habilidades Relacionadas
+                          </span>
+                          <div className="text-xs text-slate-600 leading-snug space-y-1">
+                            {ae.habilidadesRelacionadas.split(",").map((h) => {
+                              const code = h.trim();
+                              const desc = bnccHabilidades[code];
+                              return (
+                                <p key={code} className="mb-1">
+                                  <span className="font-semibold">
+                                    ({code})
+                                  </span>
+                                  {desc ? ` ${desc}` : ""}
+                                </p>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => handleInsertAE(ae, id)}
+                      className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg text-xs font-semibold transition-all ${
+                        isInserted
+                          ? "bg-green-100 text-green-700"
+                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      }`}
+                    >
+                      {isInserted ? (
+                        <>
+                          <CheckCircle2 size={14} />
+                          Inserido!
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircle size={14} />
+                          Inserir no Doc
+                        </>
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )
+        ) : null}
       </div>
     </div>
   );

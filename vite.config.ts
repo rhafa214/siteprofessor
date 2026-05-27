@@ -14,20 +14,20 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
         manifest: {
-          name: 'Professor Dashboard',
-          short_name: 'Professor',
+          name: 'EduAssistente',
+          short_name: 'EduAssist',
           description: 'Painel do Professor - Gestão e Assistente AI',
           theme_color: '#4f46e5',
           background_color: '#f8fafc',
           display: 'standalone',
           icons: [
             {
-              src: 'icon-192.png',
+              src: '/icon-192.png',
               sizes: '192x192',
               type: 'image/png'
             },
             {
-              src: 'icon-512.png',
+              src: '/icon-512.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'

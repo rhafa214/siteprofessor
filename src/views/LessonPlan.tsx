@@ -26,11 +26,15 @@ import {
   ListTodo,
   Bot,
   Calendar,
-  ArrowLeft
+  ArrowLeft,
 } from "lucide-react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { GoogleGenAI } from "@google/genai";
-import { getHolidays, DATAS_OFICIAIS, getCurrentBimestre } from "../lib/constants";
+import {
+  getHolidays,
+  DATAS_OFICIAIS,
+  getCurrentBimestre,
+} from "../lib/constants";
 import {
   collection,
   doc,
@@ -79,7 +83,8 @@ export default function LessonPlan() {
   const { user } = useAuth();
   const { confirm } = useConfirm();
   const { prompt } = usePrompt();
-  const { curriculum, schoolModel, jarvisDocs, schedule } = useJarvisKnowledge();
+  const { curriculum, schoolModel, jarvisDocs, schedule } =
+    useJarvisKnowledge();
   const [oldContent, setOldContent] = useLocalStorage<string>("eduPlan", "");
   const [plansDict, setPlansDict] = useLocalStorage<Record<string, string>>(
     "eduPlansRecord",
@@ -112,12 +117,18 @@ export default function LessonPlan() {
     newFolder: "",
   });
 
-  const [isSemanalClassesModalOpen, setIsSemanalClassesModalOpen] = useState(false);
-  const [selectedSemanalClasses, setSelectedSemanalClasses] = useState<string[]>([]);
+  const [isSemanalClassesModalOpen, setIsSemanalClassesModalOpen] =
+    useState(false);
+  const [selectedSemanalClasses, setSelectedSemanalClasses] = useState<
+    string[]
+  >([]);
 
   const [isBimestralModalOpen, setIsBimestralModalOpen] = useState(false);
-  const [selectedBimestralClasses, setSelectedBimestralClasses] = useState<string[]>([]);
-  const [selectedBimestralBimestre, setSelectedBimestralBimestre] = useState<string>(String(getCurrentBimestre()));
+  const [selectedBimestralClasses, setSelectedBimestralClasses] = useState<
+    string[]
+  >([]);
+  const [selectedBimestralBimestre, setSelectedBimestralBimestre] =
+    useState<string>(String(getCurrentBimestre()));
   const [isGeneratingAuto, setIsGeneratingAuto] = useState(false);
   const [generationProgress, setGenerationProgress] = useState("");
 
@@ -295,10 +306,13 @@ export default function LessonPlan() {
     setViewMode("chat");
     setIsSemanalClassesModalOpen(false);
     handleNewChat();
-    
+
     // We use a timeout to avoid react state batching overriding the messages immediately
     setTimeout(() => {
-      handleSend(undefined, `Quero um planejamento SEMANAL para as seguintes turmas: ${selectedSemanalClasses.join(", ")}. Por favor, me pergunte qual(is) aula(s) eu vou trabalhar (por exemplo: "aula 1 do segundo bimestre", "aulas 2 e 3", etc.). Quando eu responder com as aulas, você DEVE procurar OBRIGATORIAMENTE no seu material base (escopo/sequência/matriz curricular) e me mostrar as Habilidades, Aprendizagens Essenciais, Objetivos e os Conteúdos exatos da aula antes de seguirmos para o plano.`);
+      handleSend(
+        undefined,
+        `Quero um planejamento SEMANAL para as seguintes turmas: ${selectedSemanalClasses.join(", ")}. Por favor, me pergunte qual(is) aula(s) eu vou trabalhar (por exemplo: "aula 1 do segundo bimestre", "aulas 2 e 3", etc.). Quando eu responder com as aulas, você DEVE procurar OBRIGATORIAMENTE no seu material base (escopo/sequência/matriz curricular) e me mostrar as Habilidades, Aprendizagens Essenciais, Objetivos e os Conteúdos exatos da aula antes de seguirmos para o plano.`,
+      );
     }, 100);
   };
 
@@ -319,7 +333,9 @@ export default function LessonPlan() {
 
     const year = new Date().getFullYear();
     const feriadosObj = getHolidays(year);
-    const feriadosList = Object.entries(feriadosObj).map(([k, v]) => `${k}/${year}: ${v}`).join(", ");
+    const feriadosList = Object.entries(feriadosObj)
+      .map(([k, v]) => `${k}/${year}: ${v}`)
+      .join(", ");
 
     try {
       let createdPlansCount = 0;
@@ -328,21 +344,37 @@ export default function LessonPlan() {
 
       for (const turma of selectedBimestralClasses) {
         setGenerationProgress(`Gerando plano para ${turma}...`);
-        
+
         // Descobrir dias da semana da turma
         const diasTurma: string[] = [];
         let totalAulasSemana = 0;
-        
+
         if (schedule) {
-          const diasMap: Record<number, string> = { 1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta", 5: "Sexta" };
+          const diasMap: Record<number, string> = {
+            1: "Segunda",
+            2: "Terça",
+            3: "Quarta",
+            4: "Quinta",
+            5: "Sexta",
+          };
           Object.entries(schedule).forEach(([diaNum, turmas]) => {
             let aulasNoDia = 0;
-            (turmas as string[]).forEach(t => {
-              const normalizeStr = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/º/g, "°").replace(/\s+/g, "");
+            (turmas as string[]).forEach((t) => {
+              const normalizeStr = (str: string) =>
+                str
+                  .normalize("NFD")
+                  .replace(/[\u0300-\u036f]/g, "")
+                  .toLowerCase()
+                  .replace(/º/g, "°")
+                  .replace(/\s+/g, "");
               const td = normalizeStr(t);
               const md = normalizeStr(turma);
               // matches class name
-              if (td === md || td.includes(md) || md.includes(td.replace(/^[0-9]+aulas?-/, ""))) {
+              if (
+                td === md ||
+                td.includes(md) ||
+                md.includes(td.replace(/^[0-9]+aulas?-/, ""))
+              ) {
                 // look for '2 Aulas'
                 const match = t.match(/^(\d+)\s+Aulas?\s+-/i);
                 if (match) {
@@ -362,15 +394,17 @@ export default function LessonPlan() {
           });
         }
 
-        const schedString = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
-          ? `\n\n[GRADE DE HORÁRIOS EXATA DO PROFESSOR (ACESSO EXCLUSIVO)]:\n` +
-            `Segunda-feira: ${schedule[1]?.join(" | ") || "Nenhuma"}\n` +
-            `Terça-feira: ${schedule[2]?.join(" | ") || "Nenhuma"}\n` +
-            `Quarta-feira: ${schedule[3]?.join(" | ") || "Nenhuma"}\n` +
-            `Quinta-feira: ${schedule[4]?.join(" | ") || "Nenhuma"}\n` +
-            `Sexta-feira: ${schedule[5]?.join(" | ") || "Nenhuma"}\n` +
-            `\nVOCÊ DEVE: Analisar a grade acima e procurar pelas aulas da turma "${turma}". Se houver uma turma com nome parecido (ex. "6º B" ou "6B" sendo equivalente a "6°B - Matemática"), considere como sendo a mesmíssima turma. Uma vez descobertos os dias da semana que essa turma aparece na grade, CONTE quantas vezes ela aparece no total da semana.` 
-          : `\n\n[GRADE DE HORÁRIOS]: Não cadastrada/vazia. Estime genericaamente 4 a 5 aulas semanais.`;
+        const schedString =
+          schedule &&
+          Object.values(schedule).some((day: any) => day && day.length > 0)
+            ? `\n\n[GRADE DE HORÁRIOS EXATA DO PROFESSOR (ACESSO EXCLUSIVO)]:\n` +
+              `Segunda-feira: ${schedule[1]?.join(" | ") || "Nenhuma"}\n` +
+              `Terça-feira: ${schedule[2]?.join(" | ") || "Nenhuma"}\n` +
+              `Quarta-feira: ${schedule[3]?.join(" | ") || "Nenhuma"}\n` +
+              `Quinta-feira: ${schedule[4]?.join(" | ") || "Nenhuma"}\n` +
+              `Sexta-feira: ${schedule[5]?.join(" | ") || "Nenhuma"}\n` +
+              `\nVOCÊ DEVE: Analisar a grade acima e procurar pelas aulas da turma "${turma}". Se houver uma turma com nome parecido (ex. "6º B" ou "6B" sendo equivalente a "6°B - Matemática"), considere como sendo a mesmíssima turma. Uma vez descobertos os dias da semana que essa turma aparece na grade, CONTE quantas vezes ela aparece no total da semana.`
+            : `\n\n[GRADE DE HORÁRIOS]: Não cadastrada/vazia. Estime genericaamente 4 a 5 aulas semanais.`;
 
         const sysPrompt = `Você é o Jarvis, especialista administrativo de educação. 
 Seu objetivo é redigir um PLANEJAMENTO BIMESTRAL estratégico para a turma ${turma}, no ${selectedBimestralBimestre}º Bimestre.
@@ -394,7 +428,7 @@ INFORMAÇÕES EXATAS DA TURMA:
 - **MATEMÁTICA OBRIGATÓRIA**: Utilizando a quantidade de aulas semanais dessa turma (encontrada na grade: ${totalAulasSemana || "estimado"}), multiplique pelas semanas do ${selectedBimestralBimestre}º bimestre e DESCONTE rigorosamente os feriados que caírem EXATAMENTE nos dias de aula letivos desta turma específica. Defina um **NÚMERO EXATO** de aulas previstas para o bimestre. Diga explicitamente seu raciocínio matemático para o desconto.
 
 ${curriculum ? `[MATRIZ/ESCOPO CURRICULAR DO PROFESSOR]: \n\`\`\`\n${curriculum}\n\`\`\`\n` : `[ESCOPO OFICIAL (FALLBACK)]: \n\`\`\`json\n${JSON.stringify(curriculumData)}\n\`\`\``}
-${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE]:\n${jarvisDocs.map(d => `[${d.title}]\n${d.content}`).join("\n\n")}` : ""}
+${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE]:\n${jarvisDocs.map((d) => `[${d.title}]\n${d.content}`).join("\n\n")}` : ""}
 
 SUA TAREFA - Gere o arquivo com a seguinte estrutura:
 
@@ -427,20 +461,21 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
               contents: [{ role: "user", parts: [{ text: sysPrompt }] }],
             });
             break;
-          } catch(e) {
+          } catch (e) {
             console.error("Gemini generation error:", e);
             lastGenerationError = e;
-            if (attempt < 2) await new Promise(r => setTimeout(r, 2000));
+            if (attempt < 2) await new Promise((r) => setTimeout(r, 2000));
           }
         }
-        
+
         if (response && response.text) {
-          const newDocId = Date.now().toString() + Math.random().toString(36).substring(7);
+          const newDocId =
+            Date.now().toString() + Math.random().toString(36).substring(7);
           const newPlan = {
             id: newDocId,
             folder: turma,
             title: `Bimestral - ${selectedBimestralBimestre}º Bimestre`,
-            content: response.text
+            content: response.text,
           };
           lastGeneratedId = newDocId;
           await createPlan(newPlan); // Note: createPlan is defined higher up and saves to DB and context
@@ -449,14 +484,16 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
       }
 
       setIsBimestralModalOpen(false);
-      
+
       if (createdPlansCount > 0) {
         setViewMode("editor");
         setSelectedPlanId(lastGeneratedId);
       } else {
-        alert("Falha ao gerar os planos. Verifique a API Key ou conexão. Detalhes: " + (lastGenerationError?.message || "Erro desconhecido"));
+        alert(
+          "Falha ao gerar os planos. Verifique a API Key ou conexão. Detalhes: " +
+            (lastGenerationError?.message || "Erro desconhecido"),
+        );
       }
-
     } catch (err) {
       console.error(err);
       alert("Ocorreu um erro durante a geração automática.");
@@ -544,7 +581,8 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
     if (
       await confirm({
         title: "Apagar Texto",
-        message: "Tem certeza que deseja apagar todo o texto deste plano? Esta ação não pode ser desfeita.",
+        message:
+          "Tem certeza que deseja apagar todo o texto deste plano? Esta ação não pode ser desfeita.",
         isDestructive: true,
       })
     ) {
@@ -558,7 +596,8 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
     if (
       await confirm({
         title: "Excluir Arquivo",
-        message: "Tem certeza que deseja excluir ESTE ARQUIVO inteiro? Esta ação não pode ser desfeita.",
+        message:
+          "Tem certeza que deseja excluir ESTE ARQUIVO inteiro? Esta ação não pode ser desfeita.",
         isDestructive: true,
       })
     ) {
@@ -652,22 +691,24 @@ Bimestres escolares:
 - 4º bimestre: 05/10 a 18/12
 
 ${curriculum ? `[MATRIZ/ESCOPO CURRICULAR DO USUÁRIO]: \n\`\`\`\n${curriculum}\n\`\`\`\nCRÍTICO: Utilize essas informações curriculares do usuário como guia dos conteúdos. Se houver informações equivalentes nos [DOCUMENTOS BASE DA IA (BASE DO JARVIS)] (ex: a matriz bimestral estiver no Jarvis), dê **PRIORIDADE MÁXIMA E ABSOLUTA** aos documentos do Jarvis.` : `[ESCOPO-SEQUÊNCIA OFICIAL (FALLBACK)]: \n\`\`\`json\n${JSON.stringify(curriculumData)}\n\`\`\`\nCRÍTICO: Se houver documentos na [BASE DO JARVIS] que cubram as aulas/conteúdos requisitados, **IGNORE ESSA BASE FALLBACK** e use os DO JARVIS. Use esta base de fallback APENAS se nenhum documento no Jarvis tratar sobre os conteúdos pedidos.`}
-${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE DA IA (BASE DO JARVIS)]: \nVocê tem acesso aos arquivos da base de conhecimento da escola e do professor listados abaixo.\nCRÍTICO E OBRIGATÓRIO: Quando o usuário pedir um planejamento (ex: "Sexto ano, 2º bimestre"), sua PRIMEIRA tarefa mental é ler os títulos e conteúdos destes arquivos, localizar o documento e as partes EXATAS correspondentes à solicitação do usuário, e usar PRIMORDIALMENTE essa informação como base para seu plano de aula. Ignore os demais documentos que não correspondem à turma e bimestre solicitados. Atue com precisão máxima!\nLista de documentos base:\n${jarvisDocs.map(d => `\n========== INÍCIO DO DOC: [${d.title}] ==========\n${d.content}\n========== FIM DO DOC: [${d.title}] ==========\n`).join("\n")}` : ""}
+${jarvisDocs && jarvisDocs.length > 0 ? `\n[DOCUMENTOS BASE DA IA (BASE DO JARVIS)]: \nVocê tem acesso aos arquivos da base de conhecimento da escola e do professor listados abaixo.\nCRÍTICO E OBRIGATÓRIO: Quando o usuário pedir um planejamento (ex: "Sexto ano, 2º bimestre"), sua PRIMEIRA tarefa mental é ler os títulos e conteúdos destes arquivos, localizar o documento e as partes EXATAS correspondentes à solicitação do usuário, e usar PRIMORDIALMENTE essa informação como base para seu plano de aula. Ignore os demais documentos que não correspondem à turma e bimestre solicitados. Atue com precisão máxima!\nLista de documentos base:\n${jarvisDocs.map((d) => `\n========== INÍCIO DO DOC: [${d.title}] ==========\n${d.content}\n========== FIM DO DOC: [${d.title}] ==========\n`).join("\n")}` : ""}
 ${schoolModel ? `[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nCRÍTICO: Este é o modelo exato exigido pela escola! Ao escrever o documento final de planejamento de aula para o usuário, você DEVE, OBRIGATORIAMENTE, replicar os tópicos, a estrutura e cada um dos campos presentes neste formato, preenchendo-os por completo de forma rica e detalhada com os dados da matriz. O professor tem que estar pronto para apenas copiar a sua saída e entregar à coordenação.` : ""}
 
 Seja propositivo, ajude a dividir os conteúdos considerando essas datas e dias de avaliação. Quando for gerar o plano de aula real a pedido do usuário (seja bimestral, quinzenal ou aula a aula), respeite os modelos anexos integralmente!
 Para a FORMATAÇÃO VISUAL, lembre-se: Nosso painel transforma magicamente \*Listas Não-Ordenadas\* (bullet points) em CARDS INTERATIVOS. Portanto, SEMPRE que você for apresentar Aulas, Semanas, Conteúdos ou Avaliações, distribua-os em bullet points para que fiquem lindos e dinâmicos para o usuário.
 Forneça o resultado formatado de forma limpa em Markdown.`;
 
-      const schedPrompt = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
-        ? `\n\n[GRADE DE HORÁRIOS - SEU ACESSO É TOTAL E EXCLUSIVO A ISSO]:\nO professor JÁ CADASTROU a sua grade de horários diários com você. Você AGORA TEM ACESSO a ela. NUNCA diga que não tem acesso.\nA grade atual de aulas é:\n` +
-          `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
-          `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
-          `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
-          `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
-          `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
-          `Utilize as aulas da semana exatas desta tabela para distribuir os conteúdos ao planejar. Aja como se você naturalmente soubesse da grade dele.`
-        : "";
+      const schedPrompt =
+        schedule &&
+        Object.values(schedule).some((day: any) => day && day.length > 0)
+          ? `\n\n[GRADE DE HORÁRIOS - SEU ACESSO É TOTAL E EXCLUSIVO A ISSO]:\nO professor JÁ CADASTROU a sua grade de horários diários com você. Você AGORA TEM ACESSO a ela. NUNCA diga que não tem acesso.\nA grade atual de aulas é:\n` +
+            `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
+            `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
+            `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
+            `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
+            `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
+            `Utilize as aulas da semana exatas desta tabela para distribuir os conteúdos ao planejar. Aja como se você naturalmente soubesse da grade dele.`
+          : "";
 
       // Build chat history for Gemini
       const contents = messages
@@ -749,28 +790,86 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
   };
 
   const customMarkdownComponents: any = {
-    h1: ({node, ...props}: any) => <h1 className="text-3xl font-black text-slate-800 mb-6 pb-4 border-b-2 border-indigo-100 mt-6" {...props} />,
-    h2: ({node, ...props}: any) => <h2 className="text-2xl font-bold text-indigo-700 mt-10 mb-6 flex items-center gap-2" {...props} />,
-    h3: ({node, ...props}: any) => <h3 className="text-lg font-black text-slate-800 mt-8 mb-4 uppercase tracking-wider text-[13px]" {...props} />,
-    ul: ({node, ...props}: any) => (
-      <ul 
-        className="not-prose grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-8 list-none pl-0 [&>li]:bg-white [&>li]:border [&>li]:text-left [&>li]:border-slate-200 [&>li]:rounded-2xl [&>li]:p-6 [&>li]:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:[&>li]:shadow-xl hover:[&>li]:shadow-indigo-500/10 hover:[&>li]:border-indigo-400 [&>li]:transition-all [&>li]:duration-300 [&>li]:text-slate-700 [&>li]:relative [&>li]:overflow-hidden [&>li>strong]:text-indigo-700 [&>li>strong]:text-lg [&>li>strong]:mb-2 [&>li>strong]:block" 
-        {...props} 
+    h1: ({ node, ...props }: any) => (
+      <h1
+        className="text-3xl font-black text-slate-800 mb-6 pb-4 border-b-2 border-indigo-100 mt-6"
+        {...props}
       />
     ),
-    ol: ({node, ...props}: any) => <ol className="space-y-4 my-6 list-decimal pl-5 font-medium text-slate-700 marker:text-indigo-600 marker:font-bold" {...props} />,
-    li: ({node, ...props}: any) => <li className="mb-2 leading-relaxed" {...props} />,
-    p: ({node, ...props}: any) => <p className="mb-4 text-slate-600 leading-relaxed text-[15px]" {...props} />,
-    strong: ({node, ...props}: any) => <strong className="font-extrabold text-indigo-900" {...props} />,
-    blockquote: ({node, ...props}: any) => <blockquote className="border-l-4 border-indigo-500 bg-indigo-50/50 p-5 rounded-r-xl italic text-slate-700 my-6 font-medium" {...props} />,
-    table: ({node, ...props}: any) => <div className="overflow-x-auto my-8 rounded-xl border border-slate-200 shadow-sm"><table className="w-full text-left border-collapse bg-white" {...props} /></div>,
-    th: ({node, ...props}: any) => <th className="bg-slate-50/80 border-b border-slate-200 p-4 font-black text-[13px] uppercase tracking-wider text-slate-600" {...props} />,
-    td: ({node, ...props}: any) => <td className="border-b border-slate-100 p-4 text-slate-600 font-medium text-[15px]" {...props} />,
-    a: ({node, ...props}: any) => <a className="text-indigo-600 hover:text-indigo-800 underline font-extrabold" {...props} />
+    h2: ({ node, ...props }: any) => (
+      <h2
+        className="text-2xl font-bold text-indigo-700 mt-10 mb-6 flex items-center gap-2"
+        {...props}
+      />
+    ),
+    h3: ({ node, ...props }: any) => (
+      <h3
+        className="text-lg font-black text-slate-800 mt-8 mb-4 uppercase tracking-wider text-[13px]"
+        {...props}
+      />
+    ),
+    ul: ({ node, ...props }: any) => (
+      <ul
+        className="not-prose grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 my-8 list-none pl-0 [&>li]:bg-white [&>li]:border [&>li]:text-left [&>li]:border-slate-200 [&>li]:rounded-2xl [&>li]:p-6 [&>li]:shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:[&>li]:shadow-xl hover:[&>li]:shadow-indigo-500/10 hover:[&>li]:border-indigo-400 [&>li]:transition-all [&>li]:duration-300 [&>li]:text-slate-700 [&>li]:relative [&>li]:overflow-hidden [&>li>strong]:text-indigo-700 [&>li>strong]:text-lg [&>li>strong]:mb-2 [&>li>strong]:block"
+        {...props}
+      />
+    ),
+    ol: ({ node, ...props }: any) => (
+      <ol
+        className="space-y-4 my-6 list-decimal pl-5 font-medium text-slate-700 marker:text-indigo-600 marker:font-bold"
+        {...props}
+      />
+    ),
+    li: ({ node, ...props }: any) => (
+      <li className="mb-2 leading-relaxed" {...props} />
+    ),
+    p: ({ node, ...props }: any) => (
+      <p
+        className="mb-4 text-slate-600 leading-relaxed text-[15px]"
+        {...props}
+      />
+    ),
+    strong: ({ node, ...props }: any) => (
+      <strong className="font-extrabold text-indigo-900" {...props} />
+    ),
+    blockquote: ({ node, ...props }: any) => (
+      <blockquote
+        className="border-l-4 border-indigo-500 bg-indigo-50/50 p-5 rounded-r-xl italic text-slate-700 my-6 font-medium"
+        {...props}
+      />
+    ),
+    table: ({ node, ...props }: any) => (
+      <div className="overflow-x-auto my-8 rounded-xl border border-slate-200 shadow-sm">
+        <table
+          className="w-full text-left border-collapse bg-white"
+          {...props}
+        />
+      </div>
+    ),
+    th: ({ node, ...props }: any) => (
+      <th
+        className="bg-slate-50/80 border-b border-slate-200 p-4 font-black text-[13px] uppercase tracking-wider text-slate-600"
+        {...props}
+      />
+    ),
+    td: ({ node, ...props }: any) => (
+      <td
+        className="border-b border-slate-100 p-4 text-slate-600 font-medium text-[15px]"
+        {...props}
+      />
+    ),
+    a: ({ node, ...props }: any) => (
+      <a
+        className="text-indigo-600 hover:text-indigo-800 underline font-extrabold"
+        {...props}
+      />
+    ),
   };
 
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [selectedFolderForModal, setSelectedFolderForModal] = useState<string | null>(null);
+  const [selectedFolderForModal, setSelectedFolderForModal] = useState<
+    string | null
+  >(null);
 
   return (
     <motion.div
@@ -865,7 +964,8 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               Gerar Plano Semanal
             </h3>
             <p className="text-sm text-slate-500 font-medium relative z-10 leading-relaxed">
-              Escolha suas turmas e estruture as aulas semanais extraindo habilidades e objetivos diretamente do escopo sequência.
+              Escolha suas turmas e estruture as aulas semanais extraindo
+              habilidades e objetivos diretamente do escopo sequência.
             </p>
           </button>
 
@@ -1064,8 +1164,11 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                         }`}
                       >
                         {m.role === "model" ? (
-                        <div className="prose prose-sm md:prose-base prose-slate max-w-none">
-                            <Markdown remarkPlugins={[remarkGfm]} components={customMarkdownComponents}>
+                          <div className="prose prose-sm md:prose-base prose-slate max-w-none">
+                            <Markdown
+                              remarkPlugins={[remarkGfm]}
+                              components={customMarkdownComponents}
+                            >
                               {m.content}
                             </Markdown>
                           </div>
@@ -1146,7 +1249,9 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
       </div>
 
       {viewMode === "editor" && (
-        <div className={`flex-1 grid grid-cols-1 ${activePlan ? 'lg:grid-cols-[300px_1fr]' : ''} gap-6 min-h-0 items-stretch pb-6 animate-in fade-in slide-in-from-bottom-4`}>
+        <div
+          className={`flex-1 grid grid-cols-1 ${activePlan ? "lg:grid-cols-[300px_1fr]" : ""} gap-6 min-h-0 items-stretch pb-6 animate-in fade-in slide-in-from-bottom-4`}
+        >
           {/* Left panel: Files */}
           {activePlan && (
             <div className="bg-white border border-slate-200 rounded-3xl shadow-sm flex flex-col overflow-hidden h-full print:hidden relative animate-in slide-in-from-left-4 fade-in duration-300">
@@ -1165,7 +1270,11 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                   </button>
                   <button
                     onClick={() => {
-                      setNewPlanData({ title: "", folder: "Geral", newFolder: "" });
+                      setNewPlanData({
+                        title: "",
+                        folder: "Geral",
+                        newFolder: "",
+                      });
                       setIsNewPlanModalOpen(true);
                     }}
                     className="bg-indigo-100 text-indigo-700 hover:bg-indigo-200 p-2 rounded-xl transition-all flex items-center gap-1"
@@ -1179,240 +1288,272 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-3 scrollbar-thin bg-slate-50/50">
-              <div className="space-y-4">
-                {folders.map((folder) => {
-                  const folderPlans = appPlans.filter(
-                    (p) => p.folder === folder,
-                  );
-                  if (folderPlans.length === 0) return null;
+                <div className="space-y-4">
+                  {folders.map((folder) => {
+                    const folderPlans = appPlans.filter(
+                      (p) => p.folder === folder,
+                    );
+                    if (folderPlans.length === 0) return null;
 
-                  return (
-                    <div
-                      key={folder}
-                      className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col shadow-sm"
-                    >
-                      <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 ml-1">
-                        <Folder size={12} className="text-slate-300" /> {folder}
-                      </div>
-                      <div className="space-y-1.5">
-                        {folderPlans.map((plan) => (
-                          <div
-                            key={plan.id}
-                            onClick={() => setSelectedPlanId(plan.id)}
-                            className={`group flex items-center justify-between p-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all border ${selectedPlanId === plan.id ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm" : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:border-slate-200"}`}
-                          >
-                            <div className="flex items-center gap-2 truncate">
-                              <FileText
-                                size={14}
-                                className={
-                                  selectedPlanId === plan.id
-                                    ? "text-indigo-500"
-                                    : "text-slate-400"
-                                }
-                              />
-                              <span className="truncate text-[13px]">
-                                {plan.title}
-                              </span>
+                    return (
+                      <div
+                        key={folder}
+                        className="bg-white border border-slate-100 rounded-2xl p-3 flex flex-col shadow-sm"
+                      >
+                        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2 ml-1">
+                          <Folder size={12} className="text-slate-300" />{" "}
+                          {folder}
+                        </div>
+                        <div className="space-y-1.5">
+                          {folderPlans.map((plan) => (
+                            <div
+                              key={plan.id}
+                              onClick={() => setSelectedPlanId(plan.id)}
+                              className={`group flex items-center justify-between p-2.5 rounded-xl text-sm font-medium cursor-pointer transition-all border ${selectedPlanId === plan.id ? "bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm" : "bg-transparent border-transparent text-slate-600 hover:bg-slate-50 hover:border-slate-200"}`}
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <FileText
+                                  size={14}
+                                  className={
+                                    selectedPlanId === plan.id
+                                      ? "text-indigo-500"
+                                      : "text-slate-400"
+                                  }
+                                />
+                                <span className="truncate text-[13px]">
+                                  {plan.title}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const newTitle = await prompt(
+                                      "Renomear:",
+                                      plan.title,
+                                    );
+                                    if (newTitle)
+                                      updatePlan(plan.id, { title: newTitle });
+                                  }}
+                                  className="p-1.5 hover:bg-white rounded-lg text-indigo-600"
+                                  title="Renomear"
+                                >
+                                  <Edit2 size={12} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMovePlanData({
+                                      folder: plan.folder,
+                                      newFolder: "",
+                                    });
+                                    setMovingPlanId(plan.id);
+                                  }}
+                                  className="p-1.5 hover:bg-white rounded-lg text-amber-600"
+                                  title="Mover"
+                                >
+                                  <Move size={12} />
+                                </button>
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (
+                                      await confirm({
+                                        title: "Excluir Plano",
+                                        message: "Excluir plano?",
+                                        isDestructive: true,
+                                      })
+                                    )
+                                      deletePlan(plan.id);
+                                  }}
+                                  className="p-1.5 hover:bg-white rounded-lg text-rose-600"
+                                  title="Excluir"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-0.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  const newTitle = await prompt(
-                                    "Renomear:",
-                                    plan.title,
-                                  );
-                                  if (newTitle)
-                                    updatePlan(plan.id, { title: newTitle });
-                                }}
-                                className="p-1.5 hover:bg-white rounded-lg text-indigo-600"
-                                title="Renomear"
-                              >
-                                <Edit2 size={12} />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setMovePlanData({
-                                    folder: plan.folder,
-                                    newFolder: "",
-                                  });
-                                  setMovingPlanId(plan.id);
-                                }}
-                                className="p-1.5 hover:bg-white rounded-lg text-amber-600"
-                                title="Mover"
-                              >
-                                <Move size={12} />
-                              </button>
-                              <button
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  if (await confirm({ title: "Excluir Plano", message: "Excluir plano?", isDestructive: true }))
-                                    deletePlan(plan.id);
-                                }}
-                                className="p-1.5 hover:bg-white rounded-lg text-rose-600"
-                                title="Excluir"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {folders.length === 0 || appPlans.length === 0 ? (
-                <div className="text-center p-8 text-slate-400 text-sm font-medium italic">
-                  Nenhum documento salvo ainda.
+                    );
+                  })}
                 </div>
-              ) : null}
+                {folders.length === 0 || appPlans.length === 0 ? (
+                  <div className="text-center p-8 text-slate-400 text-sm font-medium italic">
+                    Nenhum documento salvo ainda.
+                  </div>
+                ) : null}
+              </div>
             </div>
-          </div>
           )}
 
           {/* Editor Area */}
           <div className="flex flex-col bg-slate-100/80 rounded-3xl shadow-inner overflow-hidden print:bg-white print:shadow-none min-h-0 relative border border-slate-200">
             {!activePlan ? (
-                <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-slate-50 relative min-h-0 scrollbar-thin">
-                  <div className="max-w-6xl mx-auto">
-                    <div className="mb-10">
-                       <h2 className="text-3xl font-black text-slate-800 tracking-tight">Meus Planos e Turmas</h2>
-                       <p className="text-base font-medium text-slate-500 mt-2">Acesse rapidamente as turmas e planeje suas aulas.</p>
-                    </div>
-
-                    {folders.length === 0 ? (
-                       <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm border-dashed">
-                         <div className="w-20 h-20 bg-indigo-50 text-indigo-300 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
-                           <FolderOpen size={40} />
-                         </div>
-                         <h3 className="text-xl font-bold text-slate-800 mb-2">Nenhum plano salvo</h3>
-                         <p className="text-slate-500 text-[15px] font-medium max-w-sm">Crie seu primeiro planejamento clicando em Novo Plano.</p>
-                         <button
-                           onClick={() => {
-                             setNewPlanData({ title: "", folder: "Geral", newFolder: "" });
-                             setIsNewPlanModalOpen(true);
-                           }}
-                           className="mt-6 bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg"
-                         >
-                           <Plus size={18} /> Criar Novo Plano
-                         </button>
-                       </div>
-                    ) : (
-                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
-                         {folders.map(folder => {
-                            const plans = appPlans.filter(p => p.folder === folder);
-                            return (
-                               <button
-                                 key={folder}
-                                 onClick={() => setSelectedFolderForModal(folder)}
-                                 className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl p-6 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col min-h-[160px] relative overflow-hidden"
-                               >
-                                 <div className="absolute -right-6 -top-6 w-32 h-32 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0 border border-indigo-100/50"></div>
-                                 <div className="flex justify-between items-start mb-auto relative z-10 w-full">
-                                   <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
-                                     <FolderOpen size={28} />
-                                   </div>
-                                 </div>
-                                 <div className="relative z-10 mt-6">
-                                   <h4 className="font-black text-slate-800 text-[18px] group-hover:text-indigo-700 transition-colors leading-snug">
-                                     {folder}
-                                   </h4>
-                                   <p className="text-sm font-bold text-slate-500 mt-1.5 flex items-center gap-1.5">
-                                     <FileText size={14} className="text-indigo-400" />
-                                     {plans.length} {plans.length === 1 ? 'plano gerado' : 'planos gerados'}
-                                   </p>
-                                 </div>
-                               </button>
-                            );
-                         })}
-                       </div>
-                    )}
-                  </div>
-                </div>
-            ) : (
-                <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0">
-                  {/* Editor Header */}
-                  <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-5 py-3.5 shrink-0 flex flex-wrap items-center justify-between print:hidden gap-4 z-20">
-                    <div className="flex flex-col">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                        {activePlan?.folder || "Pasta"}
-                      </span>
-                      <span className="text-base font-black text-slate-800 truncate">
-                        {activePlan ? activePlan.title : "Sem título"}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={handleClearText}
-                        disabled={!activePlan}
-                        className="bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                        title="Limpar Documento"
-                      >
-                        <Trash2 size={14} />{" "}
-                        <span className="hidden xl:inline">Limpar</span>
-                      </button>
-
-                      <button
-                        onClick={handlePrint}
-                        disabled={!activePlan}
-                        className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
-                        title="Imprimir / Gerar PDF"
-                      >
-                        <Printer size={14} />{" "}
-                        <span className="hidden xl:inline">Imprimir</span>
-                      </button>
-
-                      <div className="w-px h-6 bg-slate-200 mx-1"></div>
-
-                      <button
-                        onClick={handleSave}
-                        disabled={!activePlan}
-                        className={`text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50 ${saved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"}`}
-                      >
-                        {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
-                        {saved ? "Salvo no Drive" : "Salvar Alterações"}
-                      </button>
-                    </div>
+              <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-slate-50 relative min-h-0 scrollbar-thin">
+                <div className="max-w-6xl mx-auto">
+                  <div className="mb-10">
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">
+                      Meus Planos e Turmas
+                    </h2>
+                    <p className="text-base font-medium text-slate-500 mt-2">
+                      Acesse rapidamente as turmas e planeje suas aulas.
+                    </p>
                   </div>
 
-                  {/* Toggle Tabs */}
-                  <div className="flex justify-center border-b border-slate-200 bg-white print:hidden py-2 sticky top-0 z-20">
-                    <div className="bg-slate-100 p-1 rounded-xl flex gap-1 shadow-sm">
-                      <button 
-                         onClick={() => setIsPreviewMode(false)}
-                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${!isPreviewMode ? 'bg-white text-indigo-700 shadow shadow-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-                      >
-                         Editar Texto
-                      </button>
-                      <button 
-                         onClick={() => setIsPreviewMode(true)}
-                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${isPreviewMode ? 'bg-white text-indigo-700 shadow shadow-slate-200/50' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}`}
-                      >
-                         Visualizar Documento
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center pb-24 scrollbar-thin">
-                    {!isPreviewMode ? (
-                      <textarea
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="Digite seu planejamento ou peça para o Jarvis inserir o conteúdo gerado..."
-                        className="w-full max-w-[1000px] min-h-full h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 font-medium text-slate-700 text-[15px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300 print:shadow-none print:border-none print:p-0 resize-none font-mono"
-                      />
-                    ) : (
-                      <div className="w-full max-w-[1000px] min-h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 print:shadow-none print:border-none print:p-0">
-                        <div className="w-full">
-                          <Markdown remarkPlugins={[remarkGfm]} components={customMarkdownComponents}>{content}</Markdown>
-                        </div>
+                  {folders.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-12 text-center bg-white rounded-3xl border border-slate-200 shadow-sm border-dashed">
+                      <div className="w-20 h-20 bg-indigo-50 text-indigo-300 rounded-3xl flex items-center justify-center mb-6 shadow-inner">
+                        <FolderOpen size={40} />
                       </div>
-                    )}
+                      <h3 className="text-xl font-bold text-slate-800 mb-2">
+                        Nenhum plano salvo
+                      </h3>
+                      <p className="text-slate-500 text-[15px] font-medium max-w-sm">
+                        Crie seu primeiro planejamento clicando em Novo Plano.
+                      </p>
+                      <button
+                        onClick={() => {
+                          setNewPlanData({
+                            title: "",
+                            folder: "Geral",
+                            newFolder: "",
+                          });
+                          setIsNewPlanModalOpen(true);
+                        }}
+                        className="mt-6 bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all shadow-lg"
+                      >
+                        <Plus size={18} /> Criar Novo Plano
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
+                      {folders.map((folder) => {
+                        const plans = appPlans.filter(
+                          (p) => p.folder === folder,
+                        );
+                        return (
+                          <button
+                            key={folder}
+                            onClick={() => setSelectedFolderForModal(folder)}
+                            className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-3xl p-6 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col min-h-[160px] relative overflow-hidden"
+                          >
+                            <div className="absolute -right-6 -top-6 w-32 h-32 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0 border border-indigo-100/50"></div>
+                            <div className="flex justify-between items-start mb-auto relative z-10 w-full">
+                              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
+                                <FolderOpen size={28} />
+                              </div>
+                            </div>
+                            <div className="relative z-10 mt-6">
+                              <h4 className="font-black text-slate-800 text-[18px] group-hover:text-indigo-700 transition-colors leading-snug">
+                                {folder}
+                              </h4>
+                              <p className="text-sm font-bold text-slate-500 mt-1.5 flex items-center gap-1.5">
+                                <FileText
+                                  size={14}
+                                  className="text-indigo-400"
+                                />
+                                {plans.length}{" "}
+                                {plans.length === 1
+                                  ? "plano gerado"
+                                  : "planos gerados"}
+                              </p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col h-full bg-slate-50 relative min-h-0">
+                {/* Editor Header */}
+                <div className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-5 py-3.5 shrink-0 flex flex-wrap items-center justify-between print:hidden gap-4 z-20">
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                      {activePlan?.folder || "Pasta"}
+                    </span>
+                    <span className="text-base font-black text-slate-800 truncate">
+                      {activePlan ? activePlan.title : "Sem título"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={handleClearText}
+                      disabled={!activePlan}
+                      className="bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                      title="Limpar Documento"
+                    >
+                      <Trash2 size={14} />{" "}
+                      <span className="hidden xl:inline">Limpar</span>
+                    </button>
+
+                    <button
+                      onClick={handlePrint}
+                      disabled={!activePlan}
+                      className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-3 py-2 rounded-xl text-xs font-bold transition-all shadow-sm disabled:opacity-50 flex items-center gap-1.5"
+                      title="Imprimir / Gerar PDF"
+                    >
+                      <Printer size={14} />{" "}
+                      <span className="hidden xl:inline">Imprimir</span>
+                    </button>
+
+                    <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+                    <button
+                      onClick={handleSave}
+                      disabled={!activePlan}
+                      className={`text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md disabled:opacity-50 ${saved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/20"}`}
+                    >
+                      {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
+                      {saved ? "Salvo no Drive" : "Salvar Alterações"}
+                    </button>
                   </div>
                 </div>
+
+                {/* Toggle Tabs */}
+                <div className="flex justify-center border-b border-slate-200 bg-white print:hidden py-2 sticky top-0 z-20">
+                  <div className="bg-slate-100 p-1 rounded-xl flex gap-1 shadow-sm">
+                    <button
+                      onClick={() => setIsPreviewMode(false)}
+                      className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${!isPreviewMode ? "bg-white text-indigo-700 shadow shadow-slate-200/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                    >
+                      Editar Texto
+                    </button>
+                    <button
+                      onClick={() => setIsPreviewMode(true)}
+                      className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${isPreviewMode ? "bg-white text-indigo-700 shadow shadow-slate-200/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"}`}
+                    >
+                      Visualizar Documento
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 flex justify-center pb-24 scrollbar-thin">
+                  {!isPreviewMode ? (
+                    <textarea
+                      value={content}
+                      onChange={(e) => setContent(e.target.value)}
+                      placeholder="Digite seu planejamento ou peça para o Jarvis inserir o conteúdo gerado..."
+                      className="w-full max-w-[1000px] min-h-full h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 font-medium text-slate-700 text-[15px] leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-100 placeholder:text-slate-300 print:shadow-none print:border-none print:p-0 resize-none font-mono"
+                    />
+                  ) : (
+                    <div className="w-full max-w-[1000px] min-h-full bg-white shadow-xl shadow-slate-200/50 border border-slate-200 rounded-2xl p-8 lg:p-12 print:shadow-none print:border-none print:p-0">
+                      <div className="w-full">
+                        <Markdown
+                          remarkPlugins={[remarkGfm]}
+                          components={customMarkdownComponents}
+                        >
+                          {content}
+                        </Markdown>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -1444,7 +1585,9 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                     <h3 className="font-black tracking-tight text-slate-800 text-lg leading-tight">
                       {selectedFolderForModal}
                     </h3>
-                    <p className="text-sm font-medium text-slate-500">Selecione o plano desejado para abrir</p>
+                    <p className="text-sm font-medium text-slate-500">
+                      Selecione o plano desejado para abrir
+                    </p>
                   </div>
                 </div>
                 <button
@@ -1454,39 +1597,51 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                   <X size={20} />
                 </button>
               </div>
-              
+
               <div className="p-6 max-h-[60vh] overflow-y-auto w-full">
-                {appPlans.filter(p => p.folder === selectedFolderForModal).length === 0 ? (
+                {appPlans.filter((p) => p.folder === selectedFolderForModal)
+                  .length === 0 ? (
                   <div className="flex flex-col items-center justify-center p-10 text-center bg-slate-50/50 rounded-2xl border border-slate-200 border-dashed">
                     <div className="w-16 h-16 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mb-4 shadow-inner">
                       <FileText size={24} />
                     </div>
-                    <h4 className="text-slate-600 font-bold mb-1">Nenhum plano gerado</h4>
-                    <p className="text-sm text-slate-500">Esta turma ainda não possui planejamentos salvos.</p>
+                    <h4 className="text-slate-600 font-bold mb-1">
+                      Nenhum plano gerado
+                    </h4>
+                    <p className="text-sm text-slate-500">
+                      Esta turma ainda não possui planejamentos salvos.
+                    </p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {appPlans.filter(p => p.folder === selectedFolderForModal).map(plan => (
-                      <button
-                        key={plan.id}
-                        onClick={() => {
-                          setSelectedPlanId(plan.id);
-                          setViewMode("editor");
-                          setSelectedFolderForModal(null);
-                        }}
-                        className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col relative overflow-hidden"
-                      >
-                         <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0 border border-indigo-100/50"></div>
-                         <div className="flex justify-between items-start mb-auto relative z-10 w-full mb-3">
-                           <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
-                             <FileText size={20} />
-                           </div>
-                         </div>
-                         <h4 className="font-bold text-slate-800 text-[15px] group-hover:text-indigo-700 transition-colors line-clamp-3 leading-snug mt-2 relative z-10">
-                           {plan.title.replace(`Plano Bimestral: ${selectedFolderForModal} (`, '').replace(')', '') || plan.title}
-                         </h4>
-                      </button>
-                    ))}
+                    {appPlans
+                      .filter((p) => p.folder === selectedFolderForModal)
+                      .map((plan) => (
+                        <button
+                          key={plan.id}
+                          onClick={() => {
+                            setSelectedPlanId(plan.id);
+                            setViewMode("editor");
+                            setSelectedFolderForModal(null);
+                          }}
+                          className="text-left bg-white border border-slate-200 hover:border-indigo-400 rounded-2xl p-5 hover:shadow-xl hover:shadow-indigo-500/10 hover:-translate-y-1 transition-all duration-300 group flex flex-col relative overflow-hidden"
+                        >
+                          <div className="absolute -right-6 -top-6 w-24 h-24 bg-indigo-50/50 rounded-full group-hover:scale-150 transition-transform duration-500 z-0 border border-indigo-100/50"></div>
+                          <div className="flex justify-between items-start mb-auto relative z-10 w-full mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors shadow-sm shrink-0">
+                              <FileText size={20} />
+                            </div>
+                          </div>
+                          <h4 className="font-bold text-slate-800 text-[15px] group-hover:text-indigo-700 transition-colors line-clamp-3 leading-snug mt-2 relative z-10">
+                            {plan.title
+                              .replace(
+                                `Plano Bimestral: ${selectedFolderForModal} (`,
+                                "",
+                              )
+                              .replace(")", "") || plan.title}
+                          </h4>
+                        </button>
+                      ))}
                   </div>
                 )}
               </div>
@@ -1618,21 +1773,26 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
               Gerador automático. Selecione o bimestre e as turmas.
             </p>
 
-            {(!schedule || Object.values(schedule).every((arr: any) => !arr || arr.length === 0)) && (
+            {(!schedule ||
+              Object.values(schedule).every(
+                (arr: any) => !arr || arr.length === 0,
+              )) && (
               <div className="bg-amber-50 text-amber-800 p-4 rounded-xl border border-amber-200 text-sm mb-6 shrink-0 flex gap-3 items-start">
                 <span className="text-xl">⚠️</span>
                 <div>
-                  <strong>Sua grade horária está vazia!</strong> Acesse "Grade de Horários" no menu para cadastrar os dias da semana em que você dá aula para estas turmas, para que o cálculo seja exato.
+                  <strong>Sua grade horária está vazia!</strong> Acesse "Grade
+                  de Horários" no menu para cadastrar os dias da semana em que
+                  você dá aula para estas turmas, para que o cálculo seja exato.
                 </div>
               </div>
             )}
-            
+
             <div className="space-y-4 mb-6 flex-1 overflow-y-auto pr-2 scrollbar-thin">
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">
                   Bimestre
                 </label>
-                <select 
+                <select
                   value={selectedBimestralBimestre}
                   onChange={(e) => setSelectedBimestralBimestre(e.target.value)}
                   disabled={isGeneratingAuto}
@@ -1650,28 +1810,43 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                   Turmas para o Planejamento
                 </label>
                 {turmasList.length === 0 ? (
-                  <p className="text-sm text-slate-500 italic">Nenhuma turma cadastrada no diário.</p>
+                  <p className="text-sm text-slate-500 italic">
+                    Nenhuma turma cadastrada no diário.
+                  </p>
                 ) : (
                   <div className="space-y-2">
                     {turmasList.map((turma) => (
-                      <label key={turma} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors group">
+                      <label
+                        key={turma}
+                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors group"
+                      >
                         <div className="relative flex items-center justify-center">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             disabled={isGeneratingAuto}
                             className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-blue-500 checked:border-blue-500 transition-colors"
                             checked={selectedBimestralClasses.includes(turma)}
                             onChange={(e) => {
                               if (e.target.checked) {
-                                setSelectedBimestralClasses((prev) => [...prev, turma]);
+                                setSelectedBimestralClasses((prev) => [
+                                  ...prev,
+                                  turma,
+                                ]);
                               } else {
-                                setSelectedBimestralClasses((prev) => prev.filter(t => t !== turma));
+                                setSelectedBimestralClasses((prev) =>
+                                  prev.filter((t) => t !== turma),
+                                );
                               }
                             }}
                           />
-                          <CheckCircle2 size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 placeholder-events-none transition-opacity" />
+                          <CheckCircle2
+                            size={14}
+                            className="absolute text-white opacity-0 peer-checked:opacity-100 placeholder-events-none transition-opacity"
+                          />
                         </div>
-                        <span className="font-bold text-slate-700 group-hover:text-blue-800 transition-colors">{turma}</span>
+                        <span className="font-bold text-slate-700 group-hover:text-blue-800 transition-colors">
+                          {turma}
+                        </span>
                       </label>
                     ))}
                   </div>
@@ -1682,7 +1857,9 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
             {isGeneratingAuto && (
               <div className="flex flex-col items-center justify-center py-4 text-blue-600">
                 <Loader2 size={24} className="animate-spin mb-2" />
-                <span className="text-sm font-bold text-slate-700 text-center">{generationProgress || "Iniciando geração..."}</span>
+                <span className="text-sm font-bold text-slate-700 text-center">
+                  {generationProgress || "Iniciando geração..."}
+                </span>
               </div>
             )}
 
@@ -1695,11 +1872,17 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
                 Cancelar
               </button>
               <button
-                disabled={selectedBimestralClasses.length === 0 || isGeneratingAuto}
+                disabled={
+                  selectedBimestralClasses.length === 0 || isGeneratingAuto
+                }
                 onClick={handleAutoBimestralGeneration}
                 className="flex-[2] bg-blue-600 text-white px-4 py-3.5 rounded-2xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isGeneratingAuto ? <Loader2 size={18} className="animate-spin" /> : <Bot size={18} />}
+                {isGeneratingAuto ? (
+                  <Loader2 size={18} className="animate-spin" />
+                ) : (
+                  <Bot size={18} />
+                )}
                 Gerar Automático
               </button>
             </div>
@@ -1723,29 +1906,44 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
             <p className="text-sm font-medium text-slate-500 mb-6 shrink-0">
               Selecione as turmas para as quais você deseja planejar a semana.
             </p>
-            
+
             <div className="space-y-3 overflow-y-auto pr-2 mb-6 scrollbar-thin flex-1">
               {turmasList.length === 0 ? (
-                <p className="text-sm text-slate-500 italic">Nenhuma turma cadastrada no diário.</p>
+                <p className="text-sm text-slate-500 italic">
+                  Nenhuma turma cadastrada no diário.
+                </p>
               ) : (
                 turmasList.map((turma) => (
-                  <label key={turma} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-colors group">
+                  <label
+                    key={turma}
+                    className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 cursor-pointer transition-colors group"
+                  >
                     <div className="relative flex items-center justify-center">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="peer appearance-none w-5 h-5 border-2 border-slate-300 rounded-md checked:bg-emerald-500 checked:border-emerald-500 transition-colors"
                         checked={selectedSemanalClasses.includes(turma)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setSelectedSemanalClasses((prev) => [...prev, turma]);
+                            setSelectedSemanalClasses((prev) => [
+                              ...prev,
+                              turma,
+                            ]);
                           } else {
-                            setSelectedSemanalClasses((prev) => prev.filter(t => t !== turma));
+                            setSelectedSemanalClasses((prev) =>
+                              prev.filter((t) => t !== turma),
+                            );
                           }
                         }}
                       />
-                      <CheckCircle2 size={14} className="absolute text-white opacity-0 peer-checked:opacity-100 placeholder-events-none transition-opacity" />
+                      <CheckCircle2
+                        size={14}
+                        className="absolute text-white opacity-0 peer-checked:opacity-100 placeholder-events-none transition-opacity"
+                      />
                     </div>
-                    <span className="font-bold text-slate-700 group-hover:text-emerald-800 transition-colors">{turma}</span>
+                    <span className="font-bold text-slate-700 group-hover:text-emerald-800 transition-colors">
+                      {turma}
+                    </span>
                   </label>
                 ))
               )}

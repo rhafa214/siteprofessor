@@ -55,7 +55,8 @@ interface DashboardProps {
 
 export default function Dashboard({ setCurrentView }: DashboardProps) {
   const { user, loginWithGoogle } = useAuth();
-  const { curriculum, schoolModel, jarvisDocs, schedule } = useJarvisKnowledge();
+  const { curriculum, schoolModel, jarvisDocs, schedule } =
+    useJarvisKnowledge();
   const {
     events: calendarEvents,
     isLoading: isCalendarLoading,
@@ -93,9 +94,10 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
   >("eduChatCurrent", [
     {
       role: "bot",
-      text: new Date().getHours() >= 18 || new Date().getHours() < 6 
-        ? `Fazendo hora extra, professor?! Hora de descansar, hein! Mas já que estamos aqui... Eu sou Jarvis 🤖, seu assistente. No que posso te ajudar com sua rotina maluca hoje?`
-        : `Olá! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`,
+      text:
+        new Date().getHours() >= 18 || new Date().getHours() < 6
+          ? `Fazendo hora extra, professor?! Hora de descansar, hein! Mas já que estamos aqui... Eu sou Jarvis 🤖, seu assistente. No que posso te ajudar com sua rotina maluca hoje?`
+          : `Olá! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`,
     },
   ]);
   const [chatHistory, setChatHistory] = useLocalStorage<
@@ -127,7 +129,10 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (lembretesRef.current && !lembretesRef.current.contains(event.target as Node)) {
+      if (
+        lembretesRef.current &&
+        !lembretesRef.current.contains(event.target as Node)
+      ) {
         setIsLembretesOpen(false);
       }
     }
@@ -144,11 +149,11 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
       const currentHour = new Date().getHours();
       const userName = user.displayName?.split(" ")[0] || "educador";
       let greetingDesc = `Olá, ${userName}! Eu sou Jarvis 🤖, seu sistema integrado estilo Indústrias Stark, processando no Gemini. No que posso te ajudar hoje com sua rotina, planos e metodologias?`;
-      
+
       if (currentHour >= 18 || currentHour < 6) {
         greetingDesc = `Fazendo hora extra, professor ${userName}?! Hora de descansar, hein! Mas já que estamos aqui... Eu sou Jarvis 🤖. No que posso te ajudar com essa rotina maluca?`;
       }
-      
+
       setChatMessages([
         {
           role: "bot",
@@ -250,7 +255,9 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     }
   };
 
-  const updateFirestoreImportantDates = (newDates: { id: string; nome: string; data: string; dataFim?: string }[]) => {
+  const updateFirestoreImportantDates = (
+    newDates: { id: string; nome: string; data: string; dataFim?: string }[],
+  ) => {
     if (user) {
       setDoc(
         doc(db, "users", user.uid, "settings", "dashboard"),
@@ -285,7 +292,7 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     }
     const timer = setTimeout(() => {
       if (scrollRef.current) {
-         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
       }
     }, 150);
     return () => clearTimeout(timer);
@@ -336,7 +343,9 @@ export default function Dashboard({ setCurrentView }: DashboardProps) {
     }
   }
 
-  const sortedClassLogs = classLogs ? [...classLogs].sort((a, b) => b.id - a.id) : [];
+  const sortedClassLogs = classLogs
+    ? [...classLogs].sort((a, b) => b.id - a.id)
+    : [];
 
   const logForCurrentTurma = currentTurma
     ? sortedClassLogs.find((l) => l.turma === currentTurma)
@@ -483,9 +492,10 @@ Bimestres escolares:
       const modPrompt = schoolModel
         ? `\n\n[MODELO DE PLANO DA ESCOLA]: \n${schoolModel}\nUtilize este modelo de plano de aula sempre que criar planejamentos estruturados.`
         : "";
-      const jarvisDocsPrompt = jarvisDocs && jarvisDocs.length > 0
-        ? `\n\n[DOCUMENTOS BASE DA IA (BASE DO JARVIS)]: \nVocê tem acesso aos arquivos da base de conhecimento do professor listados abaixo. Se o usuário fizer qualquer tipo de pergunta técnica ou pedir um material focado em um currículo, sua PRIMEIRA tarefa é consultar estes documentos listados aqui abaixo, encontrando o exato contexto para responder.\n\nLista de documentos base:\n${jarvisDocs.map((d: any) => `\n========== INÍCIO DO DOC: [${d.title}] ==========\n${d.content}\n========== FIM DO DOC: [${d.title}] ==========\n`).join("\n")}` 
-        : "";
+      const jarvisDocsPrompt =
+        jarvisDocs && jarvisDocs.length > 0
+          ? `\n\n[DOCUMENTOS BASE DA IA (BASE DO JARVIS)]: \nVocê tem acesso aos arquivos da base de conhecimento do professor listados abaixo. Se o usuário fizer qualquer tipo de pergunta técnica ou pedir um material focado em um currículo, sua PRIMEIRA tarefa é consultar estes documentos listados aqui abaixo, encontrando o exato contexto para responder.\n\nLista de documentos base:\n${jarvisDocs.map((d: any) => `\n========== INÍCIO DO DOC: [${d.title}] ==========\n${d.content}\n========== FIM DO DOC: [${d.title}] ==========\n`).join("\n")}`
+          : "";
       const impDatesPrompt =
         importantDates && importantDates.length > 0
           ? `\n\n[DATAS IMPORTANTES (Professor/a)]:\nEstas são anotações de datas cruciais do professor (que atualizam sua contagem regressiva):\n` +
@@ -498,22 +508,29 @@ Bimestres escolares:
               .join("\n")
           : "";
 
-      const schedPrompt = schedule && Object.values(schedule).some((day: any) => day && day.length > 0)
-        ? `\n\n[GRADE DE HORÁRIOS - SEU ACESSO É TOTAL E EXCLUSIVO A ISSO]:\nO professor JÁ CADASTROU a sua grade de horários diários com você. Você AGORA TEM ACESSO a ela. NUNCA diga que não tem acesso.\nA grade atual de aulas é:\n` +
-          `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
-          `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
-          `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
-          `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
-          `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
-          `Aja como se você naturalmente soubesse dessa grade. Mapeie quais dias o professor dá aula para cada turma baseado nesta lista.`
-        : "";
+      const schedPrompt =
+        schedule &&
+        Object.values(schedule).some((day: any) => day && day.length > 0)
+          ? `\n\n[GRADE DE HORÁRIOS - SEU ACESSO É TOTAL E EXCLUSIVO A ISSO]:\nO professor JÁ CADASTROU a sua grade de horários diários com você. Você AGORA TEM ACESSO a ela. NUNCA diga que não tem acesso.\nA grade atual de aulas é:\n` +
+            `Segunda-feira: ${schedule[1]?.join(", ") || "Nenhuma"}\n` +
+            `Terça-feira: ${schedule[2]?.join(", ") || "Nenhuma"}\n` +
+            `Quarta-feira: ${schedule[3]?.join(", ") || "Nenhuma"}\n` +
+            `Quinta-feira: ${schedule[4]?.join(", ") || "Nenhuma"}\n` +
+            `Sexta-feira: ${schedule[5]?.join(", ") || "Nenhuma"}\n` +
+            `Aja como se você naturalmente soubesse dessa grade. Mapeie quais dias o professor dá aula para cada turma baseado nesta lista.`
+          : "";
 
       const responseStream = await ai.models.generateContentStream({
         model: "gemini-2.5-flash",
         contents,
         config: {
           systemInstruction:
-            basePrompt + impDatesPrompt + curPrompt + modPrompt + jarvisDocsPrompt + schedPrompt,
+            basePrompt +
+            impDatesPrompt +
+            curPrompt +
+            modPrompt +
+            jarvisDocsPrompt +
+            schedPrompt,
           tools: [
             {
               functionDeclarations: [
@@ -535,45 +552,50 @@ Bimestres escolares:
                 },
                 {
                   name: "addEvaluation",
-                  description: "Adiciona uma data importante ou avaliação no painel (contagem regressiva).",
+                  description:
+                    "Adiciona uma data importante ou avaliação no painel (contagem regressiva).",
                   parameters: {
                     type: Type.OBJECT,
                     properties: {
                       nome: {
                         type: Type.STRING,
-                        description: "O nome da avaliação ou evento (ex: 'Prova Bimestral 6°A')."
+                        description:
+                          "O nome da avaliação ou evento (ex: 'Prova Bimestral 6°A').",
                       },
                       data: {
                         type: Type.STRING,
-                        description: "A data da avaliação no formato YYYY-MM-DD."
-                      }
+                        description:
+                          "A data da avaliação no formato YYYY-MM-DD.",
+                      },
                     },
-                    required: ["nome", "data"]
-                  }
+                    required: ["nome", "data"],
+                  },
                 },
                 {
                   name: "manageMatificWeeks",
-                  description: "Adiciona, edita ou exclui semanas ao controle do Matific de uma turma.",
+                  description:
+                    "Adiciona, edita ou exclui semanas ao controle do Matific de uma turma.",
                   parameters: {
                     type: Type.OBJECT,
                     properties: {
                       turma: {
                         type: Type.STRING,
-                        description: "Nome da turma (Ex: '6°B - Matemática')."
+                        description: "Nome da turma (Ex: '6°B - Matemática').",
                       },
                       action: {
                         type: Type.STRING,
-                        description: "'add', 'edit' ou 'delete'."
+                        description: "'add', 'edit' ou 'delete'.",
                       },
                       semanas: {
                         type: Type.ARRAY,
                         items: { type: Type.STRING },
-                        description: "Nomes das semanas. Para 'add': novas semanas (ex: ['11 a 15 de maio']). Para 'delete': nome exato ou aproximado das semanas a deletar. Para 'edit': no formato 'antigo|novo' (ex: '11 a 15 de maio|12 a 16 de maio')."
-                      }
+                        description:
+                          "Nomes das semanas. Para 'add': novas semanas (ex: ['11 a 15 de maio']). Para 'delete': nome exato ou aproximado das semanas a deletar. Para 'edit': no formato 'antigo|novo' (ex: '11 a 15 de maio|12 a 16 de maio').",
+                      },
                     },
                     required: ["turma", "action", "semanas"],
-                  }
-                }
+                  },
+                },
               ],
             },
           ],
@@ -623,15 +645,21 @@ Bimestres escolares:
             functionCalled = true;
             break;
           } else if (call.name === "manageMatificWeeks") {
-            const args = call.args as { turma: string, action: string, semanas: string[] };
+            const args = call.args as {
+              turma: string;
+              action: string;
+              semanas: string[];
+            };
             const { turma, action, semanas } = args;
-            
+
             // Lógica para controle Matific
             let classData = { students: [], weeks: [], minutes: {} };
-            
-            const localDataStr = localStorage.getItem(`matificAnalysis_${turma}`);
+
+            const localDataStr = localStorage.getItem(
+              `matificAnalysis_${turma}`,
+            );
             if (localDataStr) {
-               classData = JSON.parse(localDataStr);
+              classData = JSON.parse(localDataStr);
             }
 
             let responseMsg = "";
@@ -640,25 +668,27 @@ Bimestres escolares:
               const newWeeks = semanas.map((title, i) => ({
                 id: `jarvis-${Date.now()}-${i}`,
                 title: title,
-                date: new Date().toLocaleDateString('pt-BR')
+                date: new Date().toLocaleDateString("pt-BR"),
               }));
               classData.weeks = [...(classData.weeks || []), ...newWeeks];
 
-              if(classData.students && Array.isArray(classData.students)) {
-                 classData.students.forEach((s: any) => {
-                    if(!classData.minutes) classData.minutes = {};
-                    if(!classData.minutes[s.id]) classData.minutes[s.id] = {};
-                    newWeeks.forEach(nw => {
-                       classData.minutes[s.id][nw.id] = null;
-                    });
-                 });
+              if (classData.students && Array.isArray(classData.students)) {
+                classData.students.forEach((s: any) => {
+                  if (!classData.minutes) classData.minutes = {};
+                  if (!classData.minutes[s.id]) classData.minutes[s.id] = {};
+                  newWeeks.forEach((nw) => {
+                    classData.minutes[s.id][nw.id] = null;
+                  });
+                });
               }
               responseMsg = `Pronto! Adicionei a(s) semana(s) solicitada(s) ao controle do Matific da turma ${turma}, como solicitado.`;
             } else if (action === "edit") {
-              semanas.forEach(s => {
-                const [oldTitle, newTitle] = s.split("|").map(x => x?.trim());
-                if(oldTitle && newTitle && classData.weeks) {
-                  const weekIdx = classData.weeks.findIndex((w: any) => w.title.toLowerCase().includes(oldTitle.toLowerCase()));
+              semanas.forEach((s) => {
+                const [oldTitle, newTitle] = s.split("|").map((x) => x?.trim());
+                if (oldTitle && newTitle && classData.weeks) {
+                  const weekIdx = classData.weeks.findIndex((w: any) =>
+                    w.title.toLowerCase().includes(oldTitle.toLowerCase()),
+                  );
                   if (weekIdx !== -1) {
                     classData.weeks[weekIdx].title = newTitle;
                   }
@@ -666,14 +696,16 @@ Bimestres escolares:
               });
               responseMsg = `Entendido! Alerei a(s) semana(s) no controle do Matific da turma ${turma}.`;
             } else if (action === "delete") {
-              semanas.forEach(s => {
-                if(classData.weeks) {
-                  const weekIdx = classData.weeks.findIndex((w: any) => w.title.toLowerCase().includes(s.toLowerCase()));
+              semanas.forEach((s) => {
+                if (classData.weeks) {
+                  const weekIdx = classData.weeks.findIndex((w: any) =>
+                    w.title.toLowerCase().includes(s.toLowerCase()),
+                  );
                   if (weekIdx !== -1) {
                     const weekId = classData.weeks[weekIdx].id;
                     classData.weeks.splice(weekIdx, 1);
                     if (classData.minutes) {
-                      Object.keys(classData.minutes).forEach(studentId => {
+                      Object.keys(classData.minutes).forEach((studentId) => {
                         delete classData.minutes[studentId][weekId];
                       });
                     }
@@ -683,34 +715,44 @@ Bimestres escolares:
               responseMsg = `As semanas foram removidas do controle do Matific da turma ${turma}.`;
             }
 
-            localStorage.setItem(`matificAnalysis_${turma}`, JSON.stringify(classData));
+            localStorage.setItem(
+              `matificAnalysis_${turma}`,
+              JSON.stringify(classData),
+            );
 
             if (user) {
-               getDoc(doc(db, "users", user.uid, "matificAnalysis", turma)).then(snap => {
-                  let fbData = snap.exists() ? snap.data() : { students: [], weeks: [], minutes: {} };
+              getDoc(doc(db, "users", user.uid, "matificAnalysis", turma))
+                .then((snap) => {
+                  let fbData = snap.exists()
+                    ? snap.data()
+                    : { students: [], weeks: [], minutes: {} };
                   if (action === "add") {
                     const newWeeks = semanas.map((title, i) => ({
                       id: `jarvis-${Date.now()}-${i}`,
                       title: title,
-                      date: new Date().toLocaleDateString('pt-BR')
+                      date: new Date().toLocaleDateString("pt-BR"),
                     }));
                     fbData.weeks = [...(fbData.weeks || []), ...newWeeks];
-                    if(fbData.students && Array.isArray(fbData.students)) {
-                       fbData.students.forEach((s: any) => {
-                          if(!fbData.minutes) fbData.minutes = {};
-                          if(!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
-                          newWeeks.forEach(nw => {
-                             fbData.minutes[s.id][nw.id] = null;
-                          });
-                       });
+                    if (fbData.students && Array.isArray(fbData.students)) {
+                      fbData.students.forEach((s: any) => {
+                        if (!fbData.minutes) fbData.minutes = {};
+                        if (!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
+                        newWeeks.forEach((nw) => {
+                          fbData.minutes[s.id][nw.id] = null;
+                        });
+                      });
                     }
                   } else {
-                     // simplified update for edit/delete; just copy from local because they are in sync
-                     fbData = classData;
+                    // simplified update for edit/delete; just copy from local because they are in sync
+                    fbData = classData;
                   }
-                  
-                  setDoc(doc(db, "users", user.uid, "matificAnalysis", turma), fbData).catch(console.error);
-               }).catch(console.error);
+
+                  setDoc(
+                    doc(db, "users", user.uid, "matificAnalysis", turma),
+                    fbData,
+                  ).catch(console.error);
+                })
+                .catch(console.error);
             }
 
             setChatMessages((prev) => [
@@ -799,7 +841,14 @@ Bimestres escolares:
         <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none" />
         <div className="relative z-10">
           <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 bg-clip-text text-transparent flex items-center gap-2">
-            Olá, <span className="font-medium text-slate-400 text-2xl lg:text-3xl">Professor</span> {user?.displayName?.split(" ")[0] || "!"} <span className="animate-wave inline-block origin-[70%_70%]">👋</span>
+            Olá,{" "}
+            <span className="font-medium text-slate-400 text-2xl lg:text-3xl">
+              Professor
+            </span>{" "}
+            {user?.displayName?.split(" ")[0] || "!"}{" "}
+            <span className="animate-wave inline-block origin-[70%_70%]">
+              👋
+            </span>
           </h1>
           <p className="text-indigo-600 font-bold text-lg flex items-center gap-2">
             <Sparkles size={16} className="text-amber-400" /> {getSmartPhrase()}
@@ -822,8 +871,12 @@ Bimestres escolares:
 
         <div className="w-full md:w-72 bg-gradient-to-b from-white to-slate-50/50 p-5 rounded-2xl border border-slate-200/60 shadow-sm relative z-10">
           <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-            <span className="flex items-center gap-1.5"><Clock size={12} /> Jornada Diária</span>
-            <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{progress}%</span>
+            <span className="flex items-center gap-1.5">
+              <Clock size={12} /> Jornada Diária
+            </span>
+            <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+              {progress}%
+            </span>
           </div>
           <div className="h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
             <div
@@ -864,19 +917,29 @@ Bimestres escolares:
               logForCurrentTurma ? (
                 <div className="flex flex-col gap-1.5">
                   <p>
-                    Professor, de acordo com o meu banco de dados sua próxima aula será no{" "}
+                    Professor, de acordo com o meu banco de dados sua próxima
+                    aula será no{" "}
                     <strong className="text-indigo-700">{currentTurma}</strong>.
                   </p>
                   <p className="text-slate-600 bg-white/50 p-3 rounded-xl border border-indigo-100/50">
-                    Na última aula (<strong className="text-slate-800">{logForCurrentTurma.data}</strong>) vocês trabalharam:{" "}
-                    <span className="italic text-slate-800">"{logForCurrentTurma.progresso}"</span>
+                    Na última aula (
+                    <strong className="text-slate-800">
+                      {logForCurrentTurma.data}
+                    </strong>
+                    ) vocês trabalharam:{" "}
+                    <span className="italic text-slate-800">
+                      "{logForCurrentTurma.progresso}"
+                    </span>
                   </p>
                   {logForCurrentTurma.lembretes && (
                     <p className="text-amber-700 font-semibold bg-amber-50 px-3 py-2 rounded-lg mt-1 w-fit border border-amber-200">
                       📝 Lembrete da época: {logForCurrentTurma.lembretes}
                     </p>
                   )}
-                  <button onClick={() => setCurrentView?.("diario")} className="text-indigo-600 hover:text-indigo-800 mt-1 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors">
+                  <button
+                    onClick={() => setCurrentView?.("diario")}
+                    className="text-indigo-600 hover:text-indigo-800 mt-1 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors"
+                  >
                     Ir para o Registro de Aulas &rarr;
                   </button>
                 </div>
@@ -887,10 +950,15 @@ Bimestres escolares:
                     <strong className="text-indigo-700">{currentTurma}</strong>{" "}
                     agora, porém busquei nas aulas trabalhadas e não encontrei
                     registros no seu{" "}
-                    <strong className="text-indigo-700">Registro de Aulas</strong>{" "}
+                    <strong className="text-indigo-700">
+                      Registro de Aulas
+                    </strong>{" "}
                     para essa turma.
                   </p>
-                  <button onClick={() => setCurrentView?.("diario")} className="text-indigo-600 hover:text-indigo-800 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors">
+                  <button
+                    onClick={() => setCurrentView?.("diario")}
+                    className="text-indigo-600 hover:text-indigo-800 uppercase text-[10px] font-bold tracking-wider hover:underline text-left w-fit transition-colors"
+                  >
                     Registrar uma Aula Agora &rarr;
                   </button>
                 </div>
@@ -1231,12 +1299,26 @@ Bimestres escolares:
               className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100 group-hover:bg-indigo-100 transition-colors">
-                <img src="https://saladofuturo.educacao.sp.gov.br/images/logo.png" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling?.classList.remove('hidden') }} alt="Sala do Futuro" className="h-6 w-auto drop-shadow-sm group-hover:scale-110 transition-transform" />
-                <span className="hidden text-sm font-black tracking-tighter text-indigo-600">SF</span>
+                <img
+                  src="https://saladofuturo.educacao.sp.gov.br/images/logo.png"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none";
+                    e.currentTarget.nextElementSibling?.classList.remove(
+                      "hidden",
+                    );
+                  }}
+                  alt="Sala do Futuro"
+                  className="h-6 w-auto drop-shadow-sm group-hover:scale-110 transition-transform"
+                />
+                <span className="hidden text-sm font-black tracking-tighter text-indigo-600">
+                  SF
+                </span>
               </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-indigo-700 text-center transition-colors">Sala do Futuro</span>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-indigo-700 text-center transition-colors">
+                Sala do Futuro
+              </span>
             </a>
-            
+
             <a
               href="https://avaefape.educacao.sp.gov.br/"
               target="_blank"
@@ -1245,9 +1327,13 @@ Bimestres escolares:
               className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 group-hover:bg-blue-100 transition-colors">
-                <span className="font-black text-xs tracking-tighter text-blue-700 group-hover:scale-110 transition-transform">EFAPE</span>
+                <span className="font-black text-xs tracking-tighter text-blue-700 group-hover:scale-110 transition-transform">
+                  EFAPE
+                </span>
               </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-blue-700 text-center transition-colors">AVA EFAPE</span>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-blue-700 text-center transition-colors">
+                AVA EFAPE
+              </span>
             </a>
 
             <a
@@ -1258,9 +1344,13 @@ Bimestres escolares:
               className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 group-hover:bg-amber-100 transition-colors">
-                <span className="font-black text-xl text-amber-500 group-hover:scale-110 transition-transform italic">t</span>
+                <span className="font-black text-xl text-amber-500 group-hover:scale-110 transition-transform italic">
+                  t
+                </span>
               </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-amber-700 text-center transition-colors">Teachy</span>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-amber-700 text-center transition-colors">
+                Teachy
+              </span>
             </a>
 
             <a
@@ -1271,9 +1361,15 @@ Bimestres escolares:
               className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-emerald-400 hover:shadow-lg hover:-translate-y-1 transition-all"
             >
               <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg" alt="Google Drive" className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg"
+                  alt="Google Drive"
+                  className="w-6 h-6 group-hover:scale-110 transition-transform"
+                />
               </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-emerald-700 text-center transition-colors">Google Drive</span>
+              <span className="font-semibold text-sm text-slate-700 group-hover:text-emerald-700 text-center transition-colors">
+                Google Drive
+              </span>
             </a>
           </div>
         </div>
@@ -1491,12 +1587,12 @@ Bimestres escolares:
                       </span>
                       <span className="text-xs font-medium text-slate-400">
                         {new Date(selectedEmail.date).toLocaleString("pt-BR", {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </span>
                     </div>
@@ -1514,7 +1610,10 @@ Bimestres escolares:
               <div className="flex-1 overflow-y-auto p-8 lg:p-12 bg-white relative">
                 {isEmailLoading ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-4">
-                    <Loader2 size={40} className="animate-spin text-indigo-500" />
+                    <Loader2
+                      size={40}
+                      className="animate-spin text-indigo-500"
+                    />
                     <span className="text-sm font-medium tracking-wide">
                       Carregando mensagem...
                     </span>
@@ -1559,7 +1658,10 @@ Bimestres escolares:
         )}
       </AnimatePresence>
       {/* Floating Reminders Widget */}
-      <div ref={lembretesRef} className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+      <div
+        ref={lembretesRef}
+        className="fixed bottom-6 right-6 z-40 flex flex-col items-end"
+      >
         <AnimatePresence>
           {isLembretesOpen && (
             <motion.div
@@ -1594,28 +1696,30 @@ Bimestres escolares:
                         className="bg-amber-100 p-3 rounded-xl text-slate-800 shadow-sm border border-amber-200"
                       >
                         <div className="flex justify-between items-start gap-2">
-                           <span className="leading-snug block text-sm font-medium flex-1">{rem}</span>
-                           <div className="flex gap-1 shrink-0">
-                               <button
-                                 type="button"
-                                 onClick={() => removeReminder(i)}
-                                 className="text-amber-600 hover:text-emerald-600 hover:bg-white rounded-full p-1.5 transition-all"
-                                 title="Marcar como concluído"
-                               >
-                                 <CheckCircle2 size={16} />
-                               </button>
-                               <button
-                                 type="button"
-                                 onClick={() => {
-                                   setReminderToDelete(i);
-                                   setIsDeleteModalOpen(true);
-                                 }}
-                                 className="text-amber-600 hover:text-red-600 hover:bg-white rounded-full p-1.5 transition-all"
-                                 title="Apagar lembrete"
-                               >
-                                 <Trash2 size={16} />
-                               </button>
-                           </div>
+                          <span className="leading-snug block text-sm font-medium flex-1">
+                            {rem}
+                          </span>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => removeReminder(i)}
+                              className="text-amber-600 hover:text-emerald-600 hover:bg-white rounded-full p-1.5 transition-all"
+                              title="Marcar como concluído"
+                            >
+                              <CheckCircle2 size={16} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReminderToDelete(i);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              className="text-amber-600 hover:text-red-600 hover:bg-white rounded-full p-1.5 transition-all"
+                              title="Apagar lembrete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       </motion.div>
                     ))}
@@ -1659,7 +1763,9 @@ Bimestres escolares:
               <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center mb-4 mx-auto">
                 <Trash2 size={24} />
               </div>
-              <h3 className="text-xl font-bold text-slate-800 text-center mb-2">Excluir Lembrete</h3>
+              <h3 className="text-xl font-bold text-slate-800 text-center mb-2">
+                Excluir Lembrete
+              </h3>
               <p className="text-slate-500 text-center text-sm mb-6">
                 Tem certeza que deseja excluir este lembrete permanentemente?
               </p>
@@ -1690,7 +1796,6 @@ Bimestres escolares:
           </div>
         )}
       </AnimatePresence>
-
     </motion.div>
   );
 }

@@ -1,6 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Database, FileText, UploadCloud, Loader2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Database,
+  FileText,
+  UploadCloud,
+  Loader2,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
@@ -20,7 +28,7 @@ export default function JarvisBaseView() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [expandedDocs, setExpandedDocs] = useState<string[]>([]);
 
   useEffect(() => {
@@ -43,7 +51,7 @@ export default function JarvisBaseView() {
     if (!user) return;
     try {
       await setDoc(doc(db, "users", user.uid, "knowledge", "jarvisBase"), {
-        docs: newDocs
+        docs: newDocs,
       });
       setDocs(newDocs);
     } catch (err) {
@@ -55,61 +63,67 @@ export default function JarvisBaseView() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length === 0 || !user) return;
-    
+
     setIsUploading(true);
     let successfullyUploaded: KnowledgeDoc[] = [];
-    
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       setUploadStatus(`Extraindo dados com IA... (${i + 1}/${files.length})`);
-      
+
       try {
         const formData = new FormData();
         formData.append("file", file);
-        
+
         const response = await fetch("/api/extract-text", {
           method: "POST",
           body: formData,
         });
-        
+
         const responseText = await response.text();
-        
+
         if (!response.ok) {
           let errorMessage = "Erro na resposta do servidor.";
           try {
             const errorData = JSON.parse(responseText);
             errorMessage = errorData.error || errorMessage;
-          } catch(e) {
+          } catch (e) {
             errorMessage = responseText.substring(0, 100);
           }
           throw new Error(errorMessage);
         }
-        
+
         const parsedData = JSON.parse(responseText);
-        
+
         if (parsedData.text) {
           const newDoc: KnowledgeDoc = {
             id: Date.now().toString() + "-" + i,
             title: file.name,
             content: parsedData.text,
-            uploadedAt: Date.now()
+            uploadedAt: Date.now(),
           };
           successfullyUploaded.push(newDoc);
         } else {
-          console.error(`A IA não conseguiu extrair informações do documento ${file.name}.`);
+          console.error(
+            `A IA não conseguiu extrair informações do documento ${file.name}.`,
+          );
         }
       } catch (err: any) {
         console.error(`Erro ao importar ${file.name}:`, err);
-        showAlert(`Erro ao importar ${file.name}: ${err.message}`, "Erro", "error");
+        showAlert(
+          `Erro ao importar ${file.name}: ${err.message}`,
+          "Erro",
+          "error",
+        );
       }
     }
-    
+
     if (successfullyUploaded.length > 0) {
       setUploadStatus("Salvando documentos...");
       const newDocs = [...successfullyUploaded, ...docs];
       await saveDocs(newDocs);
     }
-    
+
     setUploadStatus("");
     setIsUploading(false);
     if (fileInputRef.current) {
@@ -119,14 +133,15 @@ export default function JarvisBaseView() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Tem certeza que deseja remover este documento da base?")) return;
-    const newDocs = docs.filter(d => d.id !== id);
+    if (!confirm("Tem certeza que deseja remover este documento da base?"))
+      return;
+    const newDocs = docs.filter((d) => d.id !== id);
     await saveDocs(newDocs);
   };
 
   const toggleDoc = (id: string) => {
     setExpandedDocs((prev) =>
-      prev.includes(id) ? prev.filter((dId) => dId !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((dId) => dId !== id) : [...prev, id],
     );
   };
 
@@ -146,17 +161,19 @@ export default function JarvisBaseView() {
                 </h1>
               </div>
               <p className="text-slate-500 font-medium ml-13 flex items-center gap-2">
-                Faça o upload de currículos, provas, guias e planejamentos. O Jarvis usará todos esses documentos como base ao planejar suas aulas.
+                Faça o upload de currículos, provas, guias e planejamentos. O
+                Jarvis usará todos esses documentos como base ao planejar suas
+                aulas.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 w-full md:w-80">
               <div className="relative">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   multiple
-                  accept="application/pdf,image/*,.docx" 
-                  className="hidden" 
+                  accept="application/pdf,image/*,.docx"
+                  className="hidden"
                   ref={fileInputRef}
                   onChange={handleFileUpload}
                   disabled={isUploading}
@@ -164,7 +181,11 @@ export default function JarvisBaseView() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
-                      if(confirm("Tem certeza que deseja apagar TODOS os documentos base do Jarvis? Essa ação não pode ser desfeita.")) {
+                      if (
+                        confirm(
+                          "Tem certeza que deseja apagar TODOS os documentos base do Jarvis? Essa ação não pode ser desfeita.",
+                        )
+                      ) {
                         saveDocs([]);
                       }
                     }}
@@ -204,9 +225,13 @@ export default function JarvisBaseView() {
           {docs.length === 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
               <Database className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-slate-700 mb-2">Nenhum documento na base</h3>
+              <h3 className="text-xl font-bold text-slate-700 mb-2">
+                Nenhum documento na base
+              </h3>
               <p className="text-slate-500">
-                Adicione arquivos como "Matriz da Prova Paulista", "Aprendizagens Essenciais" e outros materiais de apoio para que o Jarvis entenda o seu currículo.
+                Adicione arquivos como "Matriz da Prova Paulista",
+                "Aprendizagens Essenciais" e outros materiais de apoio para que
+                o Jarvis entenda o seu currículo.
               </p>
             </div>
           )}
@@ -233,12 +258,14 @@ export default function JarvisBaseView() {
                         {docItem.title}
                       </h3>
                       <p className="text-xs text-slate-400 font-medium">
-                        Adicionado em {new Date(docItem.uploadedAt).toLocaleDateString()} às {new Date(docItem.uploadedAt).toLocaleTimeString()}
+                        Adicionado em{" "}
+                        {new Date(docItem.uploadedAt).toLocaleDateString()} às{" "}
+                        {new Date(docItem.uploadedAt).toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
-                    <button 
+                    <button
                       onClick={(e) => handleDelete(docItem.id, e)}
                       className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       title="Excluir documento"
@@ -246,7 +273,11 @@ export default function JarvisBaseView() {
                       <Trash2 size={18} />
                     </button>
                     <div className="text-slate-400">
-                      {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+                      {isExpanded ? (
+                        <ChevronUp size={24} />
+                      ) : (
+                        <ChevronDown size={24} />
+                      )}
                     </div>
                   </div>
                 </div>
