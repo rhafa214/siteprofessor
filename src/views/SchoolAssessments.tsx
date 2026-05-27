@@ -18,12 +18,12 @@ interface GradeRecord {
   grade: number | "";
 }
 
-export default function SchoolAssessments({ defaultTab = "bimestral", selectedBimestre }: { defaultTab?: "bimestral" | "simulado", selectedBimestre: string }) {
+export default function SchoolAssessments({ defaultTab = "bimestral", selectedBimestre }: { defaultTab?: "bimestral" | "simulado" | "participacao", selectedBimestre: string }) {
   const { user, accessToken } = useAuth();
   const { showAlert } = useAlert();
   const { confirm } = useConfirm();
   const { prompt } = usePrompt();
-  const [activeTab, setActiveTab] = useState<"bimestral" | "simulado">(defaultTab);
+  const [activeTab, setActiveTab] = useState<"bimestral" | "simulado" | "participacao">(defaultTab);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const [turmasList] = useLocalStorage<string[]>(

@@ -3,8 +3,19 @@ import MatificAnalysis from "./MatificAnalysis";
 import TaskAnalysis from "./TaskAnalysis";
 import ProvaPaulistaAnalysis from "./ProvaPaulistaAnalysis";
 import SchoolAssessments from "./SchoolAssessments";
+import CalculadoraMediaView from "./CalculadoraMediaView";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calculator, ClipboardCheck, FileText, BarChart, BrainCircuit, Loader2, BookOpen, Trophy, ChevronDown } from "lucide-react";
+import {
+  Calculator,
+  ClipboardCheck,
+  FileText,
+  BarChart,
+  BrainCircuit,
+  Loader2,
+  BookOpen,
+  Trophy,
+  ChevronDown,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useAlert } from "../contexts/AlertContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -17,17 +28,17 @@ import { GoogleGenAI } from "@google/genai";
 function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
   const { user } = useAuth();
   const { showAlert } = useAlert();
-  const [turmasList] = useLocalStorage<string[]>(
-    "classTurmasList",
-    [
-      "6°A - Orientação de estudos",
-      "6°B - Matemática",
-      "6°C - Matemática",
-      "7°C - Matemática",
-      "7°D - Tecnologia e Eletivas",
-    ],
+  const [turmasList] = useLocalStorage<string[]>("classTurmasList", [
+    "6°A - Orientação de estudos",
+    "6°B - Matemática",
+    "6°C - Matemática",
+    "7°C - Matemática",
+    "7°D - Tecnologia e Eletivas",
+  ]);
+  const [selectedTurma, setSelectedTurma] = useLocalStorage<string | null>(
+    "media_selectedTurma",
+    null,
   );
-  const [selectedTurma, setSelectedTurma] = useLocalStorage<string | null>("media_selectedTurma", null);
   const [loading, setLoading] = useState(false);
   const [aiReport, setAiReport] = useState("");
 
@@ -40,32 +51,56 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
     setAiReport("");
     try {
       const bKey = selectedBimestre.replace("º Bimestre", "");
-      let taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma!}`));
+      let taskDoc = await getDoc(
+        doc(db, "users", user.uid, "taskAnalysis", `${bKey}_${selectedTurma!}`),
+      );
       if (!taskDoc.exists() && bKey === "2") {
-        taskDoc = await getDoc(doc(db, "users", user.uid, "taskAnalysis", selectedTurma!));
+        taskDoc = await getDoc(
+          doc(db, "users", user.uid, "taskAnalysis", selectedTurma!),
+        );
       }
 
-      let matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", `${bKey}_${selectedTurma!}`));
+      let matificDoc = await getDoc(
+        doc(
+          db,
+          "users",
+          user.uid,
+          "matificAnalysis",
+          `${bKey}_${selectedTurma!}`,
+        ),
+      );
       if (!matificDoc.exists() && bKey === "2") {
-        matificDoc = await getDoc(doc(db, "users", user.uid, "matificAnalysis", selectedTurma!));
+        matificDoc = await getDoc(
+          doc(db, "users", user.uid, "matificAnalysis", selectedTurma!),
+        );
       }
 
-      let paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", `${bKey}_${selectedTurma!}`));
+      let paulistaDoc = await getDoc(
+        doc(
+          db,
+          "users",
+          user.uid,
+          "paulistaAnalysis",
+          `${bKey}_${selectedTurma!}`,
+        ),
+      );
       if (!paulistaDoc.exists() && bKey === "2") {
-        paulistaDoc = await getDoc(doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma!));
+        paulistaDoc = await getDoc(
+          doc(db, "users", user.uid, "paulistaAnalysis", selectedTurma!),
+        );
       }
-      
+
       const payload = {
-         turma: selectedTurma,
-         tarefas: taskDoc.exists() ? taskDoc.data() : null,
-         matific: matificDoc.exists() ? matificDoc.data() : null,
-         provaPaulista: paulistaDoc.exists() ? paulistaDoc.data() : null
+        turma: selectedTurma,
+        tarefas: taskDoc.exists() ? taskDoc.data() : null,
+        matific: matificDoc.exists() ? matificDoc.data() : null,
+        provaPaulista: paulistaDoc.exists() ? paulistaDoc.data() : null,
       };
 
       const response = await fetch("/api/generate-eval-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error("Erro na geração do relatório");
       const data = await response.json();
@@ -85,7 +120,9 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
           {!turmasList || turmasList.length === 0 ? (
             <div className="col-span-full flex flex-col items-center justify-center p-12 bg-white rounded-3xl border border-dashed border-slate-300">
               <BarChart className="w-12 h-12 text-slate-400 mb-4" />
-              <h2 className="text-xl font-bold text-slate-800 mb-2">Nenhuma Turma Adicionada</h2>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">
+                Nenhuma Turma Adicionada
+              </h2>
             </div>
           ) : (
             turmasList.map((turma) => (
@@ -117,7 +154,7 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
     { name: "Ana Beatriz", grade: 9.8, color: "bg-indigo-500" },
     { name: "João Pedro", grade: 9.5, color: "bg-blue-500" },
     { name: "Maria Clara", grade: 9.2, color: "bg-emerald-500" },
-    { name: "Lucas Silva", grade: 8.9, color: "bg-purple-500" }
+    { name: "Lucas Silva", grade: 8.9, color: "bg-purple-500" },
   ];
 
   return (
@@ -129,16 +166,34 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
             className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
             title="Voltar para turmas"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-right rotate-180"><path d="m9 18 6-6-6-6"/></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="lucide lucide-chevron-right rotate-180"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
           </button>
           <h2 className="text-xl font-bold text-slate-800">{selectedTurma}</h2>
         </div>
       </div>
 
       <div className="text-center mb-8">
-         <BarChart className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-         <h3 className="text-xl font-bold text-slate-700 mb-2">Relatório das Turmas</h3>
-         <p className="text-slate-500 max-w-lg mx-auto mb-6">Analise as médias consolidadas (Avaliações, Matific, Prova Paulista) e veja o histórico de desempenho.</p>
+        <BarChart className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-slate-700 mb-2">
+          Relatório das Turmas
+        </h3>
+        <p className="text-slate-500 max-w-lg mx-auto mb-6">
+          Analise as médias consolidadas (Avaliações, Matific, Prova Paulista) e
+          veja o histórico de desempenho.
+        </p>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 max-w-5xl mx-auto w-full">
@@ -152,16 +207,16 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
             {bestStudents.map((s, idx) => (
               <div key={idx} className="flex flex-col gap-1">
                 <div className="flex justify-between text-sm">
-                   <span className="font-medium text-slate-700">{s.name}</span>
-                   <span className="font-bold text-slate-900">{s.grade}</span>
+                  <span className="font-medium text-slate-700">{s.name}</span>
+                  <span className="font-bold text-slate-900">{s.grade}</span>
                 </div>
                 <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-                     <motion.div 
-                       initial={{ width: 0 }}
-                       animate={{ width: `${(s.grade / 10) * 100}%` }}
-                       transition={{ duration: 1, ease: "easeOut" }}
-                       className={`h-full rounded-full ${s.color}`}
-                     />
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(s.grade / 10) * 100}%` }}
+                    transition={{ duration: 1, ease: "easeOut" }}
+                    className={`h-full rounded-full ${s.color}`}
+                  />
                 </div>
               </div>
             ))}
@@ -170,23 +225,36 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
 
         {/* Relatório IA */}
         <div className="flex-1 bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 flex flex-col items-center text-center">
-           <div className="flex items-center gap-3 text-indigo-600 font-bold mb-4">
-              <BrainCircuit size={24} />
-              Feedback Sintético (Jarvis)
-           </div>
-           {aiReport ? (
-             <div className="w-full text-slate-700 bg-white p-4 rounded-xl border border-slate-200 shadow-sm prose prose-indigo text-left text-sm max-h-64 overflow-auto">
-               <div dangerouslySetInnerHTML={{ __html: aiReport.replace(/\n/g, '<br/>') }} />
-             </div>
-           ) : (
-             <p className="text-sm text-slate-600 max-w-sm mb-6">
-                O Jarvis cruzará os dados disponíveis no painel e criará uma rápida resenha pedagógica do desempenho geral de {selectedTurma}.
-             </p>
-           )}
-           
-           <button onClick={generateReport} disabled={loading} className="mt-auto px-6 py-3 w-full bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all">
-              {loading ? <Loader2 size={18} className="animate-spin" /> : "Gerar Relatório Resumo"}
-           </button>
+          <div className="flex items-center gap-3 text-indigo-600 font-bold mb-4">
+            <BrainCircuit size={24} />
+            Feedback Sintético (Jarvis)
+          </div>
+          {aiReport ? (
+            <div className="w-full text-slate-700 bg-white p-4 rounded-xl border border-slate-200 shadow-sm prose prose-indigo text-left text-sm max-h-64 overflow-auto">
+              <div
+                dangerouslySetInnerHTML={{
+                  __html: aiReport.replace(/\n/g, "<br/>"),
+                }}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600 max-w-sm mb-6">
+              O Jarvis cruzará os dados disponíveis no painel e criará uma
+              rápida resenha pedagógica do desempenho geral de {selectedTurma}.
+            </p>
+          )}
+
+          <button
+            onClick={generateReport}
+            disabled={loading}
+            className="mt-auto px-6 py-3 w-full bg-indigo-600 text-white font-bold rounded-xl shadow-md hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+          >
+            {loading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              "Gerar Relatório Resumo"
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -194,7 +262,17 @@ function MediaView({ selectedBimestre }: { selectedBimestre: string }) {
 }
 
 export default function EvaluationsView() {
-  const [activeTab, setActiveTab] = useState<"tarefas" | "matific" | "paulista" | "media" | "bimestral" | "simulado" | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    | "tarefas"
+    | "matific"
+    | "paulista"
+    | "media"
+    | "bimestral"
+    | "simulado"
+    | "participacao"
+    | "medias"
+    | null
+  >(null);
 
   const getCurrentBimestre = () => {
     const month = new Date().getMonth();
@@ -204,10 +282,15 @@ export default function EvaluationsView() {
     return "4º Bimestre";
   };
 
-  const [selectedBimestre, setSelectedBimestre] = useState(getCurrentBimestre());
+  const [selectedBimestre, setSelectedBimestre] =
+    useState(getCurrentBimestre());
 
-  const bimestres = ["1º Bimestre", "2º Bimestre", "3º Bimestre", "4º Bimestre"];
-
+  const bimestres = [
+    "1º Bimestre",
+    "2º Bimestre",
+    "3º Bimestre",
+    "4º Bimestre",
+  ];
 
   if (activeTab) {
     return (
@@ -219,7 +302,20 @@ export default function EvaluationsView() {
               className="p-2 hover:bg-slate-100 text-slate-600 rounded-xl transition-colors"
               title="Voltar para módulos"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-chevron-left"><path d="m15 18-6-6 6-6"/></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="lucide lucide-chevron-left"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
             </button>
             <div>
               <h1 className="text-xl font-bold text-slate-800">
@@ -227,8 +323,10 @@ export default function EvaluationsView() {
                 {activeTab === "matific" && "Matific"}
                 {activeTab === "paulista" && "Prova Paulista"}
                 {activeTab === "media" && "Relatório das Turmas"}
+                {activeTab === "medias" && "Média Bimestral"}
                 {activeTab === "bimestral" && "Avaliação Bimestral"}
                 {activeTab === "simulado" && "Simulado"}
+                {activeTab === "participacao" && "Notas de Participação"}
               </h1>
             </div>
           </div>
@@ -238,18 +336,52 @@ export default function EvaluationsView() {
               onChange={(e) => setSelectedBimestre(e.target.value)}
               className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2 pl-4 pr-10 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              {bimestres.map(b => <option key={b} value={b}>{b}</option>)}
+              {bimestres.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
             </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <ChevronDown
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto relative p-4 md:p-6 pb-24 flex flex-col">
-          {activeTab === "tarefas" && <TaskAnalysis selectedBimestre={selectedBimestre} />}
-          {activeTab === "matific" && <MatificAnalysis selectedBimestre={selectedBimestre} />}
-          {activeTab === "paulista" && <ProvaPaulistaAnalysis selectedBimestre={selectedBimestre} />}
-          {activeTab === "media" && <MediaView selectedBimestre={selectedBimestre} />}
-          {activeTab === "bimestral" && <SchoolAssessments defaultTab="bimestral" selectedBimestre={selectedBimestre} />}
-          {activeTab === "simulado" && <SchoolAssessments defaultTab="simulado" selectedBimestre={selectedBimestre} />}
+          {activeTab === "tarefas" && (
+            <TaskAnalysis selectedBimestre={selectedBimestre} />
+          )}
+          {activeTab === "matific" && (
+            <MatificAnalysis selectedBimestre={selectedBimestre} />
+          )}
+          {activeTab === "paulista" && (
+            <ProvaPaulistaAnalysis selectedBimestre={selectedBimestre} />
+          )}
+          {activeTab === "media" && (
+            <MediaView selectedBimestre={selectedBimestre} />
+          )}
+          {activeTab === "medias" && (
+            <CalculadoraMediaView selectedBimestre={selectedBimestre} />
+          )}
+          {activeTab === "bimestral" && (
+            <SchoolAssessments
+              defaultTab="bimestral"
+              selectedBimestre={selectedBimestre}
+            />
+          )}
+          {activeTab === "simulado" && (
+            <SchoolAssessments
+              defaultTab="simulado"
+              selectedBimestre={selectedBimestre}
+            />
+          )}
+          {activeTab === "participacao" && (
+            <SchoolAssessments
+              defaultTab="participacao"
+              selectedBimestre={selectedBimestre}
+            />
+          )}
         </div>
       </div>
     );
@@ -274,16 +406,23 @@ export default function EvaluationsView() {
               onChange={(e) => setSelectedBimestre(e.target.value)}
               className="appearance-none bg-slate-50 border border-slate-200 text-slate-700 py-2 pl-4 pr-10 rounded-xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-500 hover:bg-slate-100 transition-colors cursor-pointer shadow-sm"
             >
-              {bimestres.map(b => <option key={b} value={b}>{b}</option>)}
+              {bimestres.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
             </select>
-            <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <ChevronDown
+              size={16}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none"
+            />
           </div>
         </div>
       </div>
 
       {/* Cards */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -310,6 +449,21 @@ export default function EvaluationsView() {
             </div>
             <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-amber-600 transition-colors">
               Simulado
+            </h3>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
+            onClick={() => setActiveTab("participacao")}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+              <ClipboardCheck size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-pink-600 transition-colors">
+              Participação
             </h3>
           </motion.div>
 
@@ -370,6 +524,21 @@ export default function EvaluationsView() {
             </div>
             <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-purple-600 transition-colors">
               Relatório das Turmas
+            </h3>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group flex flex-col items-center justify-center text-center h-48 gap-4"
+            onClick={() => setActiveTab("medias")}
+          >
+            <div className="w-16 h-16 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+              <Calculator size={32} />
+            </div>
+            <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-teal-600 transition-colors">
+              Média Bimestral
             </h3>
           </motion.div>
         </div>
