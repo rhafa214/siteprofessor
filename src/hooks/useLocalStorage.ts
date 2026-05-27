@@ -29,8 +29,12 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
               window.localStorage.setItem(key, JSON.stringify(data.value));
             }
           }
-        } catch (e) {
-          console.error(`Error pulling ${key} from Firestore`, e);
+        } catch (e: any) {
+          if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
+            console.log(`Offline mode: using local storage for ${key}`);
+          } else {
+            console.error(`Error pulling ${key} from Firestore`, e);
+          }
         }
       }
     };
@@ -58,9 +62,13 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         const user = auth.currentUser;
         if (user) {
           const docRef = doc(db, "users", user.uid, "appData", key);
-          setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e) =>
-            console.error(`Error syncing ${key} to Firestore`, e),
-          );
+          setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e: any) => {
+            if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
+              // Silently handle offline set, it will sync later if persistence is enabled
+            } else {
+              console.error(`Error syncing ${key} to Firestore`, e);
+            }
+          });
         }
 
         return valueToStore;

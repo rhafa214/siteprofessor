@@ -389,9 +389,9 @@ export default function SchoolAssessments({ defaultTab = "bimestral", selectedBi
   const filteredGrades = currentGrades;
 
   return (
-    <div className="flex flex-col flex-1 min-h-[70vh]">
-      <div className="bg-white shadow-sm border border-slate-200 flex flex-col overflow-hidden rounded-2xl flex-1">
-        <div className="p-4 md:p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+    <div className="flex flex-col flex-1 min-h-[70vh] print:min-h-0 print:h-auto print:block">
+      <div className="bg-white shadow-sm border border-slate-200 flex flex-col overflow-hidden rounded-2xl flex-1 print:border-none print:shadow-none print:rounded-none print:overflow-visible print:block">
+        <div className="p-4 md:p-6 border-b border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 print:hidden">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSelectedTurma(null)}

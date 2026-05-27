@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from "recharts";
-import { Users, FileCheck, BrainCircuit, BarChart2 } from "lucide-react";
+import { Users, FileCheck, BrainCircuit, BarChart2, Printer, AlertTriangle } from "lucide-react";
 
 interface GradeRecord {
   id: string;
@@ -64,6 +64,8 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
       }));
 
     let seriesChartData: any[] = [];
+    let reprovadosList: {name: string, grade: number, turma?: string}[] = [];
+
     if (!selectedTurma) {
         // Group by series (e.g. "6º ano", "7º ano")
         const seriesData: Record<string, { total: number, sum: number, excellent: number, regular: number, critical: number }> = {};
@@ -81,6 +83,14 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
                 seriesData[sLabel].regular += st.regular;
                 seriesData[sLabel].critical += st.critical;
             }
+
+            // Collect all reprovados for the general report
+            const data = gradesData[`${selectedBimestre}_${t}_bimestral`] || [];
+            data.forEach((g: any) => {
+              if (typeof g.grade === 'number' && g.grade < 5) {
+                 reprovadosList.push({ name: g.studentName, grade: g.grade, turma: t });
+              }
+            });
         });
         
         seriesChartData = Object.keys(seriesData).map(k => ({
@@ -90,7 +100,18 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
             Crítico: seriesData[k].critical,
             Média: seriesData[k].total > 0 ? Number((seriesData[k].sum / seriesData[k].total).toFixed(1)) : 0
         }));
+    } else {
+        // Collect reprovados for the specific turma
+        const data = gradesData[`${selectedBimestre}_${selectedTurma}_bimestral`] || [];
+        data.forEach((g: any) => {
+          if (typeof g.grade === 'number' && g.grade < 5) {
+             reprovadosList.push({ name: g.studentName, grade: g.grade });
+          }
+        });
     }
+
+    // Sort reprovados by name
+    reprovadosList.sort((a, b) => a.name.localeCompare(b.name));
 
     return {
       totalStudents,
@@ -100,6 +121,7 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
       average,
       chartData,
       seriesChartData,
+      reprovadosList,
       highestGrade,
       lowestGrade
     };
@@ -122,7 +144,26 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6" id="bimestral-report-content">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 print:hidden">
+         <div>
+            <h2 className="text-xl font-bold text-slate-800">Visão Geral do Relatório</h2>
+            <p className="text-sm text-slate-500">Acompanhamento e estatísticas das turmas</p>
+         </div>
+         <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-colors shadow-sm"
+         >
+            <Printer size={18} /> Imprimir Relatório
+         </button>
+      </div>
+
+      {/* Título de Impressão (Apenas visível na impressão) */}
+      <div className="hidden print:block mb-8">
+         <h1 className="text-2xl font-black text-slate-900 border-b-2 border-slate-900 pb-2 mb-2">Relatório de Avaliação - {selectedBimestre}</h1>
+         <p className="text-slate-600 font-medium">Data de geração: {new Date().toLocaleDateString('pt-BR')}</p>
+      </div>
+
       {/* Cards de Resumo */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 lg:gap-4">
         <div className="bg-white p-3 lg:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center gap-3">
@@ -301,6 +342,41 @@ export default function BimestralReportView({ gradesData, selectedBimestre, turm
                 </BarChart>
              </ResponsiveContainer>
            </div>
+         </div>
+      )}
+
+      {/* Alunos Reprovados (Para impressão e visualização) */}
+      {stats.reprovadosList && stats.reprovadosList.length > 0 && (
+         <div className="bg-white print:bg-transparent p-6 rounded-2xl border border-rose-200 shadow-sm mt-4 print:mt-8 print:break-before-auto">
+            <h3 className="text-lg font-bold text-rose-800 mb-4 flex items-center gap-2 border-b border-rose-100 pb-3">
+               <AlertTriangle size={20} className="text-rose-600" />
+               Alunos com Rendimento Crítico (Nota abaixo de 5.0)
+            </h3>
+            
+            <div className="overflow-x-auto">
+               <table className="w-full text-left text-sm text-slate-600">
+                  <thead className="bg-rose-50/50 text-rose-800 uppercase font-bold text-xs border-b border-rose-100">
+                     <tr>
+                        <th className="px-4 py-3">Nome do Aluno</th>
+                        {!selectedTurma && <th className="px-4 py-3 text-center">Turma</th>}
+                        <th className="px-4 py-3 text-center">Nota</th>
+                     </tr>
+                  </thead>
+                  <tbody className="divide-y divide-rose-50">
+                     {stats.reprovadosList.map((aluno, idx) => (
+                        <tr key={idx} className="hover:bg-rose-50/30 transition-colors">
+                           <td className="px-4 py-2 font-medium text-slate-700">{aluno.name}</td>
+                           {!selectedTurma && <td className="px-4 py-2 text-center text-slate-500">{aluno.turma}</td>}
+                           <td className="px-4 py-2 text-center">
+                              <span className="inline-block px-2 py-1 rounded bg-rose-100 text-rose-700 font-bold text-xs">
+                                 {aluno.grade}
+                              </span>
+                           </td>
+                        </tr>
+                     ))}
+                  </tbody>
+               </table>
+            </div>
          </div>
       )}
     </div>

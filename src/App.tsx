@@ -252,32 +252,36 @@ function App() {
   }
 
   return (
-    <div className="flex h-[100dvh] w-full bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <div className="flex h-[100dvh] w-full bg-slate-50 text-slate-900 overflow-hidden font-sans print:h-auto print:overflow-visible print:block bg-white">
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden print:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
-      <Sidebar
-        currentView={currentView}
-        setCurrentView={(v) => {
-          setCurrentView(v);
-          setIsSidebarOpen(false);
-        }}
-        isOpen={isSidebarOpen}
-        setIsOpen={setIsSidebarOpen}
-      />
-
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <Topbar 
-          currentView={currentView} 
-          setIsSidebarOpen={setIsSidebarOpen} 
-          setCurrentView={setCurrentView}
+      <div className="print:hidden h-full flex shrink-0">
+        <Sidebar
+          currentView={currentView}
+          setCurrentView={(v) => {
+            setCurrentView(v);
+            setIsSidebarOpen(false);
+          }}
+          isOpen={isSidebarOpen}
+          setIsOpen={setIsSidebarOpen}
         />
+      </div>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10">
-          <div className="max-w-7xl mx-auto h-full">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:h-auto print:block">
+        <div className="print:hidden">
+            <Topbar 
+              currentView={currentView} 
+              setIsSidebarOpen={setIsSidebarOpen} 
+              setCurrentView={setCurrentView}
+            />
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 print:overflow-visible print:p-0 print:m-0">
+          <div className="max-w-7xl mx-auto h-full print:max-w-none print:w-full print:h-auto">
             {currentView === "dashboard" && (
               <Dashboard setCurrentView={setCurrentView} />
             )}
