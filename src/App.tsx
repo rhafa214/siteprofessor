@@ -252,7 +252,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 text-slate-900 overflow-hidden font-sans">
+    <div className="flex h-[100dvh] w-full bg-slate-50 text-slate-900 overflow-hidden font-sans">
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden"

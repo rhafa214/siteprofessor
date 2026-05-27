@@ -305,7 +305,7 @@ export default function BannerAssistant() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-slate-50 relative overflow-hidden rounded-2xl shadow-sm border border-slate-200">
+    <div className="flex h-[calc(100dvh-8rem)] bg-slate-50 relative overflow-hidden rounded-2xl shadow-sm border border-slate-200">
       {/* Sidebar Histórico */}
       <div className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex shrink-0">
         <div className="p-4 border-b border-slate-200">

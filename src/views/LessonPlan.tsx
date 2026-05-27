@@ -776,7 +776,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className={`w-full mx-auto flex flex-col ${viewMode === "chat" ? "h-[calc(100vh-40px)] lg:h-[calc(100vh-48px)]" : "max-w-[1800px] gap-4 lg:gap-6 p-4 lg:p-6 min-h-[calc(100vh-40px)] lg:min-h-[calc(100vh-48px)]"}`}
+      className={`w-full mx-auto flex flex-col ${viewMode === "chat" ? "h-[calc(100dvh-40px)] lg:h-[calc(100dvh-48px)]" : "max-w-[1800px] gap-4 lg:gap-6 p-4 lg:p-6 min-h-[calc(100dvh-40px)] lg:min-h-[calc(100dvh-48px)]"}`}
     >
       <div
         className={`flex flex-col md:flex-row items-start md:items-center justify-between gap-4 print:hidden ${viewMode === "chat" ? "px-2 lg:px-4 pt-2 lg:pt-3 shrink-0" : ""}`}

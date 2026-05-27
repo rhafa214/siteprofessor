@@ -289,7 +289,7 @@ export default function Apostilas() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-6xl mx-auto flex flex-col h-[calc(100vh-140px)] gap-6"
+      className="max-w-6xl mx-auto flex flex-col h-[calc(100dvh-140px)] gap-6"
     >
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
         <div className="flex items-center gap-3">

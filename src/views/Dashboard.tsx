@@ -1292,27 +1292,27 @@ Bimestres escolares:
             <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
               <BotMessageSquare size={16} className="text-indigo-500" /> Jarvis
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setIsHistoryOpen(true)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
               >
                 <History size={14} />
-                <span className="hidden sm:inline">Histórico</span>
+                <span className="inline">Histórico</span>
               </button>
               <button
                 onClick={handleNewChat}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
               >
                 <MessageSquarePlus size={14} />
-                <span className="hidden sm:inline">Nova Conversa</span>
+                <span className="inline">Nova Conversa</span>
               </button>
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 lg:h-[450px] h-auto">
+          <div className="flex flex-col gap-4 h-[70vh] min-h-[400px] lg:h-[450px]">
             {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-96 md:h-full">
+            <div className="flex-1 flex flex-col bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-full">
               <div
                 ref={scrollRef}
                 className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin"

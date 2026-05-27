@@ -12,22 +12,24 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg'],
+        includeAssets: ['favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
         manifest: {
           name: 'Professor Dashboard',
           short_name: 'Professor',
           description: 'Painel do Professor - Gestão e Assistente AI',
-          theme_color: '#ffffff',
+          theme_color: '#4f46e5',
+          background_color: '#f8fafc',
+          display: 'standalone',
           icons: [
             {
-              src: 'favicon.svg',
+              src: 'icon-192.png',
               sizes: '192x192',
-              type: 'image/svg+xml'
+              type: 'image/png'
             },
             {
-              src: 'favicon.svg',
+              src: 'icon-512.png',
               sizes: '512x512',
-              type: 'image/svg+xml',
+              type: 'image/png',
               purpose: 'any maskable'
             }
           ]
