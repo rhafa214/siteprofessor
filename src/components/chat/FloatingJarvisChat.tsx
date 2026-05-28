@@ -68,7 +68,7 @@ export default function FloatingJarvisChat() {
   }, [user, chatMessages.length, setChatMessages]);
 
   useEffect(() => {
-    if (chatMessages.length > 1) {
+    if (chatMessages.length > 1 && !isTyping) {
       setChatHistory((prev) => {
         const existingIdx = prev.findIndex((p) => p.id === currentChatId);
         const newItem = {
@@ -89,7 +89,7 @@ export default function FloatingJarvisChat() {
         }
       });
     }
-  }, [chatMessages, currentChatId, setChatHistory]);
+  }, [chatMessages, currentChatId, setChatHistory, isTyping]);
 
   useEffect(() => {
     if (isOpen && scrollRef.current) {
@@ -156,7 +156,7 @@ export default function FloatingJarvisChat() {
       parts.push("Responda sempre em um tom profissional, amigável e focado.");
 
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-2.5-pro",
+        model: "gemini-2.0-flash",
         contents,
         config: {
           systemInstruction: { parts: parts.map(p => ({ text: p })) },

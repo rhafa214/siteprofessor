@@ -158,7 +158,7 @@ export default function Dashboard(props: DashboardProps) {
 
   // Auto-save current chat to history
   useEffect(() => {
-    if (chatMessages.length > 1) {
+    if (chatMessages.length > 1 && !isTyping) {
       setChatHistory((prev) => {
         const existingIdx = prev.findIndex((p) => p.id === currentChatId);
         const newItem = {
@@ -179,8 +179,7 @@ export default function Dashboard(props: DashboardProps) {
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chatMessages, currentChatId]);
+  }, [chatMessages, currentChatId, setChatHistory, isTyping]);
 
   useEffect(() => {
     if (user) {
@@ -514,7 +513,7 @@ Bimestres escolares:
           : "";
 
       const responseStream = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash",
+        model: "gemini-2.0-flash",
         contents,
         config: {
           systemInstruction:

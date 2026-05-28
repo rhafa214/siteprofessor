@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -49,7 +49,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     return () => unsubscribe();
   }, [key]);
 
-  const setValue = (value: T | ((val: T) => T)) => {
+  const setValue = useCallback((value: T | ((val: T) => T)) => {
     try {
       setStoredValue((current) => {
         const valueToStore = value instanceof Function ? value(current) : value;
@@ -76,7 +76,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
     }
-  };
+  }, [key]);
 
   return [storedValue, setValue] as const;
 }

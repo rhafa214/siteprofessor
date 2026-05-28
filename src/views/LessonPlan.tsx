@@ -449,7 +449,7 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
         for (let attempt = 0; attempt < 3; attempt++) {
           try {
             response = await ai.models.generateContent({
-              model: "gemini-2.5-flash",
+              model: "gemini-2.0-flash",
               contents: [{ role: "user", parts: [{ text: sysPrompt }] }],
             });
             break;
@@ -511,25 +511,25 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
 
   // Auto-save lesson plan chat to history
   useEffect(() => {
-    if (messages.length > 1) {
+    if (messages.length > 1 && !isTyping) {
+      const newItem = {
+        id: currentLessonChatId,
+        date: new Date().toISOString(),
+        preview:
+          messages.find((m) => m.role === "user")?.content ||
+          "Conversa sem interação",
+        messages: messages,
+      };
+
+      if (user) {
+        setDoc(
+          doc(db, "users", user.uid, "chatHistory", currentLessonChatId),
+          newItem,
+        ).catch((e) => console.error(e));
+      }
+
       setChatHistory((prev) => {
         const existingIdx = prev.findIndex((p) => p.id === currentLessonChatId);
-        const newItem = {
-          id: currentLessonChatId,
-          date: new Date().toISOString(),
-          preview:
-            messages.find((m) => m.role === "user")?.content ||
-            "Conversa sem interação",
-          messages: messages,
-        };
-
-        if (user) {
-          setDoc(
-            doc(db, "users", user.uid, "chatHistory", currentLessonChatId),
-            newItem,
-          ).catch((e) => console.error(e));
-        }
-
         if (existingIdx !== -1) {
           const next = [...prev];
           next[existingIdx] = newItem;
@@ -539,8 +539,7 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
         }
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, currentLessonChatId, user]);
+  }, [messages, currentLessonChatId, user, isTyping]);
 
   const [inputVal, setInputVal] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -719,7 +718,7 @@ Forneça o resultado formatado de forma limpa em Markdown.`;
       for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
         try {
           response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash",
             contents: [
               {
                 role: "user",
