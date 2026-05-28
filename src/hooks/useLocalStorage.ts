@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
+// Global map to hold timeout IDs for debouncing writes to Firestore per key
+const writeKeysDebounceMap = new Map<string, NodeJS.Timeout>();
+
 export function useLocalStorage<T>(key: string, initialValue: T) {
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === "undefined") return initialValue;
@@ -39,7 +42,6 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       }
     };
 
-    // We can use an auth state observer to sync when logged in
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         fetchFromFirestore();
@@ -58,17 +60,26 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
         }
 
-        // Async sync to Firestore
+        // Async sync to Firestore with Debounce (prevent resource exhaustion)
         const user = auth.currentUser;
         if (user) {
-          const docRef = doc(db, "users", user.uid, "appData", key);
-          setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e: any) => {
-            if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
-              // Silently handle offline set, it will sync later if persistence is enabled
-            } else {
-              console.error(`Error syncing ${key} to Firestore`, e);
-            }
-          });
+          if (writeKeysDebounceMap.has(key)) {
+            clearTimeout(writeKeysDebounceMap.get(key)!);
+          }
+
+          const timeoutId = setTimeout(() => {
+            const docRef = doc(db, "users", user.uid, "appData", key);
+            setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e: any) => {
+              if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
+                // Silently handle offline set
+              } else {
+                console.error(`Error syncing ${key} to Firestore`, e);
+              }
+            });
+            writeKeysDebounceMap.delete(key);
+          }, 1500); // 1.5 second debounce
+
+          writeKeysDebounceMap.set(key, timeoutId);
         }
 
         return valueToStore;
