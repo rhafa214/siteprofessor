@@ -6,18 +6,17 @@ import { useAuth } from "./contexts/AuthContext";
 import { useAppStore } from "./store/useAppStore";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import LoginView from "./views/LoginView";
+import FloatingJarvisChat from "./components/chat/FloatingJarvisChat";
 
 // Lazy-loaded views
 const Dashboard = lazy(() => import("./views/Dashboard"));
 const ClassJournal = lazy(() => import("./views/ClassJournal"));
 const Agenda = lazy(() => import("./views/Agenda"));
 const LessonPlan = lazy(() => import("./views/LessonPlan"));
-const Tasks = lazy(() => import("./views/Tasks"));
 const KnowledgeBase = lazy(() => import("./views/KnowledgeBase"));
 const TaskAnalysis = lazy(() => import("./views/TaskAnalysis"));
 const MatificAnalysis = lazy(() => import("./views/MatificAnalysis"));
 const StudentsDatabase = lazy(() => import("./views/StudentsDatabase"));
-const BannerAssistant = lazy(() => import("./views/BannerAssistant"));
 const Apostilas = lazy(() => import("./views/Apostilas"));
 const EvaluationsView = lazy(() => import("./views/EvaluationsView"));
 const JarvisBaseView = lazy(() => import("./views/JarvisBaseView"));
@@ -97,18 +96,18 @@ function App() {
                 {currentView === "diario" && <ClassJournal />}
                 {currentView === "agenda" && <Agenda />}
                 {currentView === "plano" && <LessonPlan />}
-                {currentView === "tarefas" && <Tasks />}
                 {currentView === "avaliacoes" && <EvaluationsView />}
                 {currentView === "alunos" && <StudentsDatabase />}
                 {currentView === "conhecimento" && <KnowledgeBase />}
                 {currentView === "jarvis" && <JarvisBaseView />}
                 {currentView === "guia-pedagogico" && <GuiaPedagogicoView />}
-                {currentView === "banner" && <BannerAssistant />}
                 {currentView === "apostilas" && <Apostilas />}
               </Suspense>
             </div>
           </div>
         </main>
+        
+        <FloatingJarvisChat />
       </div>
     </ErrorBoundary>
   );

@@ -26,7 +26,6 @@ import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { cn } from "../lib/utils";
 import NewsCarousel from "../components/dashboard/NewsCarousel";
-import JarvisObservou from "../components/dashboard/JarvisObservou";
 import { GoogleGenAI, Type } from "@google/genai";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { useGmail } from "../hooks/useGmail";
@@ -893,7 +892,7 @@ Bimestres escolares:
       {/* Bento Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Google Sync Status */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 lg:p-8 text-white flex flex-col justify-between relative overflow-hidden shadow-lg min-h-[160px]">
+        <div className="lg:col-span-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 lg:p-8 text-white flex flex-col relative overflow-hidden shadow-lg min-h-[160px]">
           <div className="absolute top-0 right-0 p-6 opacity-20">
             <CalendarClock size={120} />
           </div>
@@ -1042,17 +1041,6 @@ Bimestres escolares:
             )}
           </div>
         </div>
-
-        {/* Jarvis Observou */}
-        <JarvisObservou
-          currentTurma={currentTurma}
-          logForCurrentTurma={logForCurrentTurma}
-          latestLog={latestLog}
-          isClassEndingSoon={isClassEndingSoon}
-          setCurrentView={setCurrentView}
-          setChatInput={setChatInput}
-          document={document}
-        />
 
         {/* Emails / Inbox */}
         <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col h-auto lg:h-[340px]">
@@ -1233,115 +1221,6 @@ Bimestres escolares:
         <div className="lg:col-span-3 flex flex-col h-auto lg:h-[400px]">
           <NewsCarousel />
         </div>
-
-        {/* Chat Assistant (Jarvis) */}
-        <div
-          id="chat-section"
-          className="lg:col-span-3 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col relative"
-        >
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
-              <BotMessageSquare size={16} className="text-indigo-500" /> Jarvis
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setIsHistoryOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              >
-                <History size={14} />
-                <span className="inline">Histórico</span>
-              </button>
-              <button
-                onClick={handleNewChat}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
-              >
-                <MessageSquarePlus size={14} />
-                <span className="inline">Nova Conversa</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4 h-[70vh] min-h-[400px] lg:h-[450px]">
-            {/* Chat Area */}
-            <div className="flex-1 flex flex-col bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden h-full">
-              <div
-                ref={scrollRef}
-                className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin"
-              >
-                {chatMessages.map((msg, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "max-w-[80%] rounded-2xl px-4 py-2.5 text-sm",
-                      msg.role === "bot"
-                        ? "bg-white border border-slate-200 text-slate-700 self-start rounded-tl-sm whitespace-pre-wrap"
-                        : "bg-indigo-600 text-white self-end ml-auto rounded-tr-sm whitespace-pre-wrap",
-                    )}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
-                {isTyping && activeStreamingMessage === null && (
-                  <div className="bg-white border border-slate-200 text-slate-500 self-start rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-2">
-                    <Loader2
-                      size={16}
-                      className="animate-spin text-indigo-500"
-                    />
-                    <span className="text-xs font-medium">Pensando...</span>
-                  </div>
-                )}
-                {activeStreamingMessage !== null && (
-                  <div className="max-w-[80%] rounded-2xl px-4 py-2.5 text-sm bg-white border border-slate-200 text-slate-700 self-start rounded-tl-sm whitespace-pre-wrap">
-                    {activeStreamingMessage}
-                    <span className="ml-1 inline-block w-1.5 h-4 bg-indigo-400 animate-pulse align-middle" />
-                  </div>
-                )}
-                <div ref={messagesEndRef} className="h-1" />
-              </div>
-              <form
-                onSubmit={handleChat}
-                className="p-3 bg-white border-t border-slate-100 flex gap-2 items-end"
-              >
-                <textarea
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleChat(e);
-                    }
-                  }}
-                  disabled={isTyping}
-                  placeholder="Ex: Como engajar alunos no 2º ano?"
-                  rows={2}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all disabled:opacity-50 resize-none min-h-[44px]"
-                />
-                <button
-                  type="submit"
-                  disabled={isTyping}
-                  className="bg-slate-900 text-white p-3 rounded-xl hover:bg-slate-800 transition-colors shrink-0 disabled:opacity-50 h-[44px] flex items-center justify-center"
-                >
-                  <Send size={18} />
-                </button>
-              </form>
-            </div>
-
-            <div className="flex justify-start">
-              <button
-                type="button"
-                onClick={handleEfapeToggle}
-                className={cn(
-                  "px-6 py-2.5 rounded-xl text-sm font-bold border transition-colors",
-                  efapeDone
-                    ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50",
-                )}
-              >
-                {efapeDone ? "Fiz a EFAPE! ✅" : "Marcar EFAPE como concluída"}
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* History Slide-over */}
@@ -1515,7 +1394,7 @@ Bimestres escolares:
       {/* Floating Reminders Widget */}
       <div
         ref={lembretesRef}
-        className="fixed bottom-6 right-6 z-40 flex flex-col items-end"
+        className="fixed bottom-24 right-6 z-40 flex flex-col items-end print:hidden"
       >
         <AnimatePresence>
           {isLembretesOpen && (

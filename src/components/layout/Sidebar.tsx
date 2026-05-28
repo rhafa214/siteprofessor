@@ -68,7 +68,6 @@ export default function Sidebar() {
       icon: ClipboardCheck,
       group: "Principal",
     },
-    { id: "banner", label: "Assistente Banner", icon: Bot, group: "Principal" },
     {
       id: "apostilas",
       label: "Minhas Apostilas",
@@ -82,7 +81,6 @@ export default function Sidebar() {
       group: "Recursos",
     },
     { id: "plano", label: "Plano de Aula", icon: PenTool, group: "Recursos" },
-    { id: "tarefas", label: "Checklist", icon: ListTodo, group: "Recursos" },
     {
       id: "perfil",
       label: "Perfil",
