@@ -41,6 +41,7 @@ import {
   setDoc,
   deleteDoc,
   getDocs,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
@@ -137,11 +138,15 @@ export default function LessonPlan() {
             setAppPlans(fbPlans);
           } else if (appPlans.length > 0) {
             // migrate to firestore if firestore is empty but we have local plans
-            appPlans.forEach(async (p) => {
-              try {
-                await setDoc(doc(db, "users", user.uid, "plans", p.id), p);
-              } catch (e) {}
+            const batch = writeBatch(db);
+            let count = 0;
+            appPlans.forEach((p) => {
+              batch.set(doc(db, "users", user.uid, "plans", p.id), p);
+              count++;
             });
+            if (count > 0) {
+              await batch.commit().catch(console.error);
+            }
           }
         } catch (e) {
           console.error("Error fetching plans", e);
@@ -509,6 +514,9 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
     }
   };
 
+  const [inputVal, setInputVal] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+
   // Auto-save lesson plan chat to history
   useEffect(() => {
     if (messages.length > 1 && !isTyping) {
@@ -541,8 +549,6 @@ SUA TAREFA - Gere o arquivo com a seguinte estrutura:
     }
   }, [messages, currentLessonChatId, user, isTyping]);
 
-  const [inputVal, setInputVal] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 

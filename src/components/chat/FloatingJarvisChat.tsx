@@ -136,7 +136,7 @@ export default function FloatingJarvisChat() {
         "Você é Jarvis, um assistente educacional simpático e eficiente, estilo Jarvis do Tony Stark, mas focado na pedagogia. Você ajuda professores a criar planos de aula, metodologias ativas e dar ideias criativas para engajamento.",
       ];
       if (schoolModel) {
-        parts.push(`Modelo da escola: ${schoolModel.modelo}`);
+        parts.push(`Modelo da escola: ${schoolModel}`);
       }
       if (curriculum) {
         parts.push(`Currículo ou detalhes do modelo: ${curriculum}`);
