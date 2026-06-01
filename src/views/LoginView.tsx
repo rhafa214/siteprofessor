@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LoginView() {
-  const { loginWithGoogle } = useAuth();
+  const { loginWithGoogle, authError } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   return (
@@ -76,6 +76,11 @@ export default function LoginView() {
             </p>
 
             <div className="w-full max-w-sm">
+              {authError && (
+                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium">
+                  {authError}
+                </div>
+              )}
               <button
                 onClick={async () => {
                   setIsLoggingIn(true);
