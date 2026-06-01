@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
 export function useGmail() {
-  const { user, accessToken, logout } = useAuth();
+  const { user, accessToken, clearGoogleSession } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
@@ -27,9 +27,9 @@ export function useGmail() {
         );
 
         if (resList.status === 401) {
-          logout();
+          clearGoogleSession();
           setApiError(
-            "Sessão do Google expirada. Por favor, conecte novamente.",
+            "Sessão do Google expirada. Por favor, conecte novamente clicando na engrenagem superior.",
           );
           return;
         }
@@ -92,7 +92,7 @@ export function useGmail() {
     };
 
     fetchMessages();
-  }, [user, accessToken, logout]);
+  }, [user, accessToken, clearGoogleSession]);
 
   const getEmailBody = async (messageId: string) => {
     if (!accessToken) return null;
