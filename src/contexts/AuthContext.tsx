@@ -14,7 +14,7 @@ interface AuthContextType {
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  clearGoogleSession: () => void;
+  clearGoogleSession: (errorMessage?: string) => void;
   accessToken: string | null;
   authError: string | null;
 }
@@ -95,9 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setAccessToken]);
 
-  const clearGoogleSession = useCallback(() => {
+  const clearGoogleSession = useCallback((errorMessage?: string) => {
     setAccessToken(null);
-  }, [setAccessToken]);
+    if (errorMessage) {
+      setAuthError(errorMessage);
+    }
+    logout().catch(console.error);
+  }, [setAccessToken, logout]);
 
   return (
     <AuthContext.Provider
