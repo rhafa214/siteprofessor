@@ -52,6 +52,7 @@ export default function Topbar() {
     apostilas: "Minhas Apostilas",
     avaliacoes: "Central de Avaliações",
     "guia-pedagogico": "Guia Pedagógico",
+    "lousa-magica": "Lousa Dinâmica (IA)",
     jarvis: "Jarvis AI",
     perfil: "Meu Perfil",
   };

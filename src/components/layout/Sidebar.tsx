@@ -74,6 +74,12 @@ export default function Sidebar() {
       icon: Library,
       group: "Recursos",
     },
+    // {
+//   id: "lousa-magica",
+//   label: "Lousa Dinâmica (IA)",
+//   icon: PenTool,
+//   group: "Recursos",
+// },
     {
       id: "guia-pedagogico",
       label: "Currículo Priorizado 2026",

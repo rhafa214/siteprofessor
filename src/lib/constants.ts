@@ -11,7 +11,8 @@ export type ViewType =
   | "apostilas"
   | "guia-pedagogico"
   | "perfil"
-  | "grade";
+  | "grade"
+  | "lousa-magica";
 
 export const DATAS_OFICIAIS = {
   provas: [

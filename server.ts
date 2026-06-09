@@ -104,7 +104,7 @@ async function startServer() {
       const mimeType = req.file.mimetype; // usually application/pdf
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: {
           parts: [
             {
@@ -191,7 +191,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 Extraia todas as aulas contidas no documento.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: {
           parts: [
             {
@@ -246,7 +246,7 @@ Extraia todas as aulas contidas no documento.`;
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: {
           parts: [
             { text: textContext },
@@ -314,7 +314,7 @@ Extraia todas as aulas contidas no documento.`;
       const mimeType = req.file.mimetype;
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: {
           parts: [
             {
@@ -358,7 +358,7 @@ Extraia todas as aulas contidas no documento.`;
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
+        model: "gemini-3.5-flash",
         contents: {
           parts: [
             { text: `Gere um relatório consolidado da turma ${turma} avaliando a evolução/regresso através dos seguintes dados de notas:\n\nTarefas JSON: ${JSON.stringify(tarefas)}\n\nMatific JSON: ${JSON.stringify(matific)}\n\nProva Paulista JSON: ${JSON.stringify(provaPaulista)}` },
@@ -373,6 +373,122 @@ Extraia todas as aulas contidas no documento.`;
     } catch (e: any) {
       console.error(e);
       res.status(500).json({ error: "Erro ao processar texto: " + e.message });
+    }
+  });
+
+  app.post("/api/generate-lousa", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        res.status(400).json({ error: "Nenhum arquivo enviado." });
+        return;
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
+        return;
+      }
+
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      
+      const mimeType = req.file.mimetype;
+      let textContent = "";
+      let hasInlineData = false;
+      const originalFileName = req.file.originalname.toLowerCase();
+
+      // For Images and PDFs we use inlineData
+      if (mimeType.startsWith("image/") || mimeType === "application/pdf") {
+        hasInlineData = true;
+      } else {
+        // Assume it's a document like PPTX/DOCX and try to extract text
+        try {
+          const { parseOffice, generate } = await import("officeparser");
+          let extension = originalFileName.includes('.') ? originalFileName.split('.').pop() : 'pptx';
+          const ast = await parseOffice(req.file.buffer, { fileType: extension as any });
+          const genResult = await generate(ast, 'md');
+          textContent = genResult.value;
+        } catch (e: any) {
+          console.error("Failed to parse document text:", e);
+          res.status(400).json({ error: "Este formato de arquivo não é suportado diretamente. Formatos recomendados: PDF ou Imagem." });
+          return;
+        }
+      }
+
+      // 1. Analyze slide and generate the board outline and an image prompt
+      const analysisPrompt = `Você atua como um professor experiente e especialista em metodologias ativas e design instrucional.
+Analise o conteúdo do slide/documento anexo (ou no texto providenciado). Seu objetivo é ajudar a estruturar e planejar uma "Lousa Dinâmica" para esta aula.
+
+Retorne EXATAMENTE UM JSON válido e sem formatação markdown (sem \`\`\`json), contendo as seguintes chaves:
+- "markdown": Uma string em Markdown formatado, descrevendo a estrutura visual e os tópicos da lousa. Inclua: Tema Central, Esquema/Problematização de um lado da lousa, e Resolução/Sistematização do outro. Pense como distribuir a informação espacialmente e quais cores de giz/caneta sugerir usar para focar a atenção dos alunos.
+- "promptImagem": Um prompt rico, detalhado e em INGLÊS que será usado para gerar um layout de lousa de sala de aula fotorrealista com anotações e desenhos no quadro verde ou branco. Descreva as cores do giz, os fluxogramas simples e a estética que corresponda ao assunto analisado no slide.
+
+Texto extraído do Slide (se houver):
+${textContent}
+`;
+
+      const parts: any[] = [];
+      if (hasInlineData) {
+        parts.push({
+          inlineData: {
+            mimeType: mimeType,
+            data: req.file.buffer.toString("base64"),
+          },
+        });
+      }
+      parts.push({ text: analysisPrompt });
+
+      let extractedText = "";
+      let jsonData: any = {};
+      
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const analysisResponse = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: {
+              parts,
+            },
+            config: {
+              responseMimeType: "application/json",
+            },
+          });
+
+          extractedText = analysisResponse.text || "";
+          if (!extractedText) throw new Error("A resposta do modelo veio vazia na extração.");
+          
+          extractedText = extractedText.replace(/^```json\s*/g, "").replace(/^```\s*/g, "").replace(/\s*```$/g, "").trim();
+          jsonData = JSON.parse(extractedText);
+          break; // success
+        } catch (err: any) {
+          if (err.status === 429 || (err.message && err.message.includes("429"))) {
+            if (attempt === maxRetries) throw err;
+            console.log(`Rate limit text gen, retrying ${attempt}/${maxRetries} em 3s...`);
+            await new Promise(r => setTimeout(r, 3000));
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      // 2. Output Image Generation disabled due to API rate limits (requested by user to leave for future)
+      let imageBase64 = "";
+
+      res.json({ 
+        markdown: jsonData.markdown || "Não foi possível gerar a estrutura da lousa.",
+        promptImagem: jsonData.promptImagem,
+        imageBase64 
+      });
+
+    } catch (e: any) {
+      console.error(e);
+      let errorMessage = "Erro ao processar lousa: " + e.message;
+      if (e.message && e.message.includes("429")) {
+        errorMessage = "Limite de requisições excedido na API da IA. Por favor, tente novamente em alguns instantes.";
+      }
+      res.status(500).json({ error: errorMessage });
     }
   });
 
@@ -402,6 +518,11 @@ Extraia todas as aulas contidas no documento.`;
       res.sendFile(path.join(distPath, "index.html"));
     });
   }
+
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error("Express App Error:", err);
+    res.status(500).json({ error: "Erro interno do servidor: " + err.message });
+  });
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);

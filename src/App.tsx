@@ -25,6 +25,7 @@ const ProfileView = lazy(() => import("./views/ProfileView"));
 const AddonSidebar = lazy(() => import("./views/AddonSidebar"));
 const AddonAvaliacoesSidebar = lazy(() => import("./views/AddonAvaliacoesSidebar"));
 const ScheduleView = lazy(() => import("./views/ScheduleView"));
+const LousaView = lazy(() => import("./views/LousaView"));
 
 const LoadingFallback = () => (
   <div className="flex h-screen w-full bg-slate-50 items-center justify-center">
@@ -102,6 +103,7 @@ function App() {
                 {currentView === "jarvis" && <JarvisBaseView />}
                 {currentView === "guia-pedagogico" && <GuiaPedagogicoView />}
                 {currentView === "apostilas" && <Apostilas />}
+                {currentView === "lousa-magica" && <LousaView />}
               </Suspense>
             </div>
           </div>
