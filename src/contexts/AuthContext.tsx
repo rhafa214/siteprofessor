@@ -100,8 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (errorMessage) {
       setAuthError(errorMessage);
     }
-    logout().catch(console.error);
-  }, [setAccessToken, logout]);
+  }, [setAccessToken]);
 
   return (
     <AuthContext.Provider

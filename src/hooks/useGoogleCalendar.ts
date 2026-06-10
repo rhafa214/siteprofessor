@@ -31,9 +31,9 @@ export function useGoogleCalendar() {
         );
 
         if (res.status === 401) {
-          clearGoogleSession("Sessão do Google expirada. Por favor, conecte novamente.");
+          clearGoogleSession("Sessão do Google expirada. Por favor, desconecte e faça login novamente para reconectar o Google Agenda.");
           setApiError(
-            "Sessão do Google expirada. Por favor, conecte novamente.",
+            "Sessão do Google expirada. Por favor, desconecte e faça login novamente para reconectar o Google.",
           );
           return;
         }

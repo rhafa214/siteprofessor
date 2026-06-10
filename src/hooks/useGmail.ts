@@ -27,9 +27,9 @@ export function useGmail() {
         );
 
         if (resList.status === 401) {
-          clearGoogleSession("Sessão do Google expirada. Por favor, conecte novamente.");
+          clearGoogleSession("Sessão do Google expirada. Por favor, desconecte e faça login novamente para reconectar o Gmail.");
           setApiError(
-            "Sessão do Google expirada. Por favor, conecte novamente.",
+            "Sessão do Google expirada. Por favor, desconecte e faça login novamente para reconectar o Gmail.",
           );
           return;
         }
