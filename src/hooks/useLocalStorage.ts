@@ -35,6 +35,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
         } catch (e: any) {
           if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
             console.log(`Offline mode: using local storage for ${key}`);
+          } else if (e?.message?.includes("Missing or insufficient permissions")) {
+            console.warn(`Permission denied pulling ${key} from Firestore (Check rules)`);
           } else {
             console.error(`Error pulling ${key} from Firestore`, e);
           }
@@ -72,6 +74,8 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
             setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e: any) => {
               if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
                 // Silently handle offline set
+              } else if (e?.message?.includes("Missing or insufficient permissions")) {
+                console.warn(`Permission denied syncing ${key} to Firestore (Check rules)`);
               } else {
                 console.error(`Error syncing ${key} to Firestore`, e);
               }

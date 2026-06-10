@@ -60,6 +60,8 @@ export function useJarvisKnowledge() {
           } catch (e) {
             console.error("Firestore rules are blocking access to Jarvis knowledge. Please update your Firebase Security Rules.");
           }
+        } else if (err?.message?.includes("client is offline") || err?.code === 'unavailable') {
+          console.warn("Client is offline, unable to fetch Jarvis knowledge.");
         } else {
           console.error("Error loading jarvis knowledge", err);
         }

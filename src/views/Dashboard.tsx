@@ -226,8 +226,12 @@ export default function Dashboard(props: DashboardProps) {
               );
             }
           }
-        } catch (e) {
-          console.error("Error fetching dashboard settings", e);
+        } catch (e: any) {
+          if (e?.message?.includes("client is offline") || e?.code === 'unavailable') {
+            console.warn("Client is offline, unable to fetch dashboard settings.");
+          } else {
+            console.error("Error fetching dashboard settings", e);
+          }
         }
       };
       // only run once to load initial remote info
