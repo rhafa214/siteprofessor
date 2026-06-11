@@ -35,7 +35,7 @@ const LoadingFallback = () => (
 
 function App() {
   const { currentView, setSidebarOpen, isSidebarOpen } = useAppStore();
-  const { user, loading } = useAuth();
+  const { user, loading, accessToken } = useAuth();
 
   // Redirect to addon if parameter is present
   useEffect(() => {
@@ -67,7 +67,7 @@ function App() {
     return <LoadingFallback />;
   }
 
-  if (!user) {
+  if (!user || !accessToken) {
     return <LoginView />;
   }
 
