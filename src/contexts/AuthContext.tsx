@@ -7,7 +7,7 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { useLocalStorage } from "../hooks/useLocalStorage";
+// Removed unused useLocalStorage import
 
 interface AuthContextType {
   user: User | null;
@@ -34,10 +34,7 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useLocalStorage<string | null>(
-    "googleToken",
-    null,
-  );
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -100,7 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (errorMessage) {
       setAuthError(errorMessage);
     }
-  }, [setAccessToken]);
+    logout().catch(console.error);
+  }, [setAccessToken, logout]);
 
   return (
     <AuthContext.Provider
