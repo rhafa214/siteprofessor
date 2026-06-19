@@ -8,7 +8,7 @@ export function useGoogleCalendar() {
   const [apiError, setApiError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user || !accessToken) {
+    if (!user || !accessToken || accessToken === "null") {
       setEvents([]);
       setApiError(null);
       return;
