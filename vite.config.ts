@@ -28,8 +28,14 @@ export default defineConfig(({mode}) => {
               purpose: 'any'
             },
             {
-              src: '/app-icon.png',
-              sizes: '192x192 512x512',
+              src: '/app-icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'any maskable'
+            },
+            {
+              src: '/app-icon-512.png',
+              sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
             }
