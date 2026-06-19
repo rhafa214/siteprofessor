@@ -166,9 +166,9 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
           alert(
             "A Inteligência Artificial está com alta demanda no momento. Por favor, aguarde alguns instantes e tente novamente.",
           );
-        } else if (errorMessage.includes("Rate exceeded") || errorMessage.includes("429")) {
+        } else if (errorMessage.includes("Rate exceeded") || errorMessage.includes("429") || errorMessage.includes("Quota")) {
           alert(
-            "O limite de requisições à IA foi atingido (Rate exceeded). Aguarde alguns minutos e tente novamente.",
+            "O limite do servidor gratuito foi atingido (Rate exceeded/Quota). Por favor, vá na aba de ⚙️ Configurações e adicione sua própria Chave de API do Gemini para continuar utilizando sem limites.",
           );
         } else {
           alert("Erro no processamento do PDF: " + errorMessage);

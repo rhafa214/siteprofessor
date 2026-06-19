@@ -2,15 +2,16 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import config from "@/firebase-applet-config.json";
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyAln0cAozZfaK6mgFl7l0kPzWdewCse37o",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "meueduplanner.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "meueduplanner",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "meueduplanner.firebasestorage.app",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "667894322951",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:667894322951:web:ac33c0675e7910da7ad7a2",
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-NEEL4B43QH",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || config.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || config.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || config.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || config.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || config.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || config.appId,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || config.measurementId,
 };
 
 const app = initializeApp(firebaseConfig);

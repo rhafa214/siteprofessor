@@ -56,11 +56,15 @@ export function useGmail() {
               {
                 headers: { Authorization: `Bearer ${accessToken}` },
               },
-            ).then((r) => r.json()),
+            )
+              .then((r) => r.json())
+              .catch((err) => null), // Catch individual errors to prevent Unhandled Rejection
           );
           const details = await Promise.all(detailPromises);
 
-          const formattedMessages = details.map((d) => {
+          const formattedMessages = details
+            .filter((d) => d !== null)
+            .map((d) => {
             const subjectHeader = d.payload?.headers?.find(
               (h: any) => h.name === "Subject",
             );

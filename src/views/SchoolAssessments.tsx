@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   BookOpen,
   FileCheck,
@@ -499,7 +499,7 @@ export default function SchoolAssessments({
       text += `- ${r.studentName} | Nota: ${r.grade}\n`;
     });
 
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(console.error);
     alert("Copiado para a área de transferência!");
   };
 

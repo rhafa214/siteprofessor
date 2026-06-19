@@ -99,25 +99,31 @@ export default function NewsCarousel() {
       try {
         const results = await Promise.all(
           CATEGORIES.map(async (cat) => {
-            const res = await fetch(
-              `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(cat.feedUrl)}`,
-            );
-            const data = await res.json();
+            try {
+              const res = await fetch(
+                `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(cat.feedUrl)}`,
+              );
+              if (!res.ok) return [];
+              const data = await res.json();
 
-            if (data.status === "ok") {
-              return data.items.map((item: any, idx: number) => {
-                return {
-                  id: `${cat.id}-${idx}`,
-                  title: item.title.split(" - ")[0],
-                  link: item.link,
-                  thumbnail: null,
-                  source: item.title.split(" - ").pop() || "Notícias",
-                  publishedDate: item.pubDate,
-                  category: cat,
-                };
-              });
+              if (data.status === "ok") {
+                return data.items.map((item: any, idx: number) => {
+                  return {
+                    id: `${cat.id}-${idx}`,
+                    title: item.title.split(" - ")[0],
+                    link: item.link,
+                    thumbnail: null,
+                    source: item.title.split(" - ").pop() || "Notícias",
+                    publishedDate: item.pubDate,
+                    category: cat,
+                  };
+                });
+              }
+              return [];
+            } catch (err) {
+              console.error("Failed to fetch news category", err);
+              return [];
             }
-            return [];
           }),
         );
 
@@ -161,190 +167,124 @@ export default function NewsCarousel() {
   }, []);
 
   useEffect(() => {
-    if (news.length <= 3 || isPaused) return;
+    if (news.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
-      setOffset((prev) => (prev + 3) % news.length);
+      setOffset((prev) => (prev + 1) % news.length);
     }, 8000); // changes every 8s
     return () => clearInterval(interval);
   }, [news.length, isPaused]);
 
   if (loading) {
     return (
-      <div className="bg-transparent h-full flex flex-col">
-        <div className="flex items-center gap-2 mb-4 shrink-0">
-          <Sparkles size={20} className="text-slate-400" />
-          <h2 className="font-bold text-slate-800 tracking-tight">
-            Radar Educação
-          </h2>
-        </div>
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-slate-100 rounded-3xl animate-pulse h-full min-h-[300px]" />
-          <div className="flex flex-col gap-4">
-            <div className="flex-1 bg-slate-100 rounded-2xl animate-pulse" />
-            <div className="flex-1 bg-slate-100 rounded-2xl animate-pulse" />
-          </div>
+      <div className="relative w-full h-full min-h-[200px] md:min-h-[220px] rounded-[36px] bg-slate-900 overflow-hidden animate-pulse">
+        <div className="absolute bottom-6 left-6 right-6">
+          <div className="h-4 w-24 bg-white/20 rounded-full mb-2"></div>
+          <div className="h-6 w-3/4 bg-white/20 rounded-full mb-1"></div>
+          <div className="h-6 w-2/4 bg-white/20 rounded-full mb-3"></div>
+          <div className="h-3 w-1/3 bg-white/20 rounded-full"></div>
         </div>
       </div>
     );
   }
 
-  if (news.length === 0) return null;
-
-  // Extract 3 news items to show currently
-  const offsetNews = [];
-  for (let i = 0; i < 3; i++) {
-    offsetNews.push(news[(offset + i) % news.length]);
+  if (news.length === 0) {
+    return (
+      <div className="relative w-full h-full min-h-[200px] md:min-h-[220px] rounded-[36px] bg-slate-900 border border-white/10 flex flex-col items-center justify-center p-6 text-center shadow-lg">
+        <Newspaper size={40} className="text-white/20 mb-3" />
+        <p className="text-white/60 font-medium text-sm">
+          Sem notícias no momento.
+        </p>
+        <p className="text-white/40 text-xs mt-1">
+          (A API de notícias pode estar temporariamente indisponível).
+        </p>
+      </div>
+    );
   }
 
-  // Prioritize an item with an image for the hero, else fallback to just the first of the three
-  const heroLocalIndex = offsetNews.findIndex((n) => n?.thumbnail);
-  const heroNews =
-    heroLocalIndex !== -1 ? offsetNews[heroLocalIndex] : offsetNews[0];
-  const sideNews = offsetNews.filter(
-    (_, idx) => idx !== (heroLocalIndex !== -1 ? heroLocalIndex : 0),
-  );
-
-  const handleNext = () => setOffset((prev) => (prev + 3) % news.length);
-  const handlePrev = () =>
-    setOffset((prev) => (prev - 3 + news.length) % news.length);
+  const currentNews = news[offset % news.length];
+  const Icon = currentNews.category.icon.type;
 
   return (
     <div
-      className="bg-transparent h-full flex flex-col"
+      className="relative w-full h-full min-h-[200px] md:min-h-[220px] rounded-[36px] overflow-hidden group shadow-2xl cursor-pointer bg-slate-900"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
+      onClick={() => window.open(currentNews.link, '_blank')}
     >
-      <div className="flex items-center justify-between mb-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <Sparkles size={20} className="text-indigo-600" />
-          <h2 className="font-bold text-slate-800 tracking-tight text-lg">
-            Radar Educação
-          </h2>
-          <span className="bg-indigo-100 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider hidden sm:inline-block">
-            Ao Vivo
-          </span>
-        </div>
-
-        {news.length > 3 && (
-          <div className="flex gap-2 items-center">
-            <span className="text-xs font-bold text-slate-400 mr-2">
-              {Math.floor(offset / 3) + 1} / {Math.ceil(news.length / 3)}
-            </span>
-            <button
-              onClick={handlePrev}
-              className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <button
-              onClick={handleNext}
-              className="w-8 h-8 rounded-full bg-white border border-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-50 transition-colors shadow-sm"
-            >
-              <ChevronRight size={16} />
-            </button>
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div
+          key={offset}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.8, ease: "easeInOut" }}
+          className="absolute inset-0"
+        >
+          {/* Background Image or Gradient */}
+          <div className="absolute inset-0 transition-transform duration-[10000ms] group-hover:scale-110 ease-linear">
+            {currentNews.thumbnail ? (
+              <img
+                src={currentNews.thumbnail!}
+                alt="News Thumbnail"
+                className="w-full h-full object-cover opacity-80"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-indigo-900 via-slate-900 to-black opacity-80" />
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="flex-1 relative lg:min-h-[340px] flex flex-col overflow-hidden">
-        {heroNews && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={offset}
-              initial={{ opacity: 0, y: 10, filter: "blur(4px)" }}
-              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              exit={{ opacity: 0, y: -10, filter: "blur(4px)" }}
-              transition={{ duration: 0.4 }}
-              className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4"
-            >
-              {/* Main Hero Card */}
-              <a
-                href={heroNews.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lg:col-span-2 relative rounded-3xl overflow-hidden group border border-slate-200/60 shadow-sm flex flex-col min-h-[300px]"
-              >
-                {heroNews.thumbnail ? (
-                  <>
-                    <img
-                      src={heroNews.thumbnail!}
-                      alt="Highlight"
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
-                  </>
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-700 via-indigo-600 to-purple-800 transition-transform duration-700 group-hover:scale-105" />
-                )}
+          {/* Dark Overlay for Text Readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
 
-                <div className="relative h-full flex flex-col justify-end p-6 md:p-8 z-10">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm ${heroNews.category.bg} ${heroNews.category.color}`}
-                    >
-                      {heroNews.category.icon}
-                      {heroNews.category.title}
-                    </span>
-                    <span className="text-white/80 text-xs font-medium backdrop-blur-md bg-black/20 px-2 py-1 rounded-lg">
-                      {timeAgo(heroNews.publishedDate)}
-                    </span>
-                  </div>
-                  <h3
-                    className={`font-bold leading-tight mb-3 transition-colors ${heroNews.thumbnail ? "text-white group-hover:text-indigo-200" : "text-white"} text-2xl md:text-3xl lg:text-4xl`}
-                  >
-                    {heroNews.title}
-                  </h3>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-slate-300 font-medium text-sm flex items-center gap-2">
-                      {heroNews.source}
-                    </p>
-                    <div className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white group-hover:bg-white group-hover:text-indigo-600 transition-colors">
-                      <ArrowRight size={18} />
-                    </div>
-                  </div>
-                </div>
-              </a>
+          {/* Top Right Icon */}
+          <div className="absolute top-6 right-6 text-white/90 z-10 pointer-events-none">
+            <Icon size={24} strokeWidth={2.5} />
+          </div>
 
-              {/* Side News */}
-              <div className="flex flex-col gap-4">
-                {sideNews.map((item) => (
-                  <a
-                    key={item.id}
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group flex-1 bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${item.category.bg} ${item.category.color}`}
-                        >
-                          {item.category.title}
-                        </span>
-                        <ExternalLink
-                          size={14}
-                          className="text-slate-400 group-hover:text-indigo-500 transition-colors"
-                        />
-                      </div>
-                      <h4 className="font-bold text-slate-800 leading-snug group-hover:text-indigo-600 transition-colors text-base line-clamp-3">
-                        {item.title}
-                      </h4>
-                    </div>
+          {/* Content */}
+          <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 flex flex-col justify-end z-10 pointer-events-none">
+            {/* Category & Badge */}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-white/80 font-semibold text-xs md:text-sm tracking-wide uppercase">
+                {currentNews.category.title}
+              </span>
+              <span className="bg-rose-500 text-white text-[10px] md:text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                NOVO
+              </span>
+            </div>
 
-                    <div className="mt-4 flex items-center justify-between text-xs font-medium text-slate-500">
-                      <span className="truncate pr-2">{item.source}</span>
-                      <span className="shrink-0">
-                        {timeAgo(item.publishedDate)}
-                      </span>
-                    </div>
-                  </a>
-                ))}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        )}
+            {/* Title */}
+            <h2 className="text-white font-bold text-lg md:text-xl leading-snug md:leading-snug mb-2 max-w-[100%] line-clamp-3">
+              {currentNews.title}
+            </h2>
+
+            {/* Subtitle / Meta */}
+            <div className="flex items-center gap-1.5 text-white/70 font-medium text-xs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 shrink-0">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              <p className="truncate">
+                {currentNews.source} relatando • {timeAgo(currentNews.publishedDate)}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Stack Indicator Dots (right edge) - Outside AnimatePresence to stay static */}
+      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        {Array.from({ length: Math.min(5, news.length) }).map((_, i) => {
+          // Normalize offset to 0-4 for visual indicator
+          const activeIndex = offset % Math.min(5, news.length);
+          return (
+            <div
+              key={i}
+              className={`w-1.5 rounded-full transition-all duration-300 ${activeIndex === i ? 'h-3 bg-white' : 'h-1.5 bg-white/40'}`}
+            />
+          );
+        })}
       </div>
     </div>
   );
 }
+

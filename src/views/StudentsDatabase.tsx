@@ -262,7 +262,7 @@ export default function StudentsDatabase() {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto space-y-6 pb-24"
+      className="w-full max-w-[1600px] mx-auto space-y-6 pb-24"
     >
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
         <div>

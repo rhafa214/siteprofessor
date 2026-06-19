@@ -1,31 +1,19 @@
 import { useState, useEffect, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
+import { cn } from "./lib/utils";
 import Sidebar from "./components/layout/Sidebar";
-import Topbar from "./components/layout/Topbar";
 import { useAuth } from "./contexts/AuthContext";
 import { useAppStore } from "./store/useAppStore";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import LoginView from "./views/LoginView";
 import FloatingJarvisChat from "./components/chat/FloatingJarvisChat";
+import { WindowManager } from "./components/layout/WindowManager";
 
 // Lazy-loaded views
 const Dashboard = lazy(() => import("./views/Dashboard"));
-const ClassJournal = lazy(() => import("./views/ClassJournal"));
-const Agenda = lazy(() => import("./views/Agenda"));
-const LessonPlan = lazy(() => import("./views/LessonPlan"));
-const KnowledgeBase = lazy(() => import("./views/KnowledgeBase"));
-const TaskAnalysis = lazy(() => import("./views/TaskAnalysis"));
-const MatificAnalysis = lazy(() => import("./views/MatificAnalysis"));
-const StudentsDatabase = lazy(() => import("./views/StudentsDatabase"));
-const Apostilas = lazy(() => import("./views/Apostilas"));
-const EvaluationsView = lazy(() => import("./views/EvaluationsView"));
-const JarvisBaseView = lazy(() => import("./views/JarvisBaseView"));
-const GuiaPedagogicoView = lazy(() => import("./views/GuiaPedagogicoView"));
-const ProfileView = lazy(() => import("./views/ProfileView"));
 const AddonSidebar = lazy(() => import("./views/AddonSidebar"));
 const AddonAvaliacoesSidebar = lazy(() => import("./views/AddonAvaliacoesSidebar"));
-const ScheduleView = lazy(() => import("./views/ScheduleView"));
-const LousaView = lazy(() => import("./views/LousaView"));
 
 const LoadingFallback = () => (
   <div className="flex h-screen w-full bg-slate-50 items-center justify-center">
@@ -34,8 +22,11 @@ const LoadingFallback = () => (
 );
 
 function App() {
-  const { currentView, setSidebarOpen, isSidebarOpen } = useAppStore();
+  const { currentView, setCurrentView, setSidebarOpen, isSidebarOpen, windows } = useAppStore();
   const { user, loading, accessToken } = useAuth();
+  
+  const defaultBg = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop";
+  const [bgUrl] = useLocalStorage("app_background_url", defaultBg);
 
   // Redirect to addon if parameter is present
   useEffect(() => {
@@ -71,44 +62,32 @@ function App() {
     return <LoginView />;
   }
 
+  const activeWindows = windows.filter(w => !w.isMinimized);
+  const hasActiveWindows = activeWindows.length > 0;
+
   return (
     <ErrorBoundary>
-      <div className="flex h-screen w-full flex-col font-sans bg-slate-50 overflow-hidden lg:flex-row print:flex-col print:h-auto print:overflow-visible text-slate-800 selection:bg-indigo-100 selection:text-indigo-900">
-        {/* Mobile Sidebar Overlay */}
-        {isSidebarOpen && (
-          <div
-            className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden print:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        <Sidebar />
+      <div className="relative h-screen w-full flex flex-col font-sans bg-slate-900 overflow-hidden text-slate-800 selection:bg-indigo-100 selection:text-indigo-900">
+        {/* Apple Desktop Background */}
+        <div 
+          className="absolute inset-0 z-0 bg-cover bg-center pointer-events-none transition-opacity duration-1000"
+          style={{ 
+            backgroundImage: `url("${bgUrl || defaultBg}")`,
+            opacity: hasActiveWindows ? 0.4 : 1
+          }}
+        />
 
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden print:overflow-visible print:h-auto print:block">
-          <div className="print:hidden">
-              <Topbar />
-          </div>
+        {/* Dashboard Layer (Always behind) */}
+        <div className="absolute inset-0 z-0 overflow-y-auto w-full h-full pb-32">
+          <Suspense fallback={<LoadingFallback />}>
+            <Dashboard />
+          </Suspense>
+        </div>
 
-          <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 print:overflow-visible print:p-0 print:m-0">
-            <div className="max-w-7xl mx-auto h-full print:max-w-none print:w-full print:h-auto">
-              <Suspense fallback={<LoadingFallback />}>
-                {currentView === "dashboard" && <Dashboard />}
-                {currentView === "perfil" && <ProfileView />}
-                {currentView === "grade" && <ScheduleView />}
-                {currentView === "diario" && <ClassJournal />}
-                {currentView === "agenda" && <Agenda />}
-                {currentView === "plano" && <LessonPlan />}
-                {currentView === "avaliacoes" && <EvaluationsView />}
-                {currentView === "alunos" && <StudentsDatabase />}
-                {currentView === "conhecimento" && <KnowledgeBase />}
-                {currentView === "jarvis" && <JarvisBaseView />}
-                {currentView === "guia-pedagogico" && <GuiaPedagogicoView />}
-                {currentView === "apostilas" && <Apostilas />}
-                {currentView === "lousa-magica" && <LousaView />}
-              </Suspense>
-            </div>
-          </div>
-        </main>
+        {/* Windows Manager Layer */}
+        <WindowManager />
         
+        <Sidebar /> {/* Now styled as a Dock */}
         <FloatingJarvisChat />
       </div>
     </ErrorBoundary>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Loader2,
   Plus,
@@ -245,7 +245,7 @@ export default function ProvaPaulistaAnalysis({
   };
 
   return (
-    <div className="flex flex-col max-w-7xl mx-auto space-y-6 pb-24">
+    <div className="flex flex-col w-full max-w-[1600px] mx-auto space-y-6 pb-24">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">

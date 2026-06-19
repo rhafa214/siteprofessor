@@ -3,178 +3,246 @@ import {
   GraduationCap,
   LayoutDashboard,
   Book,
-  BookOpen,
   CalendarDays,
-  FolderTree,
   PenTool,
-  ListTodo,
-  X,
-  Database,
   ClipboardCheck,
-  Users,
-  ChevronDown,
-  ChevronUp,
-  LogOut,
-  Bot,
-  Library,
-  Gamepad2,
-  Moon,
-  Sun,
-  Map,
   User as UserIcon,
+  LogOut,
+  Library,
+  Map,
+  Layers,
 } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../contexts/AuthContext";
-import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { useAppStore } from "../../store/useAppStore";
 
 export default function Sidebar() {
-  const { currentView, setCurrentView, isSidebarOpen, setSidebarOpen } = useAppStore();
+  const { currentView, setCurrentView, windows, isMissionControlActive, toggleMissionControl } = useAppStore();
   const { user, loginWithGoogle, logout } = useAuth();
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useLocalStorage("darkMode", false);
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
-  if (typeof document !== "undefined") {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-  }
-
-  const navItems = [
+  const dockItems = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "Início",
       icon: LayoutDashboard,
-      group: "Principal",
+      color:
+        "bg-gradient-to-b from-[#4A90E2] to-[#0052D4] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.2)]",
+      iconColor: "text-white drop-shadow-sm",
     },
     {
       id: "diario",
-      label: "Registro de Aulas",
+      label: "Aulas",
       icon: Book,
-      group: "Principal",
+      color:
+        "bg-gradient-to-b from-[#F2C94C] to-[#F2994A] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_2px_4px_rgba(0,0,0,0.2)]",
+      iconColor: "text-orange-900 drop-shadow-sm",
     },
     {
       id: "agenda",
-      label: "Agenda Estratégica",
+      label: "Agenda",
       icon: CalendarDays,
-      group: "Principal",
+      color:
+        "bg-[#FFFFFF] shadow-[inset_0_1px_1px_rgba(255,255,255,1),0_2px_4px_rgba(0,0,0,0.1)] border border-slate-100",
+      iconColor: "text-[#FF3B30] drop-shadow-sm",
+      topBanner: true,
     },
     {
       id: "avaliacoes",
-      label: "Avaliações",
+      label: "Provas",
       icon: ClipboardCheck,
-      group: "Principal",
+      color:
+        "bg-gradient-to-b from-[#F9F9F9] to-[#E6E6E6] shadow-[inset_0_1px_1px_rgba(255,255,255,1),0_2px_4px_rgba(0,0,0,0.1)] border border-slate-200",
+      iconColor: "text-[#007AFF] drop-shadow-sm",
+      lines: true,
     },
     {
       id: "apostilas",
-      label: "Minhas Apostilas",
+      label: "Apostilas",
       icon: Library,
-      group: "Recursos",
+      color:
+        "bg-gradient-to-b from-[#56CCF2] to-[#2F80ED] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.2)]",
+      iconColor: "text-white drop-shadow-sm",
     },
-    // {
-//   id: "lousa-magica",
-//   label: "Lousa Dinâmica (IA)",
-//   icon: PenTool,
-//   group: "Recursos",
-// },
+    {
+      id: "plano",
+      label: "Plano",
+      icon: PenTool,
+      color:
+        "bg-gradient-to-b from-[#FF9A9E] to-[#FECFEF] shadow-[inset_0_1px_1px_rgba(255,255,255,0.6),0_2px_4px_rgba(0,0,0,0.2)]",
+      iconColor: "text-pink-600 drop-shadow-sm",
+    },
     {
       id: "guia-pedagogico",
-      label: "Currículo Priorizado 2026",
+      label: "Currículo",
       icon: Map,
-      group: "Recursos",
+      color:
+        "bg-gradient-to-b from-[#34C759] to-[#2E8B57] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.2)]",
+      iconColor: "text-white drop-shadow-sm",
     },
-    { id: "plano", label: "Plano de Aula", icon: PenTool, group: "Recursos" },
     {
       id: "perfil",
       label: "Perfil",
       icon: UserIcon,
-      group: "Recursos",
+      color:
+        "bg-gradient-to-b from-[#E0E0E0] to-[#BDBDBD] shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_2px_4px_rgba(0,0,0,0.2)] border border-white/50",
+      iconColor: "text-slate-700 drop-shadow-sm",
     },
   ] as const;
 
+  const hasOpenWindows = windows.some((w) => !w.isMinimized);
+
   return (
-    <aside
+    <div
       className={cn(
-        "fixed inset-y-0 left-0 z-50 h-full w-72 bg-slate-950 text-white flex flex-col py-6 px-4 shrink-0 shadow-2xl transition-transform duration-300 lg:relative lg:translate-x-0 lg:shadow-xl print:hidden",
-        isSidebarOpen ? "translate-x-0" : "-translate-x-full",
+        "fixed left-0 right-0 z-50 flex justify-center pointer-events-none print:hidden transition-all duration-300 ease-out origin-bottom",
+        hasOpenWindows
+          ? "bottom-1 scale-[0.70] opacity-85 hover:scale-[0.85] hover:bottom-2 hover:opacity-100"
+          : "bottom-4 scale-100 opacity-100",
       )}
     >
-      <button
-        onClick={() => setSidebarOpen(false)}
-        className="absolute top-4 right-4 p-2 text-slate-400 hover:text-white lg:hidden"
-      >
-        <X size={24} />
-      </button>
+      <div className="pointer-events-auto flex items-center gap-2 p-3 rounded-3xl bg-white/30 dark:bg-black/30 backdrop-blur-2xl border border-white/20 shadow-2xl hover:bg-white/40 transition-colors">
+        {dockItems.map((item, index) => {
+          const Icon = item.icon;
+          const isOpen =
+            item.id === "dashboard"
+              ? false
+              : windows.some((w) => w.id === item.id && !w.isMinimized);
+          const isActive =
+            currentView === item.id ||
+            (item.id === "dashboard" &&
+              (currentView === "dashboard" ||
+                windows.every((w) => w.isMinimized)));
+          const isHovered = hoveredId === item.id;
 
-      <div className="flex items-center justify-between mb-8 px-2 mt-2 lg:mt-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-500 p-2 rounded-xl text-white flex items-center justify-center">
-            <GraduationCap size={24} />
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                "relative group",
+                index >= 4 ? "hidden md:block" : "block",
+              )}
+            >
+              {/* Tooltip */}
+              <div
+                className={cn(
+                  "absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold rounded-lg pointer-events-none transition-all duration-200 z-50",
+                  isHovered
+                    ? "opacity-100 translate-y-0"
+                    : "opacity-0 translate-y-2",
+                )}
+              >
+                {item.label}
+              </div>
+
+              <button
+                onMouseEnter={() => setHoveredId(item.id)}
+                onMouseLeave={() => setHoveredId(null)}
+                onClick={() => setCurrentView(item.id as ViewType)}
+                className={cn(
+                  "relative flex flex-col items-center justify-center transition-all duration-300 origin-bottom overflow-hidden box-border",
+                  "w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-[14px] md:rounded-[18px] lg:rounded-[20px] mx-1 shadow-sm",
+                  isActive
+                    ? "scale-110 shadow-xl"
+                    : "hover:scale-125 hover:shadow-lg hover:-translate-y-2",
+                  item.color,
+                )}
+              >
+                {/* Apple Calendar like top banner */}
+                {(item as any).topBanner && (
+                  <div className="absolute top-0 left-0 right-0 h-3 md:h-4 bg-[#FF3B30] flex items-center justify-center shadow-[0_1px_1px_rgba(0,0,0,0.1)]">
+                    {/* Tiny text could go here */}
+                  </div>
+                )}
+
+                {/* Apple Pages/Notes like lines */}
+                {(item as any).lines && (
+                  <div className="absolute inset-x-2 top-4 bottom-2 flex flex-col gap-[3px] opacity-20 pointer-events-none">
+                    <div className="h-px bg-slate-800 w-full" />
+                    <div className="h-px bg-slate-800 w-full" />
+                    <div className="h-px bg-slate-800 w-3/4" />
+                    <div className="h-px bg-slate-800 w-full mt-1" />
+                  </div>
+                )}
+
+                <Icon
+                  size={window.innerWidth >= 1024 ? 28 : 24}
+                  className={(item as any).iconColor || "text-white"}
+                  style={{ marginTop: (item as any).topBanner ? "6px" : "0" }}
+                />
+              </button>
+              {(isOpen || (item.id === "dashboard" && isActive)) && (
+                <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex justify-center w-full">
+                  <div
+                    className={cn(
+                      "w-1 h-1 md:w-1.5 md:h-1.5 rounded-full transition-all duration-300 shadow-[0_0_4px_rgba(0,0,0,0.5)]",
+                      isActive
+                        ? "bg-slate-800 dark:bg-white blur-[0.2px]"
+                        : "bg-slate-500/60 dark:bg-white/40",
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        <div className="w-px h-10 bg-black/10 dark:bg-white/20 mx-1 md:mx-2 rounded-full" />
+
+        <div className="relative group">
+          {/* Tooltip */}
+          <div
+            className={cn(
+              "absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-slate-900/90 backdrop-blur-md text-white text-xs font-bold rounded-lg pointer-events-none transition-all duration-200 z-50",
+              hoveredId === "mission-control"
+                ? "opacity-100 translate-y-0"
+                : "opacity-0 translate-y-2",
+            )}
+          >
+            Visão Geral
           </div>
-          <div className="text-xl font-extrabold tracking-tight">
-            EduPlanner<span className="text-indigo-400">.</span>
-          </div>
+          <button
+            onMouseEnter={() => setHoveredId("mission-control")}
+            onMouseLeave={() => setHoveredId(null)}
+            onClick={toggleMissionControl}
+            className={cn(
+              "relative flex flex-col items-center justify-center transition-all duration-300 origin-bottom overflow-hidden box-border",
+              "w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-[14px] md:rounded-[18px] lg:rounded-[20px] mx-1 shadow-sm border border-white/20",
+              isMissionControlActive
+                ? "scale-110 shadow-xl bg-indigo-600 outline outline-2 outline-indigo-400 outline-offset-2"
+                : "hover:scale-125 hover:shadow-lg hover:-translate-y-2 bg-slate-800/80 dark:bg-white/20",
+            )}
+          >
+            <Layers size={window.innerWidth >= 1024 ? 28 : 24} className={isMissionControlActive ? "text-white" : "text-white dark:text-slate-200"} />
+          </button>
+          {isMissionControlActive && (
+            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 flex justify-center w-full">
+              <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-white rounded-full transition-all duration-300 shadow-[0_0_4px_rgba(0,0,0,0.5)] blur-[0.2px]" />
+            </div>
+          )}
         </div>
 
-        <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-          title="Alternar tema escuro"
-        >
-          {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-      </div>
+        <div className="w-px h-10 bg-black/10 dark:bg-white/20 mx-1 md:mx-2 rounded-full" />
 
-      <nav className="flex-1 overflow-y-auto scrollbar-thin">
-        {["Principal", "Recursos"].map((group) => (
-          <div key={group} className="mb-4">
-            <div className="text-[10px] uppercase font-extrabold text-slate-500 tracking-wider mb-2 ml-3">
-              {group}
-            </div>
-            {navItems
-              .filter((item) => item.group === group)
-              .map((item) => {
-                const Icon = item.icon;
-                const isActive = currentView === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      setCurrentView(item.id as ViewType);
-                      setSidebarOpen(false);
-                    }}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1 transition-all duration-200 text-sm font-medium",
-                      isActive
-                        ? "bg-indigo-600 text-white shadow-md"
-                        : "text-slate-400 hover:text-white hover:bg-white/5",
-                    )}
-                  >
-                    <Icon
-                      size={18}
-                      className={cn(isActive ? "text-white" : "text-slate-400")}
-                    />
-                    {item.label}
-                  </button>
-                );
-              })}
-          </div>
-        ))}
-      </nav>
-
-      <div className="mt-auto pt-4">
-        {!user && (
+        {!user ? (
           <button
             onClick={loginWithGoogle}
-            className="w-full py-3 bg-white text-slate-950 font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors"
+            className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl mx-1 transition-all duration-300 hover:scale-110 bg-slate-800 text-white shadow-lg"
+            title="Entrar"
           >
-            Fazer Login com Google
+            <UserIcon size={24} />
+          </button>
+        ) : (
+          <button
+            onClick={logout}
+            className="flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl mx-1 transition-all duration-300 hover:scale-110 bg-red-500 text-white shadow-lg"
+            title="Sair"
+          >
+            <LogOut size={24} />
           </button>
         )}
       </div>
-    </aside>
+    </div>
   );
 }

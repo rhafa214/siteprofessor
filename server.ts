@@ -18,7 +18,12 @@ async function startServer() {
   });
 
   app.use(express.json({ limit: "50mb" }));
-  
+
+  app.post("/api/client-error", (req, res) => {
+    console.error("[Client Error]:", req.body);
+    res.json({ ok: true });
+  });
+
   // --- GEMINI API PROXY ---
   app.use("/api/gemini-proxy", async (req, res) => {
     try {

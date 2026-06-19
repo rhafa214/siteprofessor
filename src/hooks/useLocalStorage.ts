@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { auth, db } from "../lib/firebase";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 
@@ -16,6 +16,9 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       return initialValue;
     }
   });
+
+  const latestValue = useRef(storedValue);
+  latestValue.current = storedValue;
 
   // Sync from Firestore on mount if logged in
   useEffect(() => {
@@ -50,44 +53,65 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       }
     });
 
-    return () => unsubscribe();
+    const handleStorageChange = (e: CustomEvent | StorageEvent) => {
+      if ('detail' in e) {
+        if (e.detail.key === key) {
+          setStoredValue(e.detail.newValue);
+        }
+      } else if (e.key === key && e.newValue !== null) {
+        try {
+          setStoredValue(JSON.parse(e.newValue));
+        } catch {}
+      }
+    };
+
+    window.addEventListener('local-storage', handleStorageChange as EventListener);
+    window.addEventListener('storage', handleStorageChange as EventListener);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('local-storage', handleStorageChange as EventListener);
+      window.removeEventListener('storage', handleStorageChange as EventListener);
+    };
   }, [key]);
 
   const setValue = useCallback((value: T | ((val: T) => T)) => {
     try {
-      setStoredValue((current) => {
-        const valueToStore = value instanceof Function ? value(current) : value;
+      const valueToStore = value instanceof Function ? value(latestValue.current) : value;
+      
+      setStoredValue(valueToStore);
+      latestValue.current = valueToStore;
 
-        if (typeof window !== "undefined") {
-          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('local-storage', { detail: { key, newValue: valueToStore } }));
+        }, 0);
+      }
+
+      // Async sync to Firestore with Debounce (prevent resource exhaustion)
+      const user = auth.currentUser;
+      if (user) {
+        if (writeKeysDebounceMap.has(key)) {
+          clearTimeout(writeKeysDebounceMap.get(key)!);
         }
 
-        // Async sync to Firestore with Debounce (prevent resource exhaustion)
-        const user = auth.currentUser;
-        if (user) {
-          if (writeKeysDebounceMap.has(key)) {
-            clearTimeout(writeKeysDebounceMap.get(key)!);
-          }
+        const timeoutId = setTimeout(() => {
+          const docRef = doc(db, "users", user.uid, "appData", key);
+          setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e: any) => {
+            if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
+              // Silently handle offline set
+            } else if (e?.message?.includes("Missing or insufficient permissions")) {
+              console.warn(`Permission denied syncing ${key} to Firestore (Check rules)`);
+            } else {
+              console.error(`Error syncing ${key} to Firestore`, e);
+            }
+          });
+          writeKeysDebounceMap.delete(key);
+        }, 1500); // 1.5 second debounce
 
-          const timeoutId = setTimeout(() => {
-            const docRef = doc(db, "users", user.uid, "appData", key);
-            setDoc(docRef, { value: valueToStore }, { merge: true }).catch((e: any) => {
-              if (e?.code === 'unavailable' || e?.message?.toLowerCase().includes('offline')) {
-                // Silently handle offline set
-              } else if (e?.message?.includes("Missing or insufficient permissions")) {
-                console.warn(`Permission denied syncing ${key} to Firestore (Check rules)`);
-              } else {
-                console.error(`Error syncing ${key} to Firestore`, e);
-              }
-            });
-            writeKeysDebounceMap.delete(key);
-          }, 1500); // 1.5 second debounce
-
-          writeKeysDebounceMap.set(key, timeoutId);
-        }
-
-        return valueToStore;
-      });
+        writeKeysDebounceMap.set(key, timeoutId);
+      }
     } catch (error) {
       console.warn(`Error setting localStorage key "${key}":`, error);
     }

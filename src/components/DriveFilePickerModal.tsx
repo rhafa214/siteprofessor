@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, File, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 interface DriveFile {
   id: string;

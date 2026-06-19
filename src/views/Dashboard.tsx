@@ -21,11 +21,31 @@ import {
   Trash2,
   FolderTree,
   Clock,
+  GraduationCap,
+  Users,
+  Pen,
+  ClipboardCheck,
 } from "lucide-react";
 import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { cn } from "../lib/utils";
 import NewsCarousel from "../components/dashboard/NewsCarousel";
+import { SortableWidget } from "../components/dashboard/SortableWidget";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
 import { GoogleGenAI, Type } from "@google/genai";
 import { useGoogleCalendar } from "../hooks/useGoogleCalendar";
 import { useGmail } from "../hooks/useGmail";
@@ -102,6 +122,38 @@ export default function Dashboard(props: DashboardProps) {
     }[]
   >("eduChatHistory", []);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
+  const [widgetOrder, setWidgetOrder] = useLocalStorage<string[]>(
+    "widget_order",
+    ["calendar", "gmail", "links", "news"],
+  );
+  const [isEditingWidgets, setIsEditingWidgets] = useState(false);
+  const [activeWidgetId, setActiveWidgetId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  function handleDragStart(event: any) {
+    setActiveWidgetId(event.active.id);
+  }
+
+  function handleDragEnd(event: any) {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setWidgetOrder((items) => {
+        const oldIndex = items.indexOf(active.id);
+        const newIndex = items.indexOf(over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+
+    setActiveWidgetId(null);
+  }
 
   const [efapeDone, setEfapeDone] = useLocalStorage("efapeDone", false);
   const [classLogs] = useLocalStorage<any[]>("classLogs", []);
@@ -227,8 +279,13 @@ export default function Dashboard(props: DashboardProps) {
             }
           }
         } catch (e: any) {
-          if (e?.message?.includes("client is offline") || e?.code === 'unavailable') {
-            console.warn("Client is offline, unable to fetch dashboard settings.");
+          if (
+            e?.message?.includes("client is offline") ||
+            e?.code === "unavailable"
+          ) {
+            console.warn(
+              "Client is offline, unable to fetch dashboard settings.",
+            );
           } else {
             console.error("Error fetching dashboard settings", e);
           }
@@ -406,6 +463,30 @@ export default function Dashboard(props: DashboardProps) {
     let dp = new Date(nextProva.data + "T00:00:00");
     diffP = Math.ceil((dp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
     if (diffP < 0) diffP = 0; // It's currently happening
+  }
+
+  // Férias Logic
+  let nextFeria = null;
+  for (let f of DATAS_OFICIAIS.recessoDatas) {
+    if (f.nome === "férias") {
+      let df = new Date(f.data + "T00:00:00");
+      if (df >= today) {
+        nextFeria = f;
+        break;
+      }
+    }
+  }
+  let diffFeria = -1;
+  if (!nextFeria) {
+    let df = new Date(today.getFullYear() + 1 + "-01-02T00:00:00");
+    diffFeria = Math.ceil(
+      (df.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+  } else {
+    let df = new Date(nextFeria.data + "T00:00:00");
+    diffFeria = Math.ceil(
+      (df.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
   }
 
   const handleChat = async (e: React.FormEvent) => {
@@ -717,38 +798,41 @@ Bimestres escolares:
             );
 
             if (user) {
-              getDoc(doc(db, "users", user.uid, "matificAnalysis", turma))
-                .then((snap) => {
-                  let fbData = snap.exists()
-                    ? snap.data()
-                    : { students: [], weeks: [], minutes: {} };
-                  if (action === "add") {
-                    const newWeeks = semanas.map((title, i) => ({
-                      id: `jarvis-${Date.now()}-${i}`,
-                      title: title,
-                      date: new Date().toLocaleDateString("pt-BR"),
-                    }));
-                    fbData.weeks = [...(fbData.weeks || []), ...newWeeks];
-                    if (fbData.students && Array.isArray(fbData.students)) {
-                      fbData.students.forEach((s: any) => {
-                        if (!fbData.minutes) fbData.minutes = {};
-                        if (!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
-                        newWeeks.forEach((nw) => {
-                          fbData.minutes[s.id][nw.id] = null;
-                        });
+              try {
+                const snap = await getDoc(
+                  doc(db, "users", user.uid, "matificAnalysis", turma),
+                );
+                let fbData = snap.exists()
+                  ? snap.data()
+                  : { students: [], weeks: [], minutes: {} };
+                if (action === "add") {
+                  const newWeeks = semanas.map((title, i) => ({
+                    id: `jarvis-${Date.now()}-${i}`,
+                    title: title,
+                    date: new Date().toLocaleDateString("pt-BR"),
+                  }));
+                  fbData.weeks = [...(fbData.weeks || []), ...newWeeks];
+                  if (fbData.students && Array.isArray(fbData.students)) {
+                    fbData.students.forEach((s: any) => {
+                      if (!fbData.minutes) fbData.minutes = {};
+                      if (!fbData.minutes[s.id]) fbData.minutes[s.id] = {};
+                      newWeeks.forEach((nw) => {
+                        fbData.minutes[s.id][nw.id] = null;
                       });
-                    }
-                  } else {
-                    // simplified update for edit/delete; just copy from local because they are in sync
-                    fbData = classData;
+                    });
                   }
+                } else {
+                  // simplified update for edit/delete; just copy from local because they are in sync
+                  fbData = classData;
+                }
 
-                  setDoc(
-                    doc(db, "users", user.uid, "matificAnalysis", turma),
-                    fbData,
-                  ).catch(console.error);
-                })
-                .catch(console.error);
+                await setDoc(
+                  doc(db, "users", user.uid, "matificAnalysis", turma),
+                  fbData,
+                );
+              } catch (e) {
+                console.error(e);
+              }
             }
 
             setChatMessages((prev) => [
@@ -781,12 +865,13 @@ Bimestres escolares:
     } catch (error: any) {
       console.error(error);
       let errorMsg = error?.message || "Tente novamente em instantes.";
-      if (errorMsg.includes("Rate exceeded") || errorMsg.includes("429")) {
-        errorMsg = "Uau, limitei! Tivemos muitos acessos seguidos na nossa rede neural. Por favor, aguarde só uns minutinhos e me chame de novo!";
+      if (errorMsg.includes("Rate exceeded") || errorMsg.includes("429") || errorMsg.includes("Quota")) {
+        errorMsg =
+          "Uau, o limite gratuito do servidor foi atingido (Rate exceeded). Se você continuar com problemas, pode adicionar sua própria Chave API do Gemini nas configurações do sistema.";
       } else if (errorMsg.includes("API Key missing")) {
         errorMsg = "A Chave da API (Gemini) não está configurada no servidor.";
       }
-      
+
       setChatMessages((prev) => [
         ...prev,
         {
@@ -837,392 +922,604 @@ Bimestres escolares:
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-6 lg:space-y-8 pb-10"
+      className="h-full w-full flex flex-col overflow-hidden max-h-screen"
     >
-      {/* Hero Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 lg:pb-8 border-b border-slate-200/60 relative">
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/5 blur-3xl rounded-full pointer-events-none" />
-        <div className="relative z-10">
-          <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 bg-clip-text text-transparent flex items-center gap-2">
-            Olá,{" "}
-            <span className="font-medium text-slate-400 text-2xl lg:text-3xl">
-              Professor
-            </span>{" "}
-            {user?.displayName?.split(" ")[0] || "!"}{" "}
-            <span className="animate-wave inline-block origin-[70%_70%]">
-              👋
+      {/* Menu Bar (macOS style) */}
+      <div className="flex-none flex items-center justify-between px-3 h-7 bg-white/30 dark:bg-black/40 backdrop-blur-xl border-b border-white/20 shadow-sm relative z-50 text-xs shrink-0 font-medium text-slate-800 dark:text-slate-200">
+        <div className="flex items-center gap-4 h-full">
+          <div className="flex items-center gap-1.5 font-bold cursor-default px-2 py-0.5 rounded hover:bg-white/30 dark:hover:bg-white/10 transition-colors">
+            <GraduationCap
+              size={14}
+              className="text-indigo-600 dark:text-indigo-400"
+            />
+            <span className="hidden sm:inline-block">EduPlanner</span>
+          </div>
+          <div className="hidden md:flex items-center gap-1 h-full">
+            <span className="cursor-default hover:bg-white/30 dark:hover:bg-white/10 px-2 h-full flex items-center transition-colors font-semibold">
+              Olá, Professor
             </span>
-          </h1>
-          <p className="text-indigo-600 font-bold text-lg flex items-center gap-2">
-            <Sparkles size={16} className="text-amber-400" /> {getSmartPhrase()}
-          </p>
-          <p className="text-slate-500 text-sm mt-1">
-            {now.toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-            })}
-          </p>
-          {nextProva && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-xs font-bold border border-blue-100">
-              {isHappeningNow
-                ? `🚀 Está acontecendo: ${nextProva.nome}!`
-                : `🎯 Faltam ${diffP} dias para: ${nextProva.nome}`}
-            </div>
-          )}
+            <span className="cursor-default hover:bg-white/30 dark:hover:bg-white/10 px-2 h-full flex items-center transition-colors text-indigo-700 dark:text-indigo-300 gap-1 relative group font-semibold">
+              <Sparkles size={12} /> {getSmartPhrase()}
+            </span>
+          </div>
         </div>
 
-        <div className="w-full md:w-72 bg-gradient-to-b from-white to-slate-50/50 p-5 rounded-2xl border border-slate-200/60 shadow-sm relative z-10">
-          <div className="flex justify-between items-center text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-            <span className="flex items-center gap-1.5">
-              <Clock size={12} /> Jornada Diária
-            </span>
-            <span className="text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
-              {progress}%
-            </span>
-          </div>
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-            <div
-              className="h-full bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full transition-all duration-1000 ease-out relative"
-              style={{ width: `${progress}%` }}
-            >
-              <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]"></div>
+        <div className="flex items-center gap-1 h-full">
+          {diffFeria >= 0 && (
+            <div className="hidden lg:flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 bg-emerald-100/30 dark:bg-emerald-900/30 px-2 h-4/5 rounded cursor-default mr-1 font-semibold">
+              🏖️{" "}
+              {diffFeria === 0
+                ? "Férias hoje!"
+                : `${diffFeria} dias para Férias`}
             </div>
+          )}
+
+          {nextProva && (
+            <div className="hidden lg:flex items-center gap-1.5 text-blue-700 dark:text-blue-300 bg-blue-100/30 dark:bg-blue-900/30 px-2 h-4/5 rounded cursor-default mr-2 font-semibold">
+              {isHappeningNow
+                ? `🚀 ${nextProva.nome} acontecendo agora`
+                : `🎯 ${diffP} dias para ${nextProva.nome}`}
+            </div>
+          )}
+
+          <div
+            className="hidden sm:flex items-center gap-2 hover:bg-white/30 dark:hover:bg-white/10 px-2 h-full transition-colors cursor-default"
+            title="Jornada Diária"
+          >
+            <Clock size={12} className="text-slate-500 dark:text-slate-400" />
+            <span className="w-12 bg-slate-200/50 dark:bg-slate-700/50 h-1.5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 dark:from-indigo-400 dark:to-indigo-500 rounded-full"
+                style={{ width: `${progress}%` }}
+              />
+            </span>
+            <span className="font-semibold">{progress}%</span>
           </div>
+
+          <button
+            onClick={() => setIsEditingWidgets(!isEditingWidgets)}
+            className={cn(
+              "hidden sm:flex items-center gap-1.5 px-3 h-full transition-colors font-semibold",
+              isEditingWidgets
+                ? "bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 pointer-events-auto"
+                : "hover:bg-white/30 dark:hover:bg-white/10",
+            )}
+          >
+            {isEditingWidgets ? "Concluído" : "Editar Widgets"}
+          </button>
+
+          <span className="cursor-default px-2 h-full flex items-center hover:bg-white/30 dark:hover:bg-white/10 transition-colors font-semibold border-l border-slate-200/50 dark:border-slate-800/50">
+            {now
+              .toLocaleDateString("pt-BR", {
+                weekday: "short",
+                day: "numeric",
+                month: "short",
+              })
+              .replace(".", "")}{" "}
+            &nbsp;
+            {now.toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
         </div>
       </div>
 
-      {/* Bento Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Google Sync Status */}
-        <div className="lg:col-span-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-6 lg:p-8 text-white flex flex-col relative overflow-hidden shadow-lg min-h-[160px]">
-          <div className="absolute top-0 right-0 p-6 opacity-20">
-            <CalendarClock size={120} />
-          </div>
-          <div className="relative z-10 flex flex-col h-full justify-center">
-            <div className="flex items-center gap-2 text-indigo-100 text-xs font-bold uppercase tracking-wider mb-2">
-              <span
-                className={cn(
-                  "w-2 h-2 rounded-full",
-                  user ? "bg-emerald-400 animate-pulse" : "bg-red-400",
-                )}
-              />
-              {user ? "Sincronizado" : "Status Agenda"}
-            </div>
+      {/* Main OS Grid - Desktop */}
+      <div className="hidden md:block flex-1 p-4 md:p-6 lg:p-4 overflow-hidden min-h-0 relative">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 max-w-6xl w-full mx-auto auto-rows-[260px] lg:auto-rows-[220px] grid-flow-row gap-4 lg:gap-6 pb-20">
+            <SortableContext items={widgetOrder} strategy={rectSortingStrategy}>
+              {widgetOrder.map((id) => (
+                <React.Fragment key={id}>
+                  {id === "calendar" && (
+                    <SortableWidget
+                      id="calendar"
+                      isEditing={isEditingWidgets}
+                      className="col-span-1 flex flex-col h-full"
+                    >
+                      {/* Google Sync Status */}
+                      <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[36px] p-5 shadow-lg flex flex-col relative overflow-hidden min-h-0 h-full text-white">
+                        <div className="absolute -top-10 -right-10 p-6 opacity-10 pointer-events-none">
+                          <CalendarClock size={160} />
+                        </div>
+                        <div className="relative z-10 flex flex-col h-full justify-between gap-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-white/90 text-[10px] font-bold uppercase tracking-widest">
+                              <span
+                                className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  user
+                                    ? "bg-emerald-400 animate-pulse"
+                                    : "bg-red-400",
+                                )}
+                              />
+                              {user ? "Agenda" : "Desconectado"}
+                            </div>
+                          </div>
 
-            {!user ? (
-              <>
-                <h2 className="text-2xl lg:text-3xl font-bold tracking-tight mb-3">
-                  Sincronize sua agenda do Google
-                </h2>
-                <div className="flex items-center gap-2 text-indigo-50 font-medium text-sm mb-4">
-                  <ArrowRight size={16} />{" "}
-                  <span>
-                    Integre sua conta para ver suas próximas aulas e eventos.
-                  </span>
-                </div>
-                <button
-                  onClick={loginWithGoogle}
-                  className="self-start bg-white text-indigo-600 px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:bg-slate-50 transition-colors"
-                >
-                  Conectar Agora
-                </button>
-              </>
-            ) : calendarApiError ? (
-              <div className="text-red-200 mt-2 font-medium text-sm">
-                <p>⚠️ {calendarApiError}</p>
-              </div>
-            ) : isCalendarLoading ? (
-              <div className="text-indigo-100 font-medium flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin" /> Carregando seus
-                próximos eventos...
-              </div>
-            ) : (
-              (() => {
-                const currentEvents = calendarEvents.filter((ev) => {
-                  const s = ev.start?.dateTime
-                    ? new Date(ev.start.dateTime)
-                    : ev.start?.date
-                      ? new Date(ev.start.date)
-                      : new Date();
-                  const e = ev.end?.dateTime
-                    ? new Date(ev.end.dateTime)
-                    : ev.end?.date
-                      ? new Date(ev.end.date)
-                      : new Date();
-                  return now >= s && now <= e;
-                });
-                const futureEvents = calendarEvents.filter((ev) => {
-                  const s = ev.start?.dateTime
-                    ? new Date(ev.start.dateTime)
-                    : ev.start?.date
-                      ? new Date(ev.start.date)
-                      : new Date();
-                  return s > now;
-                });
+                          {!user ? (
+                            <div className="flex flex-col gap-2">
+                              <h2 className="text-xl font-bold tracking-tight">
+                                Sincronize sua agenda
+                              </h2>
+                              <button
+                                onClick={loginWithGoogle}
+                                className="mt-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-2xl text-xs font-bold transition-all shadow-sm backdrop-blur-md w-max"
+                              >
+                                Conectar Google
+                              </button>
+                            </div>
+                          ) : calendarApiError ? (
+                            <div className="text-red-200 mt-2 font-medium text-sm">
+                              <p>⚠️ {calendarApiError}</p>
+                            </div>
+                          ) : isCalendarLoading ? (
+                            <div className="flex-auto flex items-center justify-center">
+                              <Loader2
+                                size={24}
+                                className="animate-spin text-white/50"
+                              />
+                            </div>
+                          ) : (
+                            (() => {
+                              const currentEvents = calendarEvents.filter(
+                                (ev) => {
+                                  const s = ev.start?.dateTime
+                                    ? new Date(ev.start.dateTime)
+                                    : ev.start?.date
+                                      ? new Date(ev.start.date)
+                                      : new Date();
+                                  const e = ev.end?.dateTime
+                                    ? new Date(ev.end.dateTime)
+                                    : ev.end?.date
+                                      ? new Date(ev.end.date)
+                                      : new Date();
+                                  return now >= s && now <= e;
+                                },
+                              );
+                              const futureEvents = calendarEvents.filter(
+                                (ev) => {
+                                  const s = ev.start?.dateTime
+                                    ? new Date(ev.start.dateTime)
+                                    : ev.start?.date
+                                      ? new Date(ev.start.date)
+                                      : new Date();
+                                  return s > now;
+                                },
+                              );
 
-                const currentEvent = currentEvents[0];
-                const nextEvent = futureEvents[0];
+                              const currentEvent = currentEvents[0];
+                              const nextEvent = futureEvents[0];
 
-                if (!currentEvent && !nextEvent) {
-                  return (
-                    <div>
-                      <h2 className="text-2xl font-bold tracking-tight mb-3">
-                        Nenhum compromisso próximo
-                      </h2>
-                      <p className="text-indigo-100 text-sm">
-                        Não há eventos marcados para os próximos dias no
-                        momento.
-                      </p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="flex flex-col md:flex-row gap-4 w-full">
-                    {currentEvent && (
-                      <div className="flex-1">
-                        <div className="flex justify-between items-center mb-2">
-                          <h2 className="text-lg lg:text-xl font-bold tracking-tight text-emerald-100">
-                            Agora
-                          </h2>
-                          {setCurrentView && (
-                            <button
-                              onClick={() => {
-                                localStorage.setItem(
-                                  "nav_class_journal_turma",
-                                  currentEvent.summary || "",
+                              if (!currentEvent && !nextEvent) {
+                                return (
+                                  <div className="flex-auto flex flex-col items-center justify-center text-center">
+                                    <CalendarClock
+                                      size={32}
+                                      className="text-white/30 mb-2"
+                                    />
+                                    <p className="text-sm font-medium text-white/70">
+                                      Sua agenda está livre.
+                                    </p>
+                                  </div>
                                 );
-                                setCurrentView("diario");
-                              }}
-                              className="bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
-                            >
-                              <BookOpen size={14} /> Registrar Aula
-                            </button>
+                              }
+
+                              return (
+                                <div className="flex flex-col gap-3 flex-1 justify-end min-h-0">
+                                  {currentEvent && (
+                                    <div className="bg-white/20 backdrop-blur-md rounded-[20px] p-5 border border-white/20 shadow-sm">
+                                      <div className="mb-2">
+                                        <span className="text-[11px] text-white font-bold uppercase tracking-widest block">
+                                          AGORA
+                                        </span>
+                                      </div>
+                                      <h3 className="font-bold text-[22px] truncate drop-shadow-sm leading-tight text-white mb-2">
+                                        {currentEvent.summary || "Evento"}
+                                      </h3>
+                                      <div className="text-white font-medium text-[13px] flex items-center gap-1.5 mt-1">
+                                        <Clock size={14} />
+                                        {currentEvent.end?.dateTime
+                                          ? `Até as ${new Date(currentEvent.end.dateTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+                                          : "O dia todo"}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {nextEvent && (
+                                    <div className="bg-black/10 backdrop-blur-md rounded-[20px] p-5 border border-white/5">
+                                      <span className="text-[11px] text-white/50 font-bold uppercase tracking-widest mb-1.5 block">
+                                        A SEGUIR
+                                      </span>
+                                      <h3 className="font-bold text-[17px] truncate drop-shadow-sm text-white">
+                                        {nextEvent.summary || "Evento"}
+                                      </h3>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()
                           )}
                         </div>
-                        <div className="bg-white/10 rounded-xl p-4 border border-emerald-400/30 backdrop-blur-md">
-                          <h3 className="font-bold text-lg mb-1 truncate">
-                            {currentEvent.summary || "Evento"}
-                          </h3>
-                          <p className="text-indigo-100 text-sm flex items-center gap-2">
-                            <CalendarClock size={14} />
-                            {currentEvent.end?.dateTime
-                              ? `Até as ${new Date(currentEvent.end.dateTime).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
-                              : "O dia todo"}
-                          </p>
-                        </div>
                       </div>
-                    )}
-                    {nextEvent && (
-                      <div className="flex-1">
-                        <h2 className="text-lg lg:text-xl font-bold tracking-tight mb-2">
-                          A Seguir
-                        </h2>
-                        <div className="bg-white/10 rounded-xl p-4 border border-white/20 backdrop-blur-md">
-                          <h3 className="font-bold text-lg mb-1 truncate">
-                            {nextEvent.summary || "Evento"}
-                          </h3>
-                          <p className="text-indigo-100 text-sm flex items-center gap-2">
-                            <CalendarClock size={14} />
-                            {nextEvent.start?.dateTime
-                              ? new Date(
-                                  nextEvent.start.dateTime,
-                                ).toLocaleString("pt-BR", {
-                                  weekday: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "O dia todo"}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()
-            )}
-          </div>
-        </div>
+                    </SortableWidget>
+                  )}
 
-        {/* Emails / Inbox */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col h-auto lg:h-[340px]">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3 text-slate-800">
-              <div className="bg-red-100 p-2 rounded-xl text-red-600">
-                <Mail size={20} />
+                  {id === "gmail" && (
+                    <SortableWidget
+                      id="gmail"
+                      isEditing={isEditingWidgets}
+                      className="col-span-1 flex flex-col h-full"
+                    >
+                      {/* Emails / Inbox iOS Style Widget */}
+                      <div className="bg-white dark:bg-[#1C1C1E] rounded-[28px] overflow-hidden shadow-sm flex flex-1 flex-col relative w-full h-full p-4 lg:p-5">
+                        {!user ? (
+                          <div className="flex flex-1 items-center justify-center">
+                            <button
+                              onClick={loginWithGoogle}
+                              className="bg-red-500 hover:bg-red-600 text-white text-sm px-6 py-3 rounded-full font-bold shadow-md transition-colors"
+                            >
+                              Conectar Gmail
+                            </button>
+                          </div>
+                        ) : isEmailsLoading ? (
+                          <div className="flex flex-1 items-center justify-center text-slate-500">
+                            <Loader2 size={24} className="animate-spin" />
+                          </div>
+                        ) : emails.length > 0 ? (
+                          <div className="flex flex-col h-full relative">
+                            {/* Header with Title and write button */}
+                            <div className="flex justify-between items-center mb-3">
+                              <span className="font-bold text-sm text-slate-800 dark:text-slate-200 ml-1">
+                                Caixa de Entrada
+                              </span>
+                              <button
+                                onClick={() =>
+                                  window.open(
+                                    "https://mail.google.com/mail/u/0/#inbox?compose=new",
+                                    "_blank",
+                                  )
+                                }
+                                className="bg-red-500 text-white rounded-full p-1.5 shadow-sm hover:scale-105 transition-transform"
+                              >
+                                <Pen size={14} strokeWidth={2.5} />
+                              </button>
+                            </div>
+
+                            {/* Emails stacked as an iOS list */}
+                            <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-black/20 rounded-[20px] overflow-hidden">
+                              {emails.slice(0, 3).map((msg, i) => {
+                                const senderName = msg.from
+                                  ? msg.from
+                                      .split("<")[0]
+                                      .trim()
+                                      .replace(/"/g, "")
+                                  : "Sem Nome";
+                                const initial = senderName
+                                  .charAt(0)
+                                  .toUpperCase();
+
+                                return (
+                                  <div
+                                    key={msg.id || i}
+                                    className={cn(
+                                      "min-w-0 px-3 py-2.5 cursor-pointer flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors",
+                                      i !== emails.slice(0, 3).length - 1 &&
+                                        "border-b border-slate-200/50 dark:border-white/5",
+                                    )}
+                                    onClick={() => handleOpenEmail(msg)}
+                                  >
+                                    <div className="w-10 h-10 shrink-0 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden relative text-slate-600 dark:text-slate-300 font-bold">
+                                      {i === 0 ? (
+                                        <>
+                                          <img
+                                            src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Gmail_icon_%282020%29.svg"
+                                            alt="Gmail"
+                                            className="w-5 h-5 absolute bottom-0 right-0 opacity-20"
+                                          />
+                                          <span className="relative z-10">
+                                            {initial}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span>{initial}</span>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex justify-between items-center mb-0.5">
+                                        <span className="font-bold text-[14px] text-slate-800 dark:text-white truncate">
+                                          {senderName}
+                                        </span>
+                                        <span className="text-[12px] text-slate-400 font-medium shrink-0 ml-2">
+                                          {msg.date.toLocaleTimeString(
+                                            "pt-BR",
+                                            {
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            },
+                                          )}
+                                        </span>
+                                      </div>
+                                      <p className="text-[13px] text-slate-500 dark:text-slate-400 truncate leading-tight">
+                                        {msg.subject || "(Sem assunto)"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex flex-1 items-center justify-center text-slate-500 text-sm font-medium">
+                            Nenhum e-mail recente e não lido.
+                          </div>
+                        )}
+                      </div>
+                    </SortableWidget>
+                  )}
+
+                  {id === "links" && (
+                    <SortableWidget
+                      id="links"
+                      isEditing={isEditingWidgets}
+                      className="col-span-1 min-h-0 h-full flex items-center justify-center p-2 lg:p-4"
+                    >
+                      {/* Navegação Rápida (Floating App Icons) iOS Style */}
+                      <div className="grid grid-cols-4 gap-y-6 gap-x-2 sm:gap-x-4 w-full px-1 sm:px-4 place-items-start lg:place-items-center sm:pt-4">
+                        <a
+                          href="https://saladofuturo.educacao.sp.gov.br/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Sala do Futuro"
+                          className="group flex flex-col items-center w-full"
+                        >
+                          <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-[#E82B3C] shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
+                            <img
+                              src="/sala-do-futuro.png"
+                              alt="Sala do Futuro"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="font-medium text-[11px] sm:text-xs text-slate-700 dark:text-slate-200 truncate w-[70px] sm:w-20 text-center mt-1.5 tracking-tight">
+                            Sala Futuro
+                          </span>
+                        </a>
+
+                        <a
+                          href="https://avaefape.educacao.sp.gov.br/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex flex-col items-center w-full"
+                        >
+                          <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-[#1E3A8A] shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
+                            <img
+                              src="/efape.jpg"
+                              alt="AVA EFAPE"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="font-medium text-[11px] sm:text-xs text-slate-700 dark:text-slate-200 truncate w-[70px] sm:w-20 text-center mt-1.5 tracking-tight">
+                            EFAPE
+                          </span>
+                        </a>
+
+                        <a
+                          href="https://app.teachy.com.br/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex flex-col items-center w-full"
+                        >
+                          <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-gradient-to-tr from-[#fbbf24] to-[#f59e0b] shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
+                            <img
+                              src="/teatchy.jpg"
+                              alt="Teachy"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="font-medium text-[11px] sm:text-xs text-slate-700 dark:text-slate-200 truncate w-[70px] sm:w-20 text-center mt-1.5 tracking-tight">
+                            Teachy
+                          </span>
+                        </a>
+
+                        <a
+                          href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex flex-col items-center w-full"
+                        >
+                          <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-white shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
+                            <img
+                              src="/google-drive.webp"
+                              alt="Google Drive"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="font-medium text-[11px] sm:text-xs text-slate-700 dark:text-slate-200 truncate w-[70px] sm:w-20 text-center mt-1.5 tracking-tight">
+                            Drive
+                          </span>
+                        </a>
+                      </div>
+                    </SortableWidget>
+                  )}
+
+                  {id === "news" && (
+                    <SortableWidget
+                      id="news"
+                      isEditing={isEditingWidgets}
+                      className="col-span-1 flex flex-col h-full overflow-hidden"
+                    >
+                      {/* News Feed - Categorias */}
+                      <div className="flex flex-col h-full w-full">
+                        <NewsCarousel />
+                      </div>
+                    </SortableWidget>
+                  )}
+                </React.Fragment>
+              ))}
+            </SortableContext>
+          </div>
+
+          <DragOverlay>
+            {activeWidgetId === "calendar" && (
+              <div className="opacity-90 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[36px] p-6 shadow-lg flex items-center justify-center font-bold text-xl text-white h-full w-[250px]">
+                📅 Agenda
               </div>
-              <h2 className="font-bold tracking-tight">
-                Caixa de Entrada (Gmail Edu)
-              </h2>
+            )}
+            {activeWidgetId === "gmail" && (
+              <div className="opacity-90 bg-white/40 dark:bg-black/30 backdrop-blur-2xl rounded-[36px] p-5 shadow-lg flex items-center justify-center font-bold text-xl h-full w-[500px]">
+                📧 Gmail Edu
+              </div>
+            )}
+            {activeWidgetId === "links" && (
+              <div className="opacity-90 border border-white/40 dark:border-white/10 rounded-3xl p-5 shadow-lg flex items-center justify-center font-bold text-xl bg-white/40 dark:bg-black/30 backdrop-blur-2xl h-full w-[250px]">
+                🔗 Navegação
+              </div>
+            )}
+            {activeWidgetId === "news" && (
+              <div className="opacity-90 rounded-[36px] bg-slate-900 shadow-lg flex items-center justify-center font-bold text-xl text-white h-full w-[500px]">
+                📰 Radar Educação
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
+
+      {/* Mobile Layout (iOS style) */}
+      <div className="md:hidden flex-1 w-full overflow-hidden relative pb-[80px]">
+        {/* Pages Container */}
+        <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex custom-scrollbar pb-6 px-4">
+          
+          {/* Page 1 (Native Apps / Utilities) */}
+          <div className="w-full h-full flex-shrink-0 snap-center flex flex-col pt-4 gap-6">
+            
+            {/* Small Calendar Widget (Row 1-2 Span) */}
+            <div className="w-full bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-5 shadow-lg flex flex-col relative overflow-hidden text-white min-h-[140px]">
+                <div className="absolute -top-4 -right-4 p-4 opacity-10 pointer-events-none">
+                  <CalendarClock size={100} />
+                </div>
+                <div className="relative z-10 flex flex-col h-full justify-between">
+                  <div className="flex items-center gap-2 text-white/90 text-xs font-bold uppercase tracking-widest mb-2">
+                    <span className={cn("w-2 h-2 rounded-full", user ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
+                    {user ? "Agenda" : "Desc."}
+                  </div>
+                  {!user ? (
+                      <button onClick={loginWithGoogle} className="mt-auto bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm w-max">
+                        Conectar
+                      </button>
+                    ) : (
+                      <div className="mt-auto flex flex-col">
+                        <h3 className="font-bold text-xl truncate leading-tight mb-1">
+                          {calendarEvents.filter(ev => {
+                            const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
+                            const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : ev.end?.date ? new Date(ev.end.date) : new Date();
+                            return now >= s && now <= e;
+                          })[0]?.summary || "Livre agora"}
+                        </h3>
+                        <div className="text-white/80 font-medium text-sm flex items-center gap-1.5">
+                          <Clock size={14} /> Em andamento
+                        </div>
+                      </div>
+                  )}
+                </div>
+            </div>
+
+            {/* Native App Icons Grid */}
+            <div className="grid grid-cols-4 gap-y-6 gap-x-3 w-full place-items-center">
+                <button onClick={() => setCurrentView('diario')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-blue-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <BookOpen size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Aulas</span>
+                </button>
+                <button onClick={() => setCurrentView('agenda')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-rose-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <CalendarClock size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Agenda</span>
+                </button>
+                <button onClick={() => setCurrentView('avaliacoes')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <ClipboardCheck size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Provas</span>
+                </button>
+                <button onClick={() => setCurrentView('apostilas')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-emerald-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <BookOpen size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Apostilas</span>
+                </button>
+                <button onClick={() => setCurrentView('plano')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-violet-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <Pen size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Plano</span>
+                </button>
+                <button onClick={() => setCurrentView('guia-pedagogico')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-cyan-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <FolderTree size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Currículo</span>
+                </button>
+                <button onClick={() => setCurrentView('perfil')} className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-slate-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <Users size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Perfil</span>
+                </button>
+                <button onClick={() => alert("Lembretes: " + reminders.length)} className="group flex flex-col items-center w-full relative">
+                  {reminders.length > 0 && <span className="absolute max-w-full -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold z-10">{reminders.length}</span>}
+                  <div className="w-14 h-14 rounded-[16px] bg-pink-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                    <BellRing size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Avisos</span>
+                </button>
+            </div>
+
+            {/* Small News Widget */}
+            <div className="w-full bg-slate-900 rounded-3xl overflow-hidden shadow-lg border border-white/10 mt-auto min-h-[140px] flex">
+              <NewsCarousel />
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-            {!user ? (
-              <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                <Mail size={32} className="text-slate-300 mb-2" />
-                <p className="text-sm font-medium text-slate-500">
-                  Conecte sua conta do Google para ler seus e-mails do Gmail Edu
-                  diretamente aqui.
-                </p>
-                <button
-                  onClick={loginWithGoogle}
-                  className="mt-3 bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-50"
-                >
-                  Conectar Contas
-                </button>
-              </div>
-            ) : emailsApiError ? (
-              <div className="text-center p-4 text-red-600 text-sm font-medium">
-                {"⚠️ " + emailsApiError}
-              </div>
-            ) : isEmailsLoading ? (
-              <div className="flex items-center justify-center h-full text-slate-500">
-                <Loader2 size={24} className="animate-spin mb-2" />
-              </div>
-            ) : emails.length > 0 ? (
-              emails.map((msg, i) => (
-                <div
-                  key={msg.id || i}
-                  onClick={() => handleOpenEmail(msg)}
-                  className={`flex gap-4 p-3 rounded-2xl border transition-colors group cursor-pointer ${i === 0 ? "bg-red-50/50 border-red-100 hover:bg-red-50" : "bg-white border-slate-100 hover:bg-slate-50"}`}
-                >
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${i === 0 ? "bg-red-200 text-red-700" : "bg-slate-200 text-slate-700"}`}
-                  >
-                    {msg.from ? msg.from.charAt(0).toUpperCase() : "M"}
+          {/* Page 2 (Quick Links) */}
+          <div className="w-full h-full flex-shrink-0 snap-center p-4 flex flex-col justify-center">
+             <div className="text-center mb-6">
+                <span className="text-white/60 text-xs font-bold uppercase tracking-widest">Navegação Rápida</span>
+             </div>
+             <div className="grid grid-cols-4 gap-y-8 gap-x-2 w-full place-items-center bg-white/10 dark:bg-black/30 backdrop-blur-xl p-6 rounded-[32px] border border-white/20">
+                <a href="https://saladofuturo.educacao.sp.gov.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-[#E82B3C] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                    <img src="/sala-do-futuro.png" alt="Sala" className="w-full h-full object-cover" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-baseline mb-0.5">
-                      <span
-                        className={`font-bold text-sm truncate ${i === 0 ? "text-slate-800" : "text-slate-700"}`}
-                      >
-                        {msg.from}
-                      </span>
-                      <span
-                        className={`text-[10px] font-bold shrink-0 ${i === 0 ? "text-red-600" : "text-slate-400"}`}
-                      >
-                        {msg.date.toLocaleDateString("pt-BR", {
-                          day: "numeric",
-                          month: "short",
-                        })}
-                      </span>
-                    </div>
-                    <p
-                      className={`text-sm truncate ${i === 0 ? "font-bold text-slate-700" : "text-slate-700"}`}
-                    >
-                      {msg.subject}
-                    </p>
-                    <p className="text-xs text-slate-500 truncate">
-                      {msg.snippet
-                        ?.replace(/&#39;/g, "'")
-                        .replace(/&quot;/g, '"') || ""}
-                    </p>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Sala Futuro</span>
+                </a>
+                <a href="https://avaefape.educacao.sp.gov.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-[#1E3A8A] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                    <img src="/efape.jpg" alt="EFAPE" className="w-full h-full object-cover" />
                   </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center p-4 text-slate-500 text-sm">
-                Nenhum e-mail recente encontrado. Verifique sua conexão ou se a
-                sua conta tem a permissão de leitura de email ativa.
-              </div>
-            )}
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">EFAPE</span>
+                </a>
+                <a href="https://app.teachy.com.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                    <img src="/teatchy.jpg" alt="Teachy" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Teachy</span>
+                </a>
+                <a href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
+                  <div className="w-14 h-14 rounded-[16px] bg-white shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                    <img src="/google-drive.webp" alt="Drive" className="w-full h-full object-cover" />
+                  </div>
+                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Drive</span>
+                </a>
+             </div>
           </div>
-        </div>
 
-        {/* Sistemas de Apoio */}
-        <div className="bg-gradient-to-b from-white to-slate-50/30 border border-slate-200/80 rounded-3xl p-6 shadow-sm flex flex-col h-full w-full">
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">
-            <FolderTree size={14} className="text-slate-300" /> Navegação Rápida
-          </div>
-          <div className="grid grid-cols-2 gap-4 w-full flex-1">
-            <a
-              href="https://saladofuturo.educacao.sp.gov.br/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Sala do Futuro"
-              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-indigo-400 hover:shadow-lg hover:-translate-y-1 transition-all"
-            >
-              <div className="w-12 h-12 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100 group-hover:bg-indigo-100 transition-colors">
-                <img
-                  src="https://saladofuturo.educacao.sp.gov.br/images/logo.png"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                    e.currentTarget.nextElementSibling?.classList.remove(
-                      "hidden",
-                    );
-                  }}
-                  alt="Sala do Futuro"
-                  className="h-6 w-auto drop-shadow-sm group-hover:scale-110 transition-transform"
-                />
-                <span className="hidden text-sm font-black tracking-tighter text-indigo-600">
-                  SF
-                </span>
-              </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-indigo-700 text-center transition-colors">
-                Sala do Futuro
-              </span>
-            </a>
-
-            <a
-              href="https://avaefape.educacao.sp.gov.br/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="AVA / Leia SP"
-              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-blue-400 hover:shadow-lg hover:-translate-y-1 transition-all"
-            >
-              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center border border-blue-100 group-hover:bg-blue-100 transition-colors">
-                <span className="font-black text-xs tracking-tighter text-blue-700 group-hover:scale-110 transition-transform">
-                  EFAPE
-                </span>
-              </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-blue-700 text-center transition-colors">
-                AVA EFAPE
-              </span>
-            </a>
-
-            <a
-              href="https://app.teachy.com.br/"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Plataforma Teachy"
-              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-amber-400 hover:shadow-lg hover:-translate-y-1 transition-all"
-            >
-              <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center border border-amber-100 group-hover:bg-amber-100 transition-colors">
-                <span className="font-black text-xl text-amber-500 group-hover:scale-110 transition-transform italic">
-                  t
-                </span>
-              </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-amber-700 text-center transition-colors">
-                Teachy
-              </span>
-            </a>
-
-            <a
-              href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Meu Google Drive"
-              className="group flex flex-col items-center justify-center gap-3 p-4 shrink-0 rounded-2xl border border-slate-200 bg-white hover:border-emerald-400 hover:shadow-lg hover:-translate-y-1 transition-all"
-            >
-              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center border border-emerald-100 group-hover:bg-emerald-100 transition-colors">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/1/12/Google_Drive_icon_%282020%29.svg"
-                  alt="Google Drive"
-                  className="w-6 h-6 group-hover:scale-110 transition-transform"
-                />
-              </div>
-              <span className="font-semibold text-sm text-slate-700 group-hover:text-emerald-700 text-center transition-colors">
-                Google Drive
-              </span>
-            </a>
-          </div>
-        </div>
-
-        {/* News Feed - Categorias */}
-        <div className="lg:col-span-3 flex flex-col h-auto lg:h-[400px]">
-          <NewsCarousel />
         </div>
       </div>
 

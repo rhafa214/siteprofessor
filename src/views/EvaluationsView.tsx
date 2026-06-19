@@ -4,7 +4,7 @@ import TaskAnalysis from "./TaskAnalysis";
 import ProvaPaulistaAnalysis from "./ProvaPaulistaAnalysis";
 import SchoolAssessments from "./SchoolAssessments";
 import CalculadoraMediaView from "./CalculadoraMediaView";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Calculator,
   ClipboardCheck,
@@ -148,7 +148,7 @@ export default function EvaluationsView() {
     <div className="h-full flex flex-col bg-slate-50/50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200 p-6 z-10 shrink-0">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="w-full flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
               Central de Avaliações
@@ -179,7 +179,7 @@ export default function EvaluationsView() {
 
       {/* Cards */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

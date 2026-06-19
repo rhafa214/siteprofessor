@@ -76,7 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error logging in with Google:", error);
       setAuthError("Erro na autenticação: " + error.message);
-      throw error;
     }
   }, [setAccessToken]);
 
@@ -88,7 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error: any) {
       console.error("Error logging out:", error);
       setAuthError("Erro ao sair: " + error.message);
-      throw error;
     }
   }, [setAccessToken]);
 

@@ -7,6 +7,22 @@
     <meta name="theme-color" content="#4f46e5" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+      window.addEventListener("error", (e) => {
+        fetch("/api/client-error", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno, error: e.error?.stack })
+        }).catch(()=>console.error("Failed to log error to backend"));
+      });
+      window.addEventListener("unhandledrejection", (e) => {
+        fetch("/api/client-error", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: "Unhandled Rejection", error: String(e.reason?.stack || e.reason) })
+        }).catch(()=>console.error("Failed to log error to backend"));
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Folder, Star, ChevronRight, Loader2, Search } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 interface DriveFolder {
   id: string;

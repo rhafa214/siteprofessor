@@ -13,15 +13,19 @@ import {
   Save,
   LogOut,
   ImagePlus,
+  Image as ImageIcon
 } from "lucide-react";
 import { auth, storage } from "../lib/firebase";
-
+import { useLocalStorage } from "../hooks/useLocalStorage";
 import { useAppStore } from "../store/useAppStore";
 
 export default function ProfileView() {
   const { user, logout } = useAuth();
   const { setCurrentView } = useAppStore();
 
+  const defaultBg = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop";
+  const [bgUrl, setBgUrl] = useLocalStorage("app_background_url", defaultBg);
+  
   const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [photoURL, setPhotoURL] = useState(user?.photoURL || "");
   const [isEditing, setIsEditing] = useState(false);
@@ -303,6 +307,42 @@ export default function ProfileView() {
               </div>
               <ChevronRight className="text-slate-400 group-hover:text-blue-600 transition-colors" />
             </button>
+          </div>
+        </div>
+
+        {/* Appearance Settings */}
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 lg:p-8 flex flex-col gap-6 md:col-span-2">
+          <div className="mb-2">
+            <h2 className="text-lg font-bold text-slate-800">Aparência</h2>
+            <p className="text-sm font-medium text-slate-500 mt-1">
+              Personalize o plano de fundo da área de trabalho do EduPlanner.
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-4 max-w-lg">
+            <label className="text-sm font-bold text-slate-600">
+              URL da Imagem de Fundo
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={bgUrl}
+                onChange={(e) => setBgUrl(e.target.value)}
+                placeholder="https://..."
+                className="flex-1 p-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+              <button 
+                onClick={() => setBgUrl(defaultBg)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-sm font-bold transition-colors"
+              >
+                Padrão
+              </button>
+            </div>
+            
+            <div className="mt-2 text-xs text-slate-500 font-medium">
+              Sugestões: Copie o link de uma imagem do 
+              <a href="https://unsplash.com/pt-br/wallpapers/desktop/mac" target="_blank" rel="noreferrer" className="text-indigo-600 ml-1 hover:underline">Unsplash</a>, ou cole o link de qualquer outra imagem online.
+            </div>
           </div>
         </div>
       </div>

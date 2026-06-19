@@ -1,217 +1,255 @@
-import { useState } from "react";
-import { motion } from "motion/react";
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence, PanInfo } from "motion/react";
 import {
   Brain,
-  LogIn,
   Loader2,
-  BookOpen,
-  GraduationCap,
-  Atom,
-  Globe,
-  Sparkles
+  Lock,
+  ChevronUp
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+
+function useTime() {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return time;
+}
 
 export default function LoginView() {
   const { loginWithGoogle, authError } = useAuth();
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const time = useTime();
+
+  // Detect mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Handle keypress or click to reveal login on desktop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" || e.code === "Space" || e.key === "Escape") {
+        setShowLogin(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  const formatTimeMobile = (date: Date) => {
+    return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  };
+  
+  const formatTimeDesktop = (date: Date) => {
+    return date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("pt-BR", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  const handleDragEnd = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    // If swiped up significantly
+    if (info.offset.y < -50) {
+      setShowLogin(true);
+    }
+  };
 
   return (
-      <div className="flex min-h-screen w-full items-center justify-center p-4 sm:p-6 font-sans relative overflow-hidden bg-slate-900">
-        {/* Background Image with Overlay */}
-        <div
-          className="absolute inset-0 bg-cover bg-center z-0 opacity-40 mix-blend-luminosity"
-          style={{
-            backgroundImage:
-              'url("https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2673&auto=format&fit=crop")',
-          }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-[#8257E5]/90 via-[#4f319b]/90 to-[#121214]/95 z-0 backdrop-blur-sm" />
+    <div 
+      className="flex min-h-[100dvh] w-full items-center justify-center font-sans relative overflow-hidden bg-slate-900 group select-none"
+      onClick={() => {
+        if (!isMobile) setShowLogin(true);
+      }}
+    >
+      {/* Background Image with animated zoom effect */}
+      <motion.div
+        className="absolute inset-0 bg-cover bg-center z-0 origin-center"
+        initial={{ scale: 1.05 }}
+        animate={{ scale: showLogin ? 1.1 : 1.0, filter: showLogin ? "blur(20px) brightness(0.6)" : "blur(0px) brightness(0.9)" }}
+        transition={{ duration: 0.8, ease: "easeOut" }}
+        style={{
+          backgroundImage:
+            'url("https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2673&auto=format&fit=crop")',
+        }}
+      />
 
-        {/* Floating particles/shapes in background */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none hidden sm:block">
-          <motion.div
-            animate={{
-              y: [-20, 20, -20],
-              x: [-10, 10, -10],
-              rotate: [0, 45, 0],
-            }}
-            transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-[10%] left-[10%] w-64 h-64 border border-white/5 rounded-full"
-          />
-          <motion.div
-            animate={{
-              y: [20, -20, 20],
-              x: [10, -10, 10],
-              rotate: [0, -45, 0],
-            }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute bottom-[20%] right-[10%] w-96 h-96 border border-white/5 rounded-full"
-          />
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="bg-white rounded-[24px] sm:rounded-[32px] overflow-hidden flex flex-col lg:flex-row shadow-2xl max-w-5xl w-full mx-auto min-h-[600px] relative z-10 border border-white/20"
-        >
-          {/* Left Side - Login Form */}
-          <div className="w-full lg:w-1/2 p-10 lg:p-16 flex flex-col justify-center">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="w-12 h-12 bg-[#8257E5]/10 rounded-xl flex items-center justify-center">
-                <Brain className="text-[#8257E5]" size={28} />
-              </div>
-              <span className="text-xl font-black text-slate-800 tracking-tight">
-                EduAssistente
-              </span>
+      <div className="absolute inset-0 z-10 flex flex-col justify-between py-12 md:py-20 px-6 overflow-hidden">
+        
+        {/* Clock Section (Top) */}
+        {!showLogin && (
+          <motion.div 
+            className="flex flex-col items-center mt-8 md:mt-0"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -40 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          >
+            <div className="relative flex flex-col items-center">
+              <Lock className="text-white/80 w-6 h-6 mb-2" />
+              <h1 className="text-[5.5rem] md:text-[7rem] lg:text-[8rem] font-medium text-white tracking-tight drop-shadow-lg leading-none font-sans">
+                {isMobile ? formatTimeMobile(time) : formatTimeDesktop(time)}
+              </h1>
             </div>
-
-            <h2 className="text-3xl lg:text-4xl font-black text-slate-800 tracking-tight mb-4">
-              Acesse a plataforma
-            </h2>
-            <p className="text-slate-500 font-medium mb-12 leading-relaxed">
-              Faça login com sua conta do Google para começar a gerenciar suas
-              turmas e simplificar suas aulas.
+            <p className="text-lg md:text-2xl text-white/90 mt-2 font-medium capitalize drop-shadow-md tracking-wide">
+              {formatDate(time)}
             </p>
+          </motion.div>
+        )}
 
-            <div className="w-full max-w-sm">
-              {authError && (
-                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm font-medium">
-                  {authError}
-                </div>
-              )}
-              <button
-                onClick={async () => {
+        {/* Login Container (Center) */}
+        <AnimatePresence>
+          {showLogin && (
+            <motion.div
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex flex-col items-center">
+                {/* User Avatar Circle */}
+                <div className="w-28 h-28 rounded-full bg-white/10 backdrop-blur-3xl border cursor-pointer border-white/20 mb-6 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform" onClick={async () => {
                   setIsLoggingIn(true);
                   try {
                     await loginWithGoogle();
                   } catch (e) {
-                    // error handled in context
+                     // error handled in context
                   } finally {
                     setIsLoggingIn(false);
                   }
-                }}
-                disabled={isLoggingIn}
-                className="w-full flex items-center justify-center gap-3 bg-[#8257E5] hover:bg-[#6f48c9] text-white py-4 px-6 rounded-xl font-bold transition-all disabled:opacity-70 shadow-lg hover:shadow-xl hover:shadow-[#8257E5]/30 active:scale-[0.98]"
-              >
-                {isLoggingIn ? (
-                  <Loader2 className="animate-spin" size={20} />
-                ) : (
-                  <>
-                    <svg
-                      className="w-5 h-5 bg-white rounded-full p-[2px]"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                        fill="#4285F4"
-                      />
-                      <path
-                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                        fill="#34A853"
-                      />
-                      <path
-                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                        fill="#FBBC05"
-                      />
-                      <path
-                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                        fill="#EA4335"
-                      />
-                    </svg>
-                    Entrar com o Google
-                  </>
-                )}
-              </button>
-            </div>
+                }}>
+                  <Brain className="text-white w-12 h-12" />
+                </div>
+                
+                <h2 className="text-3xl font-bold text-white mb-2 shadow-sm tracking-tight text-center">
+                  EduAssistente
+                </h2>
+                <p className="text-white/70 mb-8 font-medium text-center text-lg">
+                  Entrar na conta acadêmica
+                </p>
 
-            <p className="mt-12 text-sm font-medium text-slate-500">
-              Ambiente de uso exclusivo.{" "}
-              <a
-                href="#"
-                className="text-[#8257E5] hover:text-[#6f48c9] transition-colors border-b border-transparent hover:border-[#8257E5]"
-              >
-                Precisa de ajuda?
-              </a>
-            </p>
-          </div>
+                <div className="w-full">
+                  {authError && (
+                    <motion.div initial={{opacity:0, y:-10}} animate={{opacity:1, y:0}} className="mb-4 p-3 bg-red-400/20 backdrop-blur-md border border-red-400/50 text-white rounded-xl text-sm font-medium text-center">
+                      {authError}
+                    </motion.div>
+                  )}
+                  
+                  <button
+                    onClick={async () => {
+                      setIsLoggingIn(true);
+                      try {
+                        await loginWithGoogle();
+                      } catch (e) {
+                        // error handled in context
+                      } finally {
+                        setIsLoggingIn(false);
+                      }
+                    }}
+                    disabled={isLoggingIn}
+                    className="w-full flex items-center justify-center gap-3 bg-white/20 hover:bg-white/30 border border-white/30 text-white py-4 px-6 rounded-2xl font-semibold transition-all backdrop-blur-xl hover:shadow-2xl hover:shadow-white/20 active:scale-[0.98]"
+                  >
+                    {isLoggingIn ? (
+                      <Loader2 className="animate-spin text-white" size={20} />
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 bg-white rounded-full p-[2px]" viewBox="0 0 24 24">
+                          <path
+                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                            fill="#4285F4"
+                          />
+                          <path
+                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                            fill="#34A853"
+                          />
+                          <path
+                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                            fill="#FBBC05"
+                          />
+                          <path
+                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                            fill="#EA4335"
+                          />
+                        </svg>
+                        Tocar para Entrar
+                      </>
+                    )}
+                  </button>
 
-          {/* Right Side - Abstract/Graphic */}
-          <div className="w-full lg:w-1/2 bg-[#8257E5] relative overflow-hidden hidden lg:flex flex-col justify-end p-16 text-white min-h-[400px]">
-            {/* Background Decorations */}
-            <div className="absolute top-[-20%] right-[-10%] w-[80%] h-[80%] rounded-full bg-gradient-to-br from-[#9f75ff] to-[#6f48c9] blur-3xl opacity-50 mix-blend-screen pointer-events-none" />
-            <div className="absolute bottom-[-10%] left-[-20%] w-[60%] h-[60%] rounded-full bg-[#4f319b] blur-3xl opacity-40 mix-blend-multiply pointer-events-none" />
-            <div className="absolute inset-0 bg-[#121214]/5 pointer-events-none backdrop-blur-[100px]" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-b from-white/20 to-transparent rounded-full blur-2xl pointer-events-none"></div>
-
-            {/* Floating Educational Elements */}
-            <motion.div
-              animate={{ y: [-15, 15, -15], rotate: [0, 10, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-[15%] right-[20%] text-white/20 pointer-events-none"
-            >
-              <BookOpen size={72} strokeWidth={1.5} />
-            </motion.div>
-
-            <motion.div
-              animate={{ y: [15, -15, 15], rotate: [0, -10, 0] }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 1,
-              }}
-              className="absolute top-[35%] left-[20%] text-white/10 pointer-events-none"
-            >
-              <GraduationCap size={96} strokeWidth={1} />
-            </motion.div>
-
-            <motion.div
-              animate={{ y: [-10, 20, -10], rotate: [0, -15, 0] }}
-              transition={{
-                duration: 7,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 2,
-              }}
-              className="absolute top-[55%] right-[15%] text-white/15 pointer-events-none"
-            >
-              <Atom size={64} strokeWidth={1.5} />
-            </motion.div>
-
-            <motion.div
-              animate={{ y: [20, -10, 20], rotate: [0, 5, 0] }}
-              transition={{
-                duration: 9,
-                repeat: Infinity,
-                ease: "easeInOut",
-                delay: 3,
-              }}
-              className="absolute top-[20%] left-[45%] text-white/10 pointer-events-none"
-            >
-              <Globe size={48} strokeWidth={1.5} />
-            </motion.div>
-
-            <div className="relative z-10 bg-black/10 backdrop-blur-md p-8 rounded-3xl border border-white/10 shadow-2xl">
-              <div className="mb-4 flex gap-2">
-                <Sparkles
-                  className="text-[#FBBF24]"
-                  fill="currentColor"
-                  size={28}
-                />
+                  <button 
+                    onClick={() => setShowLogin(false)}
+                    className="w-full mt-6 text-white/60 hover:text-white transition-colors text-sm font-medium tracking-wide flex justify-center"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
-              <h3 className="text-4xl font-black tracking-tight leading-tight mb-4 text-white">
-                O futuro da <br />
-                educação com IA.
-              </h3>
-              <p className="text-white/80 font-medium text-lg max-w-sm leading-relaxed">
-                Organize seu fluxo de trabalho, conecte-se com sua agenda e
-                utilize o Jarvis para poupar horas de trabalho.
-              </p>
-            </div>
-          </div>
-        </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bottom instructions when login is NOT shown */}
+        <AnimatePresence>
+          {!showLogin && (
+            <motion.div 
+              className="flex flex-col items-center mx-auto mb-4 w-full"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 20 }}
+              transition={{ duration: 0.3 }}
+            >
+              {isMobile ? (
+                <motion.div 
+                  className="w-full h-32 absolute bottom-0 left-0 flex flex-col items-center justify-end pb-8 touch-none"
+                  drag="y"
+                  dragConstraints={{ top: 0, bottom: 0 }}
+                  dragElastic={0.8}
+                  onDragEnd={handleDragEnd}
+                >
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="mb-2"
+                  >
+                    <ChevronUp className="text-white/80 w-6 h-6" />
+                  </motion.div>
+                  <p className="text-white/90 font-medium tracking-wide text-sm select-none">
+                    Deslize para cima para abrir
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="flex flex-col items-center pb-4">
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    className="mb-2"
+                  >
+                    <ChevronUp className="text-white/60 w-6 h-6" />
+                  </motion.div>
+                  <p className="text-white/80 font-medium tracking-wide text-sm select-none">
+                    Pressione qualquer tecla ou clique para desbloquear
+                  </p>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
+    </div>
   );
 }

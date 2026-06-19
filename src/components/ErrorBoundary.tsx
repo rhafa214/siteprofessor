@@ -1,5 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
 
 interface Props {
   children?: ReactNode;
@@ -27,8 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
     // Auto-reload for Vite chunk load errors (deployments invalidate old chunks)
     if (error.message.includes("Failed to fetch dynamically imported module") || error.message.includes("Importing a module script failed")) {
-      window.location.reload();
-      return;
+      console.warn("Chunk load error detected. Presenting manual reload button.");
+      // Render fallback instead of infinite reload
     }
 
     this.setState({ errorInfo });

@@ -37,7 +37,7 @@ export default function GuiaPedagogicoView() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col relative overflow-hidden">
-      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col relative z-10 p-6">
+      <div className="w-full max-w-[1600px] mx-auto flex-1 flex flex-col relative z-10 p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-4 border-b border-slate-200">
           <div>

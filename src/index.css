@@ -83,6 +83,14 @@ html.dark input.bg-white, html.dark textarea.bg-white, html.dark select.bg-white
 }
 
 /* Custom Scrollbar */
+.custom-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
