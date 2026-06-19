@@ -74,8 +74,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setUser(result.user);
     } catch (error: any) {
-      console.error("Error logging in with Google:", error);
-      setAuthError("Erro na autenticação: " + error.message);
+      if (error.code !== "auth/popup-closed-by-user" && error.code !== "auth/cancelled-popup-request") {
+        console.error("Error logging in with Google:", error);
+        setAuthError("Erro na autenticação: " + error.message);
+      }
     }
   }, [setAccessToken]);
 
