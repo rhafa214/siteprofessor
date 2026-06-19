@@ -123,7 +123,7 @@ export default function LoginView() {
             >
               <div className="flex flex-col items-center">
                 {/* User Avatar Circle */}
-                <div className="w-28 h-28 rounded-full bg-white/10 backdrop-blur-3xl border cursor-pointer border-white/20 mb-6 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform" onClick={async () => {
+                <div className="w-28 h-28 rounded-full bg-white/10 backdrop-blur-3xl border cursor-pointer border-white/20 mb-6 flex items-center justify-center shadow-2xl hover:scale-105 transition-transform overflow-hidden" onClick={async () => {
                   setIsLoggingIn(true);
                   try {
                     await loginWithGoogle();
@@ -133,7 +133,12 @@ export default function LoginView() {
                     setIsLoggingIn(false);
                   }
                 }}>
-                  <Brain className="text-white w-12 h-12" />
+                  <img src="/app-icon.png" alt="EduAssistente Logo" className="w-full h-full object-cover" onError={(e) => {
+                    // Fallback to Icon if image is missing
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.parentElement?.querySelector('svg')?.classList.remove('hidden');
+                  }} />
+                  <Brain className="text-white w-12 h-12 hidden" />
                 </div>
                 
                 <h2 className="text-3xl font-bold text-white mb-2 shadow-sm tracking-tight text-center">

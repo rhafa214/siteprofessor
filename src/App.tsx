@@ -30,6 +30,9 @@ function App() {
 
   // Redirect to addon if parameter is present
   useEffect(() => {
+    // Clear chunk reload token on successful mount
+    sessionStorage.removeItem('chunk_reloaded');
+    
     if (typeof window !== "undefined" && window.location.search.includes("mode=addon") && window.location.pathname !== "/addon") {
        window.location.href = "/addon" + window.location.search;
     }

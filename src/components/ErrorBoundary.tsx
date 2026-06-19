@@ -25,9 +25,24 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error:", error, errorInfo);
 
     // Auto-reload for Vite chunk load errors (deployments invalidate old chunks)
-    if (error.message.includes("Failed to fetch dynamically imported module") || error.message.includes("Importing a module script failed")) {
-      console.warn("Chunk load error detected. Presenting manual reload button.");
-      // Render fallback instead of infinite reload
+    if (error.message.includes("Failed to fetch dynamically imported module") || error.message.includes("Importing a module script failed") || error.name === "ChunkLoadError") {
+      const isReloaded = sessionStorage.getItem('chunk_reloaded');
+      if (!isReloaded) {
+        sessionStorage.setItem('chunk_reloaded', 'true');
+        console.warn("Chunk load error detected. Unregistering SW and auto-reloading...");
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+              registration.unregister();
+            }
+            window.location.reload();
+          });
+        } else {
+          window.location.reload();
+        }
+        return;
+      }
+      console.warn("Chunk load error detected again. Presenting manual reload button.");
     }
 
     this.setState({ errorInfo });
