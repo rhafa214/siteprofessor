@@ -12,7 +12,7 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.svg', 'app-icon.png'],
+        includeAssets: ['favicon.svg', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png'],
         manifest: {
           name: 'EduAssistente',
           short_name: 'EduAssist',

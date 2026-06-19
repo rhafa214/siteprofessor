@@ -133,7 +133,7 @@ export default function LoginView() {
                     setIsLoggingIn(false);
                   }
                 }}>
-                  <img src="/app-icon.png" alt="EduAssistente Logo" className="w-full h-full object-cover" onError={(e) => {
+                  <img src="/app-icon.png?v=2" alt="EduAssistente Logo" className="w-full h-full object-cover" onError={(e) => {
                     // Fallback to Icon if image is missing
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.parentElement?.querySelector('svg')?.classList.remove('hidden');
