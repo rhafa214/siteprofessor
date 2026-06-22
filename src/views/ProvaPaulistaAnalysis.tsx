@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
+import * as xlsx from "xlsx";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Loader2,
+  Upload,
   Plus,
   Trash2,
   Users,
@@ -244,6 +246,178 @@ export default function ProvaPaulistaAnalysis({
     return ((totalScore / totalMax) * 100).toFixed(1) + "%";
   };
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [editingExamId, setEditingExamId] = useState<string | null>(null);
+  const [editExamData, setEditExamData] = useState<{ title: string; maxScore: number }>({ title: "", maxScore: 10 });
+
+  const saveExamEdit = (id: string) => {
+     const newExams = classData.exams.map((e) =>
+       e.id === id ? { ...e, title: editExamData.title, maxScore: editExamData.maxScore } : e
+     );
+     saveClassData({ ...classData, exams: newExams });
+     setEditingExamId(null);
+  };
+
+  const deleteExam = (id: string) => {
+     confirm("Tem certeza que deseja excluir esta prova? Todas as notas serão perdidas.", () => {
+         const newExams = classData.exams.filter((e) => e.id !== id);
+         const newGrades = { ...classData.grades };
+         Object.keys(newGrades).forEach((sId) => {
+             delete newGrades[sId][id];
+         });
+         saveClassData({ ...classData, exams: newExams, grades: newGrades });
+         setEditingExamId(null);
+     });
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = xlsx.read(data, { type: "binary" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        let headerIdx = -1;
+        let bestScore = -1;
+        rows.forEach((row, idx) => {
+          if (!Array.isArray(row)) return;
+          let score = 0;
+          row.forEach((cell) => {
+            if (typeof cell === "string") {
+              const str = cell.toLowerCase();
+              if (str.includes("nome") || str.includes("aluno")) score += 5;
+              if (str.includes("nota") || str.includes("acerto") || str.includes("resultado") || str.includes("total") || str.includes("pontua") || cell.includes("%") || str.includes("desempenho")) score += 2;
+              if (str.includes("situa") || str.includes("status")) score += 3;
+            }
+          });
+          if (score > bestScore) {
+            bestScore = score;
+            headerIdx = idx;
+          }
+        });
+
+        if (headerIdx === -1) {
+          showAlert("Não foi possível encontrar as colunas de Nome e Nota no arquivo.", "Erro", "error");
+          setIsLoading(false);
+          return;
+        }
+
+        let nameCol = -1;
+        let notaCol = -1;
+        let statusCol = -1;
+
+        const headers = rows[headerIdx];
+        headers.forEach((h, col) => {
+          if (typeof h === "string") {
+            const str = h.toLowerCase();
+            if ((str.includes("nome") || str.includes("aluno") || str.includes("estudante")) && nameCol === -1) nameCol = col;
+            else if ((str.includes("nota") || str.includes("acerto") || str.includes("total") || str.includes("pontua") || str.includes("desempenho") || str.includes("%")) && notaCol === -1) notaCol = col;
+            else if ((str.includes("situa") || str.includes("status")) && statusCol === -1) statusCol = col;
+          }
+        });
+
+        if (nameCol === -1) {
+            showAlert("Coluna de Nome não encontrada.", "Erro", "error");
+            setIsLoading(false);
+            return;
+        }
+
+        const newStudents = [...classData.students];
+        const newGrades = { ...classData.grades };
+        const examId = `ex_import_${Date.now()}`;
+        let maxFoundScore = 10;
+        
+        let importedCount = 0;
+
+        for (let i = headerIdx + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || !row[nameCol]) continue;
+
+          const nStr = String(row[nameCol]).trim();
+          if (!nStr) continue;
+
+          const rawStatus = statusCol !== -1 ? row[statusCol] || "" : "ativo";
+          const status = String(rawStatus).trim().toLowerCase();
+
+          if (status === "ativo") {
+            // Find student or create
+            let std = newStudents.find(
+              (s) => s.name.toLowerCase() === nStr.toLowerCase()
+            );
+            if (!std) {
+              std = { id: `st_imp_${Date.now()}_${i}`, name: nStr };
+              newStudents.push(std);
+            }
+            if (!newGrades[std.id]) newGrades[std.id] = {};
+
+            if (notaCol !== -1) {
+               let val = row[notaCol];
+               let gradeVal = NaN;
+
+               if (typeof val === 'number') {
+                   gradeVal = val;
+                   if (gradeVal <= 1 && gradeVal > 0 && !Number.isInteger(gradeVal)) {
+                       gradeVal = gradeVal * 10; // 0.8 -> 8.0
+                   }
+               } else if (typeof val === 'string') {
+                   const cleanStr = val.replace(',', '.').replace(/[^0-9.-]/g, '');
+                   gradeVal = parseFloat(cleanStr);
+                   if (val.includes('%') && !isNaN(gradeVal)) {
+                       gradeVal = gradeVal / 10;
+                   }
+               }
+               
+               if (!isNaN(gradeVal)) {
+                   gradeVal = Math.round(gradeVal * 10) / 10;
+                   newGrades[std.id][examId] = gradeVal;
+                   if (gradeVal > maxFoundScore) {
+                       maxFoundScore = Math.ceil(gradeVal / 10) * 10;
+                       if (maxFoundScore < 10) maxFoundScore = 10;
+                   }
+               }
+            }
+            importedCount++;
+          }
+        }
+
+        let cleanFileName = file.name.replace(/\.[^/.]+$/, "");
+        
+        const newExams = [
+          ...classData.exams,
+          {
+            id: examId,
+            title: cleanFileName,
+            maxScore: maxFoundScore,
+            date: new Date().toISOString(),
+          },
+        ];
+
+        saveClassData({
+          students: newStudents,
+          exams: newExams,
+          grades: newGrades,
+        });
+
+        showAlert(`${importedCount} alunos ativos importados com sucesso!`, "Sucesso", "success");
+      } catch (err) {
+        console.error(err);
+        showAlert("Erro ao processar o arquivo Excel.", "Erro", "error");
+      } finally {
+        setIsLoading(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
   return (
     <div className="flex flex-col w-full max-w-[1600px] mx-auto space-y-6 pb-24">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -382,6 +556,20 @@ export default function ProvaPaulistaAnalysis({
             </div>
 
             <div className="flex gap-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-emerald-50 text-emerald-700 text-sm font-bold rounded-xl hover:bg-emerald-100 flex items-center gap-2"
+              >
+                <Upload size={16} />
+                Importar Excel
+              </button>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileUpload} 
+                accept=".xlsx, .xls, .csv" 
+                className="hidden" 
+              />
               <button
                 onClick={syncStudents}
                 className="px-4 py-2 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-xl hover:bg-indigo-100 flex items-center gap-2"
@@ -529,14 +717,45 @@ export default function ProvaPaulistaAnalysis({
                         {classData.exams.map((ex) => (
                           <div
                             key={ex.id}
-                            className="min-w-[120px] p-3 border-r border-slate-200 flex-1 text-center truncate"
+                            className="min-w-[120px] p-2 border-r border-slate-200 flex-1 text-center truncate relative"
                           >
-                            <div className="truncate" title={ex.title}>
-                              {ex.title}
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-medium">
-                              Máx: {ex.maxScore} pts
-                            </div>
+                            {editingExamId === ex.id ? (
+                              <div className="flex flex-col gap-1 items-center pb-1">
+                                <input
+                                  type="text"
+                                  value={editExamData.title}
+                                  onChange={e => setEditExamData({ ...editExamData, title: e.target.value })}
+                                  className="w-full text-xs font-bold px-1.5 py-0.5 border border-indigo-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
+                                />
+                                <div className="flex w-full items-center gap-1">
+                                  <span className="text-[10px] text-slate-400">Máx:</span>
+                                  <input
+                                    type="number"
+                                    value={editExamData.maxScore}
+                                    onChange={e => setEditExamData({ ...editExamData, maxScore: Number(e.target.value) })}
+                                    className="flex-1 text-xs px-1.5 py-0.5 border border-indigo-300 rounded focus:ring-1 focus:ring-indigo-500 outline-none"
+                                  />
+                                </div>
+                                <div className="flex gap-1 mt-1 w-full justify-center">
+                                  <button onClick={() => saveExamEdit(ex.id)} className="text-emerald-600 hover:bg-emerald-50 rounded p-1" title="Salvar"><CheckCircle2 size={14} /></button>
+                                  <button onClick={() => setEditingExamId(null)} className="text-slate-400 hover:bg-slate-100 rounded p-1" title="Cancelar"><X size={14} /></button>
+                                  <button onClick={() => deleteExam(ex.id)} className="text-red-500 hover:bg-red-50 rounded p-1 ml-auto" title="Excluir Prova"><Trash2 size={14} /></button>
+                                </div>
+                              </div>
+                            ) : (
+                               <>
+                                <div 
+                                  className="truncate cursor-pointer hover:text-indigo-600 transition-colors" 
+                                  title={`Editar ${ex.title}`} 
+                                  onClick={() => { setEditingExamId(ex.id); setEditExamData({ title: ex.title, maxScore: ex.maxScore }); }}
+                                >
+                                  {ex.title}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-medium">
+                                  Máx: {ex.maxScore} pts
+                                </div>
+                               </>
+                            )}
                           </div>
                         ))}
                       </div>

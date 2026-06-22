@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
+import * as xlsx from "xlsx";
 import { motion, AnimatePresence } from "motion/react";
 import {
   BookOpen,
@@ -12,6 +13,7 @@ import {
   Users,
   Loader2,
   FolderOpen,
+  Upload,
 } from "lucide-react";
 import {
   Document,
@@ -200,6 +202,135 @@ export default function SchoolAssessments({
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsSyncing(true);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const data = evt.target?.result;
+        const workbook = xlsx.read(data, { type: "binary" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rows = xlsx.utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
+
+        let headerIdx = -1;
+        let bestScore = -1;
+        rows.forEach((row, idx) => {
+          if (!Array.isArray(row)) return;
+          let score = 0;
+          row.forEach((cell) => {
+            if (typeof cell === "string") {
+              const str = cell.toLowerCase();
+              if (str.includes("nome") || str.includes("aluno")) score += 5;
+              if (str.includes("nota") || str.includes("acerto") || str.includes("resultado") || str.includes("total") || str.includes("pontua") || cell.includes("%") || str.includes("desempenho")) score += 2;
+              if (str.includes("situa") || str.includes("status")) score += 3;
+            }
+          });
+          if (score > bestScore) {
+            bestScore = score;
+            headerIdx = idx;
+          }
+        });
+
+        if (headerIdx === -1) {
+          showAlert("Não foi possível encontrar as colunas de Nome e Nota no arquivo.", "Erro", "error");
+          setIsSyncing(false);
+          return;
+        }
+
+        let nameCol = -1;
+        let notaCol = -1;
+        let statusCol = -1;
+
+        const headers = rows[headerIdx];
+        headers.forEach((h, col) => {
+          if (typeof h === "string") {
+            const str = h.toLowerCase();
+            if ((str.includes("nome") || str.includes("aluno") || str.includes("estudante")) && nameCol === -1) nameCol = col;
+            else if ((str.includes("nota") || str.includes("acerto") || str.includes("total") || str.includes("pontua") || str.includes("desempenho") || str.includes("%")) && notaCol === -1) notaCol = col;
+            else if ((str.includes("situa") || str.includes("status")) && statusCol === -1) statusCol = col;
+          }
+        });
+
+        if (nameCol === -1) {
+            showAlert("Coluna de Nome não encontrada.", "Erro", "error");
+            setIsSyncing(false);
+            return;
+        }
+
+        const newRecords: GradeRecord[] = [...currentGrades];
+        let importedCount = 0;
+
+        for (let i = headerIdx + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || !row[nameCol]) continue;
+
+          const nStr = String(row[nameCol]).trim();
+          if (!nStr) continue;
+
+          const rawStatus = statusCol !== -1 ? row[statusCol] || "" : "ativo";
+          const status = String(rawStatus).trim().toLowerCase();
+
+          if (status === "ativo") {
+            let record = newRecords.find(
+              (r) => r.studentName.toLowerCase() === nStr.toLowerCase()
+            );
+            
+            if (!record) {
+              record = { id: crypto.randomUUID(), studentName: nStr, grade: "" };
+              newRecords.push(record);
+            }
+
+            if (notaCol !== -1) {
+               let val = row[notaCol];
+               let gradeVal = NaN;
+
+               if (typeof val === 'number') {
+                   gradeVal = val;
+                   if (gradeVal <= 1 && gradeVal > 0 && !Number.isInteger(gradeVal)) {
+                       gradeVal = gradeVal * 10;
+                   }
+               } else if (typeof val === 'string') {
+                   const cleanStr = val.replace(',', '.').replace(/[^0-9.-]/g, '');
+                   gradeVal = parseFloat(cleanStr);
+                   if (val.includes('%') && !isNaN(gradeVal)) {
+                       gradeVal = gradeVal / 10;
+                   }
+               }
+               
+               if (!isNaN(gradeVal)) {
+                   gradeVal = Math.round(gradeVal * 10) / 10;
+                   record.grade = gradeVal > 10 ? 10 : gradeVal; // in SchoolAssessments max is usually 10
+               }
+            }
+            importedCount++;
+          }
+        }
+
+        newRecords.sort((a, b) => a.studentName.localeCompare(b.studentName));
+
+        setGradesData((prev) => ({
+          ...prev,
+          [currentKey]: newRecords,
+        }));
+
+        showAlert(`${importedCount} alunos ativos importados com sucesso!`, "Sucesso", "success");
+      } catch (err) {
+        console.error(err);
+        showAlert("Erro ao processar o arquivo Excel.", "Erro", "error");
+      } finally {
+        setIsSyncing(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    };
+    reader.readAsBinaryString(file);
   };
 
   const updateGrade = (id: string, newGradeValue: string) => {
@@ -666,7 +797,22 @@ export default function SchoolAssessments({
             </div>
 
             <div className="flex-1 p-0 overflow-auto">
-              <div className="p-4 border-b border-slate-100 bg-white flex justify-end items-center bg-slate-50">
+              <div className="p-4 border-b border-slate-100 bg-white flex justify-end gap-2 items-center bg-slate-50">
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isSyncing}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 rounded-lg font-bold text-xs transition-colors shrink-0 shadow-sm"
+                >
+                  <Upload size={14} />
+                  Importar Excel
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileUpload} 
+                  accept=".xlsx, .xls, .csv" 
+                  className="hidden" 
+                />
                 <button
                   onClick={syncStudentsWithDatabase}
                   disabled={isSyncing}

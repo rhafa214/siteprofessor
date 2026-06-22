@@ -1280,7 +1280,7 @@ Bimestres escolares:
                         >
                           <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-[#E82B3C] shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
                             <img
-                              src="/sala-do-futuro.png"
+                              src="/sala-do-futuro.png?v=3"
                               alt="Sala do Futuro"
                               className="w-full h-full object-cover"
                             />
@@ -1298,7 +1298,7 @@ Bimestres escolares:
                         >
                           <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-[#1E3A8A] shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
                             <img
-                              src="/efape.jpg"
+                              src="/efape.jpg?v=3"
                               alt="AVA EFAPE"
                               className="w-full h-full object-cover"
                             />
@@ -1316,7 +1316,7 @@ Bimestres escolares:
                         >
                           <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-gradient-to-tr from-[#fbbf24] to-[#f59e0b] shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
                             <img
-                              src="/teatchy.jpg"
+                              src="/teatchy.jpg?v=3"
                               alt="Teachy"
                               className="w-full h-full object-cover"
                             />
@@ -1334,7 +1334,7 @@ Bimestres escolares:
                         >
                           <div className="w-[64px] h-[64px] sm:w-[72px] sm:h-[72px] rounded-[18px] sm:rounded-[20px] bg-white shadow-sm flex items-center justify-center overflow-hidden relative active:scale-90 group-hover:scale-105 transition-all">
                             <img
-                              src="/google-drive.webp"
+                              src="/google-drive.webp?v=3"
                               alt="Google Drive"
                               className="w-full h-full object-cover"
                             />
@@ -1495,25 +1495,25 @@ Bimestres escolares:
              <div className="grid grid-cols-4 gap-y-8 gap-x-2 w-full place-items-center bg-white/10 dark:bg-black/30 backdrop-blur-xl p-6 rounded-[32px] border border-white/20">
                 <a href="https://saladofuturo.educacao.sp.gov.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
                   <div className="w-14 h-14 rounded-[16px] bg-[#E82B3C] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/sala-do-futuro.png" alt="Sala" className="w-full h-full object-cover" />
+                    <img src="/sala-do-futuro.png?v=3" alt="Sala" className="w-full h-full object-cover" />
                   </div>
                   <span className="font-medium text-[11px] text-slate-100 mt-1.5">Sala Futuro</span>
                 </a>
                 <a href="https://avaefape.educacao.sp.gov.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
                   <div className="w-14 h-14 rounded-[16px] bg-[#1E3A8A] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/efape.jpg" alt="EFAPE" className="w-full h-full object-cover" />
+                    <img src="/efape.jpg?v=3" alt="EFAPE" className="w-full h-full object-cover" />
                   </div>
                   <span className="font-medium text-[11px] text-slate-100 mt-1.5">EFAPE</span>
                 </a>
                 <a href="https://app.teachy.com.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
                   <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/teatchy.jpg" alt="Teachy" className="w-full h-full object-cover" />
+                    <img src="/teatchy.jpg?v=3" alt="Teachy" className="w-full h-full object-cover" />
                   </div>
                   <span className="font-medium text-[11px] text-slate-100 mt-1.5">Teachy</span>
                 </a>
                 <a href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
                   <div className="w-14 h-14 rounded-[16px] bg-white shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/google-drive.webp" alt="Drive" className="w-full h-full object-cover" />
+                    <img src="/google-drive.webp?v=3" alt="Drive" className="w-full h-full object-cover" />
                   </div>
                   <span className="font-medium text-[11px] text-slate-100 mt-1.5">Drive</span>
                 </a>
