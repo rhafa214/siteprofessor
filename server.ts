@@ -157,7 +157,13 @@ async function startServer() {
 
     } catch (e: any) {
       console.error(e);
-      res.status(500).json({ error: "Erro ao processar PDF: " + e.message });
+      let errorMsg = "Erro ao processar documento: " + e.message;
+      if (e.message && String(e.message).includes("429")) {
+        errorMsg = "Limite da versão gratuita do modelo atingido (Erro 429). Aguarde alguns instantes e tente novamente.";
+      } else if (e.message && (String(e.message).includes("503") || String(e.message).includes("UNAVAILABLE") || String(e.message).includes("high demand"))) {
+        errorMsg = "O sistema de IA está com alta demanda no momento (Erro 503). Por favor, aguarde alguns instantes e tente novamente.";
+      }
+      res.status(500).json({ error: errorMsg });
     }
   });
 
@@ -344,7 +350,13 @@ Extraia todas as aulas contidas no documento.`;
       res.json({ text: extractedText });
     } catch (e: any) {
       console.error(e);
-      res.status(500).json({ error: "Erro ao processar PDF: " + e.message });
+      let errorMsg = "Erro ao processar documento: " + e.message;
+      if (e.message && String(e.message).includes("429")) {
+        errorMsg = "Limite da versão gratuita do modelo atingido (Erro 429). Aguarde alguns instantes e tente novamente.";
+      } else if (e.message && (String(e.message).includes("503") || String(e.message).includes("UNAVAILABLE") || String(e.message).includes("high demand"))) {
+        errorMsg = "O sistema de IA está com alta demanda no momento (Erro 503). Por favor, aguarde alguns instantes e tente novamente.";
+      }
+      res.status(500).json({ error: errorMsg });
     }
   });
 
