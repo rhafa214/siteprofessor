@@ -18,6 +18,7 @@ import { SP_MATH_CURRICULUM } from "../lib/spMath";
 import { SP_MATH_CURRICULUM_DETAILED } from "../lib/spMathData";
 import { extractTextFromFile } from "../lib/fileExtraction";
 import { DATAS_OFICIAIS } from "../lib/constants";
+import { getGeminiClient } from "../lib/gemini";
 
 interface ImportantDate {
   id: string;
@@ -179,6 +180,57 @@ export default function KnowledgeBase() {
     }
   };
 
+  const handleCurriculumUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setToastMessage("Analisando currículo com IA, isso pode levar alguns segundos...");
+      const text = await extractTextFromFile(file);
+      
+      const genAI = getGeminiClient();
+      const model = genAI.models;
+      
+      const prompt = `Você é um assistente pedagógico de São Paulo.
+Eu tenho uma base de dados atual de Aprendizagens Essenciais:
+"""
+${curriculumData}
+"""
+
+E eu acabei de fazer o upload de um novo documento que contém Aprendizagens Essenciais para o ano todo (incluindo o 3º e 4º bimestre):
+"""
+${text}
+"""
+
+Seu objetivo é:
+1. Ler as novas aprendizagens.
+2. Identificar quais já estão na base atual (provavelmente as do 1º e 2º semestre/bimestre).
+3. Adicionar as que faltam (focando no 3º e 4º bimestre, mas verifique o documento todo).
+4. Retornar a NOVA base de dados COMPLETA, unindo as informações. Não remova as informações importantes que já estão na base.
+
+Retorne apenas o texto consolidado final, de forma organizada.`;
+
+      const response = await model.generateContent({
+        model: "gemini-2.0-flash",
+        contents: prompt
+      });
+
+      if (response.text) {
+        setCurriculumData(response.text);
+        setToastMessage("Base de dados de Aprendizagens atualizada com sucesso!");
+      } else {
+        throw new Error("Resposta da IA vazia");
+      }
+      setTimeout(() => setToastMessage(""), 3000);
+    } catch (err: any) {
+      console.error(err);
+      setToastMessage(err.message || "Erro ao processar currículo com IA.");
+      setTimeout(() => setToastMessage(""), 3000);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -233,9 +285,9 @@ export default function KnowledgeBase() {
               <input
                 type="file"
                 ref={curriculumFileInputRef}
-                onChange={(e) => handleFileUpload(e, setCurriculumData)}
+                onChange={handleCurriculumUpload}
                 className="hidden"
-                accept=".txt,.pdf,.docx,.csv,.json,.md"
+                accept=".txt,.pdf,.docx,.csv,.json,.md,.xlsx,.xls"
               />
               <button
                 onClick={() => curriculumFileInputRef.current?.click()}

@@ -1,5 +1,6 @@
 import * as mammoth from "mammoth";
 import * as pdfjsLib from "pdfjs-dist";
+import * as xlsx from "xlsx";
 
 // Use CDN for the worker to avoid Vite build/development issues with worker imports
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
@@ -28,9 +29,20 @@ export const extractTextFromFile = async (file: File): Promise<string> => {
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer });
     return result.value;
+  } else if (["xlsx", "xls"].includes(extension)) {
+    const arrayBuffer = await file.arrayBuffer();
+    const workbook = xlsx.read(arrayBuffer, { type: "array" });
+    let text = "";
+    workbook.SheetNames.forEach((sheetName) => {
+       const worksheet = workbook.Sheets[sheetName];
+       text += `Planilha: ${sheetName}\n`;
+       const csv = xlsx.utils.sheet_to_csv(worksheet);
+       text += csv + "\n\n";
+    });
+    return text;
   } else {
     throw new Error(
-      "Formato de arquivo não suportado. Por favor, envie .txt, .pdf ou .docx.",
+      "Formato de arquivo não suportado. Por favor, envie .txt, .pdf, .docx ou .xlsx.",
     );
   }
 };
