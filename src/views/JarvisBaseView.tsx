@@ -86,7 +86,14 @@ export default function JarvisBaseView() {
           let errorMessage = "Erro na resposta do servidor.";
           try {
             const errorData = JSON.parse(responseText);
-            errorMessage = errorData.error || errorMessage;
+            if (errorData.error) {
+              errorMessage = errorData.error;
+              if (errorMessage.includes("503") || errorMessage.includes("high demand") || errorMessage.includes("UNAVAILABLE")) {
+                errorMessage = "O sistema de IA está com alta demanda no momento (Erro 503). Por favor, aguarde alguns instantes e tente novamente.";
+              } else if (errorMessage.includes("429")) {
+                errorMessage = "Limite de requisições excedido ou documento muito grande. Tente um arquivo menor.";
+              }
+            }
           } catch (e) {
             errorMessage = responseText.substring(0, 100);
           }

@@ -109,7 +109,7 @@ async function startServer() {
       const mimeType = req.file.mimetype; // usually application/pdf
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             {
@@ -196,7 +196,7 @@ Cada objeto representa uma aula com as seguintes chaves (ano, bimestre, numero c
 Extraia todas as aulas contidas no documento.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             {
@@ -251,7 +251,7 @@ Extraia todas as aulas contidas no documento.`;
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             { text: textContext },
@@ -319,7 +319,7 @@ Extraia todas as aulas contidas no documento.`;
       const mimeType = req.file.mimetype;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             {
@@ -363,7 +363,7 @@ Extraia todas as aulas contidas no documento.`;
       });
       
       const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.0-flash",
         contents: {
           parts: [
             { text: `Gere um relatório consolidado da turma ${turma} avaliando a evolução/regresso através dos seguintes dados de notas:\n\nTarefas JSON: ${JSON.stringify(tarefas)}\n\nMatific JSON: ${JSON.stringify(matific)}\n\nProva Paulista JSON: ${JSON.stringify(provaPaulista)}` },
@@ -452,7 +452,7 @@ ${textContent}
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
           const analysisResponse = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
+            model: "gemini-2.0-flash",
             contents: {
               parts,
             },

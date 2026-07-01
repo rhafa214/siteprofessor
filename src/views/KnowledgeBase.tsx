@@ -191,24 +191,21 @@ export default function KnowledgeBase() {
       const genAI = getGeminiClient();
       const model = genAI.models;
       
-      const prompt = `Você é um assistente pedagógico de São Paulo.
-Eu tenho uma base de dados atual de Aprendizagens Essenciais:
-"""
-${curriculumData}
-"""
+      const prompt = `Você é um assistente pedagógico.
+O usuário fez o upload de um documento com as Aprendizagens Essenciais (currículo).
+Nossa base atual já possui o 1º e 2º bimestre.
 
-E eu acabei de fazer o upload de um novo documento que contém Aprendizagens Essenciais para o ano todo (incluindo o 3º e 4º bimestre):
+Seu objetivo é:
+1. Analisar o documento abaixo.
+2. Extrair APENAS as Aprendizagens Essenciais referentes ao 3º e 4º bimestre (ou 2º semestre).
+3. Retornar os dados formatados e organizados (ex: por série/ano e bimestre), prontos para serem adicionados ao final da nossa base atual.
+
+Documento:
 """
 ${text}
 """
 
-Seu objetivo é:
-1. Ler as novas aprendizagens.
-2. Identificar quais já estão na base atual (provavelmente as do 1º e 2º semestre/bimestre).
-3. Adicionar as que faltam (focando no 3º e 4º bimestre, mas verifique o documento todo).
-4. Retornar a NOVA base de dados COMPLETA, unindo as informações. Não remova as informações importantes que já estão na base.
-
-Retorne apenas o texto consolidado final, de forma organizada.`;
+Retorne APENAS o texto com as novas aprendizagens extraídas, de forma limpa e organizada. Não inclua os bimestres que já temos.`;
 
       const response = await model.generateContent({
         model: "gemini-2.0-flash",
@@ -216,16 +213,22 @@ Retorne apenas o texto consolidado final, de forma organizada.`;
       });
 
       if (response.text) {
-        setCurriculumData(response.text);
-        setToastMessage("Base de dados de Aprendizagens atualizada com sucesso!");
+        setCurriculumData((prev) => prev + "\n\n=== NOVAS APRENDIZAGENS (Adicionadas) ===\n\n" + response.text);
+        setToastMessage("Base de dados atualizada com o 3º e 4º bimestre!");
       } else {
         throw new Error("Resposta da IA vazia");
       }
       setTimeout(() => setToastMessage(""), 3000);
     } catch (err: any) {
       console.error(err);
-      setToastMessage(err.message || "Erro ao processar currículo com IA.");
-      setTimeout(() => setToastMessage(""), 3000);
+      let errorMsg = "Erro ao processar currículo com IA.";
+      if (err.message && err.message.includes("429")) {
+        errorMsg = "Erro 429: Limite da versão gratuita atingido ou documento muito grande. Tente um arquivo menor ou divida em partes.";
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      setToastMessage(errorMsg);
+      setTimeout(() => setToastMessage(""), 5000);
     } finally {
       e.target.value = "";
     }
