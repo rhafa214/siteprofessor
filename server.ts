@@ -324,24 +324,41 @@ Extraia todas as aulas contidas no documento.`;
       const base64EncodeString = req.file.buffer.toString("base64");
       const mimeType = req.file.mimetype;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                mimeType: mimeType,
-                data: base64EncodeString,
-              },
+      let response;
+      let retries = 3;
+      let delay = 2000;
+      
+      while (retries > 0) {
+        try {
+          response = await ai.models.generateContent({
+            model: "gemini-2.0-flash",
+            contents: {
+              parts: [
+                {
+                  inlineData: {
+                    mimeType: mimeType,
+                    data: base64EncodeString,
+                  },
+                },
+                {
+                  text: `Extraia todo o conteúdo de texto, estruturado preferencialmente em Markdown, deste documento. Mantenha títulos, tabelas (escreva em markdown) e listas. Se for uma matriz, escopo, ou guia, não perca nenhuma informação. Sem blá-blá-blá. Apenas extraia a informação.`,
+                },
+              ],
             },
-            {
-              text: `Extraia todo o conteúdo de texto, estruturado preferencialmente em Markdown, deste documento. Mantenha títulos, tabelas (escreva em markdown) e listas. Se for uma matriz, escopo, ou guia, não perca nenhuma informação. Sem blá-blá-blá. Apenas extraia a informação.`,
-            },
-          ],
-        },
-      });
+          });
+          break; // Success
+        } catch (err: any) {
+          retries--;
+          if (retries === 0 || (!String(err.message).includes("429") && !String(err.message).includes("503") && !String(err.message).includes("UNAVAILABLE"))) {
+            throw err;
+          }
+          console.warn(`Erro na IA. Tentando novamente em ${delay}ms... (Restam ${retries} tentativas)`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2; // Exponential backoff
+        }
+      }
 
-      const extractedText = response.text;
+      const extractedText = response?.text;
       if (!extractedText) {
         res.status(500).json({ error: "A resposta do modelo veio vazia." });
         return;
@@ -506,6 +523,21 @@ ${textContent}
         errorMessage = "Limite de requisições excedido na API da IA. Por favor, tente novamente em alguns instantes.";
       }
       res.status(500).json({ error: errorMessage });
+    }
+  });
+
+  // Catch-all for API routes (so they don't fall through to the SPA HTML fallback)
+  app.use("/api/*", (req, res) => {
+    res.status(404).json({ error: "Endpoint API não encontrado: " + req.originalUrl });
+  });
+
+  // Global error handler for API routes (catches multer errors, etc.)
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (req.path.startsWith('/api/')) {
+      console.error("API Error:", err);
+      res.status(500).json({ error: err.message || "Erro interno do servidor" });
+    } else {
+      next(err);
     }
   });
 

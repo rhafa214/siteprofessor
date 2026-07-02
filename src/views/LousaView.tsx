@@ -94,7 +94,13 @@ export default function LousaView() {
         throw new Error(errMessage);
       }
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        console.error("Non-JSON success response:", e);
+        throw new Error("O servidor retornou uma resposta inesperada. Verifique se o arquivo não excede o limite de tamanho (50MB).");
+      }
       setLousaData(data);
     } catch (err: any) {
       setError(err.message);

@@ -95,12 +95,19 @@ export default function JarvisBaseView() {
               }
             }
           } catch (e) {
-            errorMessage = responseText.substring(0, 100);
+            console.error("HTML Error received:", responseText.substring(0, 200));
+            errorMessage = `Erro ${response.status}: O servidor falhou em processar a requisição. Pode ser que o arquivo seja grande demais ou a conexão expirou (timeout).`;
           }
           throw new Error(errorMessage);
         }
 
-        const parsedData = JSON.parse(responseText);
+        let parsedData;
+        try {
+          parsedData = JSON.parse(responseText);
+        } catch (e) {
+          console.error("Non-JSON response received:", responseText.substring(0, 200));
+          throw new Error("O servidor retornou uma resposta inesperada. Pode ser que o arquivo seja grande demais (limite de 50MB) ou a requisição expirou.");
+        }
 
         if (parsedData.text) {
           const newDoc: KnowledgeDoc = {
