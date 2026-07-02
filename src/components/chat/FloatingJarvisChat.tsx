@@ -176,8 +176,11 @@ export default function FloatingJarvisChat() {
     } catch (err: any) {
       console.error(err);
       let errorMsg = "Ops! Tive um problema ao processar sua resposta. Verifique a chave de API ou tente novamente.";
-      if (err?.message?.includes("Rate exceeded") || err?.message?.includes("429") || err?.message?.includes("Quota")) {
-        errorMsg = "Uau, o limite gratuito do servidor foi atingido (Rate exceeded). Se você continuar com problemas, pode adicionar sua própria Chave API do Gemini nas configurações do Addon.";
+      const errString = String(err?.message || err) + " " + JSON.stringify(err);
+      if (errString.includes("429") || errString.includes("Quota") || errString.includes("RESOURCE_EXHAUSTED")) {
+        errorMsg = "Uau, o limite gratuito do servidor foi atingido (Erro 429 / Quota Exceeded). Aguarde um pouquinho ou adicione sua própria Chave API nas configurações.";
+      } else if (errString.includes("503") || errString.includes("UNAVAILABLE")) {
+        errorMsg = "A IA está com alta demanda no momento (Erro 503). Por favor, tente novamente em alguns instantes.";
       }
       setChatMessages((prev) => [
         ...prev,

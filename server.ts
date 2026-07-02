@@ -27,6 +27,7 @@ async function startServer() {
   // --- GEMINI API PROXY ---
   app.use("/api/gemini-proxy", async (req, res) => {
     try {
+      console.log("[Gemini Proxy] Request URL:", req.url);
       const gApiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
       if (!gApiKey) {
         res.status(500).json({ error: "API Key missing server-side" });
@@ -57,6 +58,19 @@ async function startServer() {
       }
 
       const response = await fetch(targetUrl, fetchOptions);
+
+      console.log("[Gemini Proxy] Response Status:", response.status);
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("[Gemini Proxy] Error Response:", text);
+        response.headers.forEach((value, key) => {
+          if (key.toLowerCase() !== "content-encoding") {
+             res.setHeader(key, value);
+          }
+        });
+        res.status(response.status).send(text);
+        return;
+      }
 
       res.status(response.status);
 
