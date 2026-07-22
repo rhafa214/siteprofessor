@@ -865,10 +865,36 @@ Bimestres escolares:
     } catch (error: any) {
       console.error(error);
       let errorMsg = error?.message || "Tente novamente em instantes.";
-      if (errorMsg.includes("Rate exceeded") || errorMsg.includes("429") || errorMsg.includes("Quota")) {
+
+      let errString = String(error?.message || error);
+      try {
+        const cache = new Set();
+        errString +=
+          " " +
+          JSON.stringify(error, (key, value) => {
+            if (typeof value === "object" && value !== null) {
+              if (cache.has(value)) return;
+              cache.add(value);
+            }
+            return value;
+          });
+      } catch (e) {}
+
+      if (
+        errString.includes("Rate exceeded") ||
+        errString.includes("429") ||
+        errString.includes("Quota") ||
+        errString.includes("RESOURCE_EXHAUSTED")
+      ) {
         errorMsg =
-          "Uau, o limite gratuito do servidor foi atingido (Rate exceeded). Se você continuar com problemas, pode adicionar sua própria Chave API do Gemini nas configurações do sistema.";
-      } else if (errorMsg.includes("API Key missing")) {
+          "Uau, o limite gratuito do servidor foi atingido (Erro 429). Aguarde um pouquinho ou adicione sua própria Chave API nas configurações do sistema.";
+      } else if (
+        errString.includes("503") ||
+        errString.includes("UNAVAILABLE")
+      ) {
+        errorMsg =
+          "A IA está com alta demanda no momento (Erro 503). Por favor, tente novamente em alguns instantes.";
+      } else if (errString.includes("API Key missing")) {
         errorMsg = "A Chave da API (Gemini) não está configurada no servidor.";
       }
 
@@ -1393,92 +1419,150 @@ Bimestres escolares:
       <div className="md:hidden flex-1 w-full overflow-hidden relative pb-[80px]">
         {/* Pages Container */}
         <div className="w-full h-full overflow-x-auto snap-x snap-mandatory flex custom-scrollbar pb-6 px-4">
-          
           {/* Page 1 (Native Apps / Utilities) */}
           <div className="w-full h-full flex-shrink-0 snap-center flex flex-col pt-4 gap-6">
-            
             {/* Small Calendar Widget (Row 1-2 Span) */}
             <div className="w-full bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl p-5 shadow-lg flex flex-col relative overflow-hidden text-white min-h-[140px]">
-                <div className="absolute -top-4 -right-4 p-4 opacity-10 pointer-events-none">
-                  <CalendarClock size={100} />
+              <div className="absolute -top-4 -right-4 p-4 opacity-10 pointer-events-none">
+                <CalendarClock size={100} />
+              </div>
+              <div className="relative z-10 flex flex-col h-full justify-between">
+                <div className="flex items-center gap-2 text-white/90 text-xs font-bold uppercase tracking-widest mb-2">
+                  <span
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      user ? "bg-emerald-400 animate-pulse" : "bg-red-400",
+                    )}
+                  />
+                  {user ? "Agenda" : "Desc."}
                 </div>
-                <div className="relative z-10 flex flex-col h-full justify-between">
-                  <div className="flex items-center gap-2 text-white/90 text-xs font-bold uppercase tracking-widest mb-2">
-                    <span className={cn("w-2 h-2 rounded-full", user ? "bg-emerald-400 animate-pulse" : "bg-red-400")} />
-                    {user ? "Agenda" : "Desc."}
+                {!user ? (
+                  <button
+                    onClick={loginWithGoogle}
+                    className="mt-auto bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm w-max"
+                  >
+                    Conectar
+                  </button>
+                ) : (
+                  <div className="mt-auto flex flex-col">
+                    <h3 className="font-bold text-xl truncate leading-tight mb-1">
+                      {calendarEvents.filter((ev) => {
+                        const s = ev.start?.dateTime
+                          ? new Date(ev.start.dateTime)
+                          : ev.start?.date
+                            ? new Date(ev.start.date)
+                            : new Date();
+                        const e = ev.end?.dateTime
+                          ? new Date(ev.end.dateTime)
+                          : ev.end?.date
+                            ? new Date(ev.end.date)
+                            : new Date();
+                        return now >= s && now <= e;
+                      })[0]?.summary || "Livre agora"}
+                    </h3>
+                    <div className="text-white/80 font-medium text-sm flex items-center gap-1.5">
+                      <Clock size={14} /> Em andamento
+                    </div>
                   </div>
-                  {!user ? (
-                      <button onClick={loginWithGoogle} className="mt-auto bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm w-max">
-                        Conectar
-                      </button>
-                    ) : (
-                      <div className="mt-auto flex flex-col">
-                        <h3 className="font-bold text-xl truncate leading-tight mb-1">
-                          {calendarEvents.filter(ev => {
-                            const s = ev.start?.dateTime ? new Date(ev.start.dateTime) : ev.start?.date ? new Date(ev.start.date) : new Date();
-                            const e = ev.end?.dateTime ? new Date(ev.end.dateTime) : ev.end?.date ? new Date(ev.end.date) : new Date();
-                            return now >= s && now <= e;
-                          })[0]?.summary || "Livre agora"}
-                        </h3>
-                        <div className="text-white/80 font-medium text-sm flex items-center gap-1.5">
-                          <Clock size={14} /> Em andamento
-                        </div>
-                      </div>
-                  )}
-                </div>
+                )}
+              </div>
             </div>
 
             {/* Native App Icons Grid */}
             <div className="grid grid-cols-4 gap-y-6 gap-x-3 w-full place-items-center">
-                <button onClick={() => setCurrentView('diario')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-blue-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <BookOpen size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Aulas</span>
-                </button>
-                <button onClick={() => setCurrentView('agenda')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-rose-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <CalendarClock size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Agenda</span>
-                </button>
-                <button onClick={() => setCurrentView('avaliacoes')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <ClipboardCheck size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Provas</span>
-                </button>
-                <button onClick={() => setCurrentView('apostilas')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-emerald-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <BookOpen size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Apostilas</span>
-                </button>
-                <button onClick={() => setCurrentView('plano')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-violet-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <Pen size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Plano</span>
-                </button>
-                <button onClick={() => setCurrentView('guia-pedagogico')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-cyan-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <FolderTree size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Currículo</span>
-                </button>
-                <button onClick={() => setCurrentView('perfil')} className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-slate-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <Users size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Perfil</span>
-                </button>
-                <button onClick={() => alert("Lembretes: " + reminders.length)} className="group flex flex-col items-center w-full relative">
-                  {reminders.length > 0 && <span className="absolute max-w-full -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold z-10">{reminders.length}</span>}
-                  <div className="w-14 h-14 rounded-[16px] bg-pink-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
-                    <BellRing size={24} className="text-white" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Avisos</span>
-                </button>
+              <button
+                onClick={() => setCurrentView("diario")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-blue-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <BookOpen size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Aulas
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("agenda")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-rose-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <CalendarClock size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Agenda
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("avaliacoes")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <ClipboardCheck size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Provas
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("apostilas")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-emerald-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <BookOpen size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Apostilas
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("plano")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-violet-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <Pen size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Plano
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("guia-pedagogico")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-cyan-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <FolderTree size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Currículo
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("perfil")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-slate-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <Users size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Perfil
+                </span>
+              </button>
+              <button
+                onClick={() => alert("Lembretes: " + reminders.length)}
+                className="group flex flex-col items-center w-full relative"
+              >
+                {reminders.length > 0 && (
+                  <span className="absolute max-w-full -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold z-10">
+                    {reminders.length}
+                  </span>
+                )}
+                <div className="w-14 h-14 rounded-[16px] bg-pink-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <BellRing size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Avisos
+                </span>
+              </button>
             </div>
 
             {/* Small News Widget */}
@@ -1489,37 +1573,82 @@ Bimestres escolares:
 
           {/* Page 2 (Quick Links) */}
           <div className="w-full h-full flex-shrink-0 snap-center p-4 flex flex-col justify-center">
-             <div className="text-center mb-6">
-                <span className="text-white/60 text-xs font-bold uppercase tracking-widest">Navegação Rápida</span>
-             </div>
-             <div className="grid grid-cols-4 gap-y-8 gap-x-2 w-full place-items-center bg-white/10 dark:bg-black/30 backdrop-blur-xl p-6 rounded-[32px] border border-white/20">
-                <a href="https://saladofuturo.educacao.sp.gov.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-[#E82B3C] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/sala-do-futuro.png?v=3" alt="Sala" className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Sala Futuro</span>
-                </a>
-                <a href="https://avaefape.educacao.sp.gov.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-[#1E3A8A] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/efape.jpg?v=3" alt="EFAPE" className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">EFAPE</span>
-                </a>
-                <a href="https://app.teachy.com.br/" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/teatchy.jpg?v=3" alt="Teachy" className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Teachy</span>
-                </a>
-                <a href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1" target="_blank" rel="noopener noreferrer" className="group flex flex-col items-center w-full">
-                  <div className="w-14 h-14 rounded-[16px] bg-white shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
-                    <img src="/google-drive.webp?v=3" alt="Drive" className="w-full h-full object-cover" />
-                  </div>
-                  <span className="font-medium text-[11px] text-slate-100 mt-1.5">Drive</span>
-                </a>
-             </div>
+            <div className="text-center mb-6">
+              <span className="text-white/60 text-xs font-bold uppercase tracking-widest">
+                Navegação Rápida
+              </span>
+            </div>
+            <div className="grid grid-cols-4 gap-y-8 gap-x-2 w-full place-items-center bg-white/10 dark:bg-black/30 backdrop-blur-xl p-6 rounded-[32px] border border-white/20">
+              <a
+                href="https://saladofuturo.educacao.sp.gov.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-[#E82B3C] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                  <img
+                    src="/sala-do-futuro.png?v=3"
+                    alt="Sala"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Sala Futuro
+                </span>
+              </a>
+              <a
+                href="https://avaefape.educacao.sp.gov.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-[#1E3A8A] shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                  <img
+                    src="/efape.jpg?v=3"
+                    alt="EFAPE"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  EFAPE
+                </span>
+              </a>
+              <a
+                href="https://app.teachy.com.br/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-amber-500 shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                  <img
+                    src="/teatchy.jpg?v=3"
+                    alt="Teachy"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Teachy
+                </span>
+              </a>
+              <a
+                href="https://drive.google.com/drive/u/6/folders/1TOmNSpH-rAAR-yBB67QwEPX6isJsXKf1"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-white shadow-sm flex items-center justify-center overflow-hidden transition-transform active:scale-90">
+                  <img
+                    src="/google-drive.webp?v=3"
+                    alt="Drive"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5">
+                  Drive
+                </span>
+              </a>
+            </div>
           </div>
-
         </div>
       </div>
 

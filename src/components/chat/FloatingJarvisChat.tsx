@@ -8,7 +8,7 @@ import {
   MessageSquarePlus,
   Trash2,
   X,
-  MessageCircle
+  MessageCircle,
 } from "lucide-react";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { cn } from "../../lib/utils";
@@ -24,8 +24,10 @@ export default function FloatingJarvisChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [activeStreamingMessage, setActiveStreamingMessage] = useState<string | null>(null);
-  
+  const [activeStreamingMessage, setActiveStreamingMessage] = useState<
+    string | null
+  >(null);
+
   const [currentChatId, setCurrentChatId] = useLocalStorage<string>(
     "eduCurrentChatId",
     Date.now().toString(),
@@ -159,7 +161,7 @@ export default function FloatingJarvisChat() {
         model: "gemini-2.0-flash",
         contents,
         config: {
-          systemInstruction: { parts: parts.map(p => ({ text: p })) },
+          systemInstruction: { parts: parts.map((p) => ({ text: p })) },
         },
       });
 
@@ -175,13 +177,39 @@ export default function FloatingJarvisChat() {
       setActiveStreamingMessage(null);
     } catch (err: any) {
       console.error(err);
-      let errorMsg = "Ops! Tive um problema ao processar sua resposta. Verifique a chave de API ou tente novamente.";
-      const errString = String(err?.message || err) + " " + JSON.stringify(err);
-      if (errString.includes("429") || errString.includes("Quota") || errString.includes("RESOURCE_EXHAUSTED")) {
-        errorMsg = "Uau, o limite gratuito do servidor foi atingido (Erro 429 / Quota Exceeded). Aguarde um pouquinho ou adicione sua própria Chave API nas configurações.";
-      } else if (errString.includes("503") || errString.includes("UNAVAILABLE")) {
-        errorMsg = "A IA está com alta demanda no momento (Erro 503). Por favor, tente novamente em alguns instantes.";
+      let errorMsg =
+        "Ops! Tive um problema ao processar sua resposta. Verifique a chave de API ou tente novamente.";
+
+      let errString = String(err?.message || err);
+      try {
+        // Safe stringify in case of circular references
+        const cache = new Set();
+        errString +=
+          " " +
+          JSON.stringify(err, (key, value) => {
+            if (typeof value === "object" && value !== null) {
+              if (cache.has(value)) return;
+              cache.add(value);
+            }
+            return value;
+          });
+      } catch (e) {}
+
+      if (
+        errString.includes("429") ||
+        errString.includes("Quota") ||
+        errString.includes("RESOURCE_EXHAUSTED")
+      ) {
+        errorMsg =
+          "Uau, o limite gratuito do servidor foi atingido (Erro 429 / Quota Exceeded). Aguarde um pouquinho ou adicione sua própria Chave API nas configurações.";
+      } else if (
+        errString.includes("503") ||
+        errString.includes("UNAVAILABLE")
+      ) {
+        errorMsg =
+          "A IA está com alta demanda no momento (Erro 503). Por favor, tente novamente em alguns instantes.";
       }
+
       setChatMessages((prev) => [
         ...prev,
         {
@@ -221,7 +249,7 @@ export default function FloatingJarvisChat() {
         className={cn(
           "fixed bottom-6 right-6 z-40 p-4 rounded-full shadow-2xl transition-transform hover:scale-110",
           "bg-indigo-600 text-white flex items-center justify-center print:hidden",
-          isOpen ? "scale-0" : "scale-100"
+          isOpen ? "scale-0" : "scale-100",
         )}
       >
         <BotMessageSquare size={28} />
@@ -243,11 +271,15 @@ export default function FloatingJarvisChat() {
                   <BotMessageSquare size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold tracking-tight leading-tight">Jarvis</h3>
-                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Assistente IA</p>
+                  <h3 className="font-bold tracking-tight leading-tight">
+                    Jarvis
+                  </h3>
+                  <p className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
+                    Assistente IA
+                  </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => setIsHistoryOpen(!isHistoryOpen)}
@@ -275,7 +307,12 @@ export default function FloatingJarvisChat() {
 
             <div className="flex-1 overflow-hidden relative flex">
               {/* Main Chat Area */}
-              <div className={cn("flex-1 flex flex-col w-full h-full transition-transform", isHistoryOpen ? "translate-x-[-100%]" : "translate-x-0")}>
+              <div
+                className={cn(
+                  "flex-1 flex flex-col w-full h-full transition-transform",
+                  isHistoryOpen ? "translate-x-[-100%]" : "translate-x-0",
+                )}
+              >
                 <div
                   ref={scrollRef}
                   className="flex-1 p-4 overflow-y-auto space-y-3 scrollbar-thin bg-white"
@@ -295,7 +332,10 @@ export default function FloatingJarvisChat() {
                   ))}
                   {isTyping && activeStreamingMessage === null && (
                     <div className="bg-slate-50 border border-slate-200 text-slate-500 self-start rounded-2xl rounded-tl-sm px-4 py-2.5 flex items-center gap-2">
-                      <Loader2 size={16} className="animate-spin text-indigo-500" />
+                      <Loader2
+                        size={16}
+                        className="animate-spin text-indigo-500"
+                      />
                       <span className="text-xs font-medium">Pensando...</span>
                     </div>
                   )}
@@ -307,7 +347,7 @@ export default function FloatingJarvisChat() {
                   )}
                   <div ref={messagesEndRef} className="h-1" />
                 </div>
-                
+
                 <form
                   onSubmit={handleChat}
                   className="p-3 bg-white border-t border-slate-100 flex gap-2 items-end shrink-0"
@@ -337,10 +377,12 @@ export default function FloatingJarvisChat() {
               </div>
 
               {/* History View (Slide in from right) */}
-              <div className={cn(
+              <div
+                className={cn(
                   "absolute inset-0 bg-slate-50 flex flex-col transition-transform duration-300",
-                  isHistoryOpen ? "translate-x-0" : "translate-x-full"
-                )}>
+                  isHistoryOpen ? "translate-x-0" : "translate-x-full",
+                )}
+              >
                 <div className="p-4 border-b border-slate-200 bg-white flex items-center gap-2 text-slate-800 font-bold shrink-0">
                   <History size={18} className="text-slate-500" />
                   Histórico

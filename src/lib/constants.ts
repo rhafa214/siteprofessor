@@ -95,10 +95,16 @@ export function getHolidays(year: number): Record<string, string> {
     [`${carnVal.getMonth()}-${carnVal.getDate()}`]: "Carnaval",
     [`${sSanta.getMonth()}-${sSanta.getDate()}`]: "Sexta Santa",
     "3-21": "Tiradentes",
-    "4-1": "Trabalho",
+    "4-1": "Dia do Trabalho",
     [`${corpVal.getMonth()}-${corpVal.getDate()}`]: "Corpus Christi",
-    "8-7": "Independência",
+    "6-9": "Revolução Constitucionalista (SP)",
+    "8-7": "Independência do Brasil",
     "8-29": "Padroeiro ⛪",
+    "9-12": "Nossa Sra. Aparecida",
+    "9-15": "Dia do Professor",
+    "10-2": "Finados",
+    "10-15": "Proclamação da República",
+    "10-20": "Consciência Negra",
     "11-25": "Natal",
   };
 }

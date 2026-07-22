@@ -238,6 +238,17 @@ export default function StudentsDatabase() {
     setExpandedTurmas((prev) => ({ ...prev, [turma]: !prev[turma] }));
   };
 
+  const [allTurmas, setAllTurmas] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("classTurmasList");
+      if (stored) {
+        setAllTurmas(JSON.parse(stored) || []);
+      }
+    } catch (e) {}
+  }, []);
+
   const filteredStudents = students.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -254,9 +265,32 @@ export default function StudentsDatabase() {
     },
     {} as Record<string, StudentData[]>,
   );
+  
+  // Ensure all turmas from localStorage are present, even if empty
+  allTurmas.forEach(t => {
+    if (!groupedStudents[t]) {
+      groupedStudents[t] = [];
+    }
+  });
 
   // Determine Turmas to display, even empty ones if search is empty, but we only have students.
   // We'll just show what's in groupedStudents.
+
+  const [newTurmaName, setNewTurmaName] = useState("");
+
+  const handleAddTurma = () => {
+    if (!newTurmaName.trim()) return;
+    const name = newTurmaName.trim();
+    if (!allTurmas.includes(name)) {
+      const updated = [...allTurmas, name];
+      setAllTurmas(updated);
+      try {
+        window.localStorage.setItem("classTurmasList", JSON.stringify(updated));
+        window.dispatchEvent(new Event("local-storage"));
+      } catch (e) {}
+    }
+    setNewTurmaName("");
+  };
 
   return (
     <motion.div
@@ -295,9 +329,29 @@ export default function StudentsDatabase() {
               size={18}
             />
           </div>
-          <div className="text-sm font-bold text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
-            <GraduationCap size={16} className="text-blue-600" />
-            {students.length} Alunos Cadastrados
+          
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+              <input
+                type="text"
+                placeholder="Nova turma..."
+                value={newTurmaName}
+                onChange={(e) => setNewTurmaName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddTurma()}
+                className="w-32 md:w-40 px-4 py-2 focus:outline-none text-sm"
+              />
+              <button
+                onClick={handleAddTurma}
+                disabled={!newTurmaName.trim()}
+                className="bg-blue-50 text-blue-700 font-bold px-3 py-2 text-sm hover:bg-blue-100 disabled:opacity-50 transition-colors"
+              >
+                Adicionar
+              </button>
+            </div>
+            <div className="text-sm font-bold text-slate-500 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-2">
+              <GraduationCap size={16} className="text-blue-600" />
+              {students.length} Alunos
+            </div>
           </div>
         </div>
 
@@ -463,7 +517,7 @@ export default function StudentsDatabase() {
                     ref={fileInputRef}
                     onChange={handleFileUpload}
                     className="hidden"
-                    accept=".csv,.txt,.pdf,.docx"
+                    accept=".csv,.txt,.pdf,.docx,.xlsx,.xls"
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}

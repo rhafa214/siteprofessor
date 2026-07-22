@@ -7,7 +7,7 @@ import { useAppStore } from "./store/useAppStore";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import LoginView from "./views/LoginView";
-import FloatingJarvisChat from "./components/chat/FloatingJarvisChat";
+// import FloatingJarvisChat from "./components/chat/FloatingJarvisChat";
 import { WindowManager } from "./components/layout/WindowManager";
 
 // Lazy-loaded views
@@ -91,7 +91,6 @@ function App() {
         <WindowManager />
         
         <Sidebar /> {/* Now styled as a Dock */}
-        <FloatingJarvisChat />
       </div>
     </ErrorBoundary>
   );

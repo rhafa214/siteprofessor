@@ -12,7 +12,12 @@ export function extractStudents(importText: string): string[] {
     if (
       rowLower.includes("situação") ||
       rowLower.includes("nº de chamada") ||
-      rowLower.includes("r.a.")
+      rowLower.includes("r.a.") ||
+      rowLower.includes("alunos;") ||
+      rowLower.includes("filtros") ||
+      rowLower.includes("ano letivo") ||
+      rowLower.includes("data") ||
+      rowLower.includes("nome do aluno")
     ) {
       continue;
     }
@@ -20,11 +25,14 @@ export function extractStudents(importText: string): string[] {
     // Filtrar ignorando alunos que não estão ATIVOS
     if (
       rowLower.includes("transferido") ||
+      rowLower.includes("transferência") ||
       rowLower.includes("remanejado") ||
+      rowLower.includes("remanejamento") ||
       rowLower.includes("abandono") ||
       rowLower.includes("inativo") ||
       rowLower.includes("falecido") ||
-      rowLower.includes("não comparecimento")
+      rowLower.includes("não comparecimento") ||
+      rowLower.includes("baixa")
     ) {
       continue;
     }

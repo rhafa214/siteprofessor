@@ -17,7 +17,9 @@
         }).catch(()=>console.error("Failed to log error to backend"));
       });
       window.addEventListener("unhandledrejection", (e) => {
-        const errorStr = String(e.reason?.stack || e.reason);
+        let errorStr = String(e.reason?.stack || e.reason);
+        try { errorStr += " " + JSON.stringify(e.reason); } catch(err) {}
+
         if (errorStr.includes("Failed to fetch dynamically imported module") || errorStr.includes("Importing a module script failed") || errorStr.includes("ChunkLoadError")) {
           const isReloaded = sessionStorage.getItem('chunk_reloaded');
           if (!isReloaded) {
@@ -37,6 +39,12 @@
             return;
           }
         }
+
+        if (errorStr.includes("429") || errorStr.includes("You exceeded your current quota") || errorStr.includes("RESOURCE_EXHAUSTED")) {
+          e.preventDefault();
+          return;
+        }
+
         fetch("/api/client-error", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

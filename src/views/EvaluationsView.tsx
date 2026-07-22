@@ -21,6 +21,7 @@ import { useAlert } from "../contexts/AlertContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useLocalStorage } from "../hooks/useLocalStorage";
+import { getCurrentBimestre } from "../lib/constants";
 // import media view if it exists? It doesn't exist, I'll fix this the simple way.
 
 export default function EvaluationsView() {
@@ -35,16 +36,8 @@ export default function EvaluationsView() {
     | null
   >(null);
 
-  const getCurrentBimestre = () => {
-    const month = new Date().getMonth();
-    if (month < 4) return "1º Bimestre";
-    if (month < 7) return "2º Bimestre";
-    if (month < 9) return "3º Bimestre";
-    return "4º Bimestre";
-  };
-
   const [selectedBimestre, setSelectedBimestre] =
-    useState(getCurrentBimestre());
+    useState(`${getCurrentBimestre()}º Bimestre`);
 
   const bimestres = [
     "1º Bimestre",
