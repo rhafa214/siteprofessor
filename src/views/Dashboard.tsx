@@ -534,7 +534,7 @@ export default function Dashboard(props: DashboardProps) {
           ...prev,
           {
             role: "bot",
-            text: "O Gemini API Key não está configurado. Para testar no Vercel/GitHub, configure a variável de ambiente VITE_GEMINI_API_KEY ou GEMINI_API_KEY.",
+            text: "O Gemini API Key não está configurado. Para testar no Vercel/GitHub, configure a variável de ambienteGEMINI_API_KEY.",
           },
         ]);
         setIsTyping(false);

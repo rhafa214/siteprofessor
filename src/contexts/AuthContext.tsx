@@ -7,7 +7,6 @@ import {
   signOut,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
-import { useLocalStorage } from "../hooks/useLocalStorage";
 
 interface AuthContextType {
   user: User | null;
@@ -34,8 +33,31 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useLocalStorage<string | null>("googleAuthToken", null);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  // Initialize accessToken from sessionStorage (temporarily during session)
+  const [accessToken, setAccessTokenState] = useState<string | null>(() => {
+    try {
+      // Migrate/cleanup legacy local storage
+      window.localStorage.removeItem("googleAuthToken");
+      return window.sessionStorage.getItem("googleAuthSessionToken") || null;
+    } catch {
+      return null;
+    }
+  });
+
+  const setAccessToken = useCallback((token: string | null) => {
+    setAccessTokenState(token);
+    try {
+      if (token) {
+        window.sessionStorage.setItem("googleAuthSessionToken", token);
+      } else {
+        window.sessionStorage.removeItem("googleAuthSessionToken");
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -50,17 +72,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [setAccessToken]);
 
   const loginWithGoogle = useCallback(async () => {
     setAuthError(null);
     const provider = new GoogleAuthProvider();
-
     // Requisitar os escopos necessários para Agenda, Drive e Email
     provider.addScope("https://www.googleapis.com/auth/calendar.readonly");
     provider.addScope("https://www.googleapis.com/auth/drive");
     provider.addScope("https://www.googleapis.com/auth/gmail.readonly");
-
+    
     // Forçar a tela de consentimento para garantir que os escopos sejam solicitados
     provider.setCustomParameters({
       prompt: "consent",

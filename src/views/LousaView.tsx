@@ -3,6 +3,7 @@ import { Upload, PenTool, Sparkles, Loader2, FileUp, HardDrive } from "lucide-re
 import Markdown from "react-markdown";
 import DriveFilePickerModal from "../components/DriveFilePickerModal";
 import { useAuth } from "../contexts/AuthContext";
+import { authenticatedFetch } from "../lib/apiClient";
 
 export default function LousaView() {
   const [file, setFile] = useState<File | null>(null);
@@ -72,7 +73,7 @@ export default function LousaView() {
     formData.append("file", file);
 
     try {
-      const res = await fetch("/api/generate-lousa", {
+      const res = await authenticatedFetch("/api/generate-lousa", {
         method: "POST",
         body: formData,
       });

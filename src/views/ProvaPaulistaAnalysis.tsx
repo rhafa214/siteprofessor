@@ -259,16 +259,22 @@ export default function ProvaPaulistaAnalysis({
      setEditingExamId(null);
   };
 
-  const deleteExam = (id: string) => {
-     confirm("Tem certeza que deseja excluir esta prova? Todas as notas serão perdidas.", () => {
-         const newExams = classData.exams.filter((e) => e.id !== id);
-         const newGrades = { ...classData.grades };
-         Object.keys(newGrades).forEach((sId) => {
-             delete newGrades[sId][id];
-         });
-         saveClassData({ ...classData, exams: newExams, grades: newGrades });
-         setEditingExamId(null);
-     });
+  const deleteExam = async (id: string) => {
+    if (
+      await confirm({
+        title: "Excluir Prova",
+        message: "Tem certeza que deseja excluir esta prova? Todas as notas serão perdidas.",
+        isDestructive: true,
+      })
+    ) {
+      const newExams = classData.exams.filter((e) => e.id !== id);
+      const newGrades = { ...classData.grades };
+      Object.keys(newGrades).forEach((sId) => {
+        delete newGrades[sId][id];
+      });
+      saveClassData({ ...classData, exams: newExams, grades: newGrades });
+      setEditingExamId(null);
+    }
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -14,6 +14,7 @@ import { WindowManager } from "./components/layout/WindowManager";
 const Dashboard = lazy(() => import("./views/Dashboard"));
 const AddonSidebar = lazy(() => import("./views/AddonSidebar"));
 const AddonAvaliacoesSidebar = lazy(() => import("./views/AddonAvaliacoesSidebar"));
+const MigrationAdmin = lazy(() => import("./views/MigrationAdmin"));
 
 const LoadingFallback = () => (
   <div className="flex h-screen w-full bg-slate-50 items-center justify-center">
@@ -52,6 +53,16 @@ function App() {
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
           <AddonAvaliacoesSidebar />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  if (typeof window !== "undefined" && window.location.pathname === "/migration-admin") {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<LoadingFallback />}>
+          <MigrationAdmin />
         </Suspense>
       </ErrorBoundary>
     );

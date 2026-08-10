@@ -13,6 +13,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAlert } from "../contexts/AlertContext";
+import { useConfirm } from "../contexts/ConfirmContext";
+import { authenticatedFetch } from "../lib/apiClient";
 
 export interface KnowledgeDoc {
   id: string;
@@ -24,6 +26,7 @@ export interface KnowledgeDoc {
 export default function JarvisBaseView() {
   const { user } = useAuth();
   const { showAlert } = useAlert();
+  const { confirm } = useConfirm();
   const [docs, setDocs] = useState<KnowledgeDoc[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -75,7 +78,7 @@ export default function JarvisBaseView() {
         const formData = new FormData();
         formData.append("file", file);
 
-        const response = await fetch("/api/extract-text", {
+        const response = await authenticatedFetch("/api/extract-text", {
           method: "POST",
           body: formData,
         });
@@ -147,7 +150,13 @@ export default function JarvisBaseView() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Tem certeza que deseja remover este documento da base?"))
+    if (
+      !(await confirm({
+        title: "Remover Documento",
+        message: "Tem certeza que deseja remover este documento da base?",
+        isDestructive: true,
+      }))
+    )
       return;
     const newDocs = docs.filter((d) => d.id !== id);
     await saveDocs(newDocs);
@@ -194,11 +203,13 @@ export default function JarvisBaseView() {
                 />
                 <div className="flex gap-2">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
                       if (
-                        confirm(
-                          "Tem certeza que deseja apagar TODOS os documentos base do Jarvis? Essa ação não pode ser desfeita.",
-                        )
+                        await confirm({
+                          title: "Apagar Todos",
+                          message: "Tem certeza que deseja apagar TODOS os documentos base do Jarvis? Essa ação não pode ser desfeita.",
+                          isDestructive: true,
+                        })
                       ) {
                         saveDocs([]);
                       }

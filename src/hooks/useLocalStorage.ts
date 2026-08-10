@@ -25,8 +25,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
     const fetchFromFirestore = async () => {
       // Do not sync googleAuthToken from Firestore because it's a short-lived token
       // and fetching it can overwrite a newly issued token upon login.
-      if (key === "googleAuthToken") return;
-      
+            
       const user = auth.currentUser;
       if (user) {
         try {
@@ -94,8 +93,7 @@ export function useLocalStorage<T>(key: string, initialValue: T) {
       }
 
       // Async sync to Firestore with Debounce (prevent resource exhaustion)
-      if (key === "googleAuthToken") return;
-      
+            
       const user = auth.currentUser;
       if (user) {
         if (writeKeysDebounceMap.has(key)) {
