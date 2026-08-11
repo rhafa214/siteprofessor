@@ -42,7 +42,8 @@ export default defineConfig(({mode}) => {
           ]
         },
         workbox: {
-          maximumFileSizeToCacheInBytes: 5000000
+          maximumFileSizeToCacheInBytes: 5000000,
+          navigateFallbackDenylist: [/^\/api\//, /^\/migration-admin/, /^\/addon/]
         }
       })
     ],

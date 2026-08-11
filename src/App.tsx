@@ -39,7 +39,7 @@ function App() {
     }
   }, []);
 
-  if (typeof window !== "undefined" && window.location.pathname === "/addon") {
+  if (typeof window !== "undefined" && window.location.pathname.replace(/\/$/, "") === "/addon") {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
@@ -48,7 +48,7 @@ function App() {
       </ErrorBoundary>
     );
   }
-  if (typeof window !== "undefined" && window.location.pathname === "/addon-avaliacoes") {
+  if (typeof window !== "undefined" && window.location.pathname.replace(/\/$/, "") === "/addon-avaliacoes") {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
@@ -58,7 +58,7 @@ function App() {
     );
   }
 
-  if (typeof window !== "undefined" && window.location.pathname === "/migration-admin") {
+  if (typeof window !== "undefined" && window.location.pathname.replace(/\/$/, "") === "/migration-admin") {
     return (
       <ErrorBoundary>
         <Suspense fallback={<LoadingFallback />}>
