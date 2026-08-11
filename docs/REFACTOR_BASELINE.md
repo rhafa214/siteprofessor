@@ -141,3 +141,4 @@ As funcionalidades que não devem ser quebradas (e dependem fortemente de Fireba
 - Rodar o dry-run com dados reais da aplicação;
 - Executar a migração de dados de fato (quando o gate estiver seguro);
 - Atualizar a `USER_CURRENT_SCHEMA_VERSION`.
+Deployment connection verification — 2026-08-11
