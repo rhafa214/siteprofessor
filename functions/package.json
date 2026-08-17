@@ -1,0 +1,30 @@
+{
+  "name": "functions",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node22 --format=cjs --packages=external --outfile=dist/index.js",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "main": "dist/index.js",
+  "dependencies": {
+    "@google/genai": "^1.29.0",
+    "cors": "^2.8.6",
+    "express": "^4.21.2",
+    "firebase-admin": "^14.2.0",
+    "firebase-functions": "^6.0.0",
+    "multer": "^2.1.1",
+    "officeparser": "^7.2.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "typescript": "~5.8.2"
+  },
+  "private": true
+}

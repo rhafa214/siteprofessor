@@ -1,28 +1,33 @@
-import { ServerRuntimeConfig } from "../src/server/config.js";
+import { onRequest } from "firebase-functions/v2/https";
+import { defineSecret, defineString } from "firebase-functions/params";
 import express from "express";
-import { createApiRouter } from "../src/server/api.js";
 import cors from "cors";
+import { createApiRouter } from "../../src/server/api";
+import { setServerRuntimeConfig } from "../../src/server/config";
+
+const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
+const AUTHORIZED_FIREBASE_UIDS = defineString("AUTHORIZED_FIREBASE_UIDS");
+const ALLOWED_ORIGINS = defineString("ALLOWED_ORIGINS");
+
+setServerRuntimeConfig({
+  getGeminiApiKey: () => GEMINI_API_KEY.value(),
+  getAuthorizedUids: () => AUTHORIZED_FIREBASE_UIDS.value(),
+  getAllowedOrigins: () => ALLOWED_ORIGINS.value(),
+});
 
 const app = express();
-
 app.use(express.json({ limit: "50mb" }));
 
-// Mount shared API routes
-// The Vercel function maps `/api/*` to `api/index.ts`.
-// Because we are using express and the router is mounted on `/`,
-// when Vercel runs it, the URL might already be stripped or not.
-// Usually Vercel passes the full path e.g., `/api/extract-text`.
-// So we should mount it at `/api`.
 const apiRouter = createApiRouter();
-    
+
 const corsOptions = {
-  origin: function (origin, callback) {
-    const allowedOriginsRaw = ServerRuntimeConfig.getAllowedOrigins();
-    let allowedOrigins = [];
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    const allowedOriginsRaw = ALLOWED_ORIGINS.value();
+    let allowedOrigins: string[] = [];
     if (allowedOriginsRaw) {
       allowedOrigins = allowedOriginsRaw.split(',').map(o => o.trim());
     }
-    
+        
     if (!origin || 
         origin.startsWith('http://localhost') || 
         origin.startsWith('https://ais-dev-') || 
@@ -35,7 +40,7 @@ const corsOptions = {
   },
   credentials: true,
 };
-app.use('/api', cors(corsOptions));
+app.use(cors(corsOptions));
 app.use("/api", apiRouter);
 
 // Catch-all for API routes
@@ -49,10 +54,4 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: err.message || "Erro interno do servidor" });
 });
 
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export default app;
+export const api = onRequest({ region: "us-east1", secrets: [GEMINI_API_KEY] }, app);

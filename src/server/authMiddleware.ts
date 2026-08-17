@@ -37,9 +37,12 @@ export const requireAuth = async (req: AuthenticatedRequest, res: Response, next
   }
 };
 
+import { ServerRuntimeConfig } from './config.js';
+
 export const requireAuthorizedUser = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-  // Configuração por variável de ambiente
-  const allowedUidsRaw = process.env.AUTHORIZED_FIREBASE_UIDS || process.env.VITE_AUTHORIZED_FIREBASE_UIDS;
+  // Configuração via runtime config
+  const allowedUidsRaw = ServerRuntimeConfig.getAuthorizedUids();
+
   
   if (!allowedUidsRaw) {
     res.status(503).json({ error: 'Serviço indisponível: Allowlist de autorização não configurada.' });

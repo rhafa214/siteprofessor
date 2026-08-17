@@ -1,3 +1,4 @@
+import { ServerRuntimeConfig } from "./src/server/config.js";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
@@ -23,7 +24,7 @@ async function startServer() {
   // CORS rules for API
   const corsOptions = {
     origin: function (origin, callback) {
-      const allowedOriginsRaw = process.env.ALLOWED_ORIGINS || process.env.VITE_ALLOWED_ORIGINS;
+      const allowedOriginsRaw = ServerRuntimeConfig.getAllowedOrigins();
       let allowedOrigins = [];
       if (allowedOriginsRaw) {
         allowedOrigins = allowedOriginsRaw.split(',').map(o => o.trim());

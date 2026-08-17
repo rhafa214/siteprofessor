@@ -1,3 +1,4 @@
+import { ServerRuntimeConfig } from "./config.js";
 import express from "express";
 import multer from "multer";
 import { GoogleGenAI, Type } from "@google/genai";
@@ -34,7 +35,7 @@ export function createApiRouter() {
         return;
       }
       console.log("[Gemini Proxy] Request URL:", req.url);
-      const gApiKey = process.env.GEMINI_API_KEY;
+      const gApiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!gApiKey) {
         res.status(500).json({ error: "API Key missing server-side" });
         return;
@@ -100,7 +101,7 @@ export function createApiRouter() {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!apiKey) {
         res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
         return;
@@ -178,7 +179,7 @@ export function createApiRouter() {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!apiKey) {
         res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
         return;
@@ -234,7 +235,7 @@ export function createApiRouter() {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!apiKey) {
         res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
         return;
@@ -296,7 +297,7 @@ export function createApiRouter() {
         return;
       }
       
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!apiKey) {
         res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
         return;
@@ -364,7 +365,7 @@ export function createApiRouter() {
   router.post("/generate-eval-report", requireAuth, requireAuthorizedUser, async (req, res) => {
     try {
       const { turma, tarefas, matific, provaPaulista } = req.body;
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!apiKey) {
         res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
         return;
@@ -398,7 +399,7 @@ export function createApiRouter() {
         res.status(400).json({ error: "Nenhum arquivo enviado." });
         return;
       }
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = ServerRuntimeConfig.getGeminiApiKey();
       if (!apiKey) {
         res.status(500).json({ error: "GEMINI_API_KEY não configurada no servidor." });
         return;

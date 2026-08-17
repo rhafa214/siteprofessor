@@ -44,6 +44,6 @@ Authorization: requireAuthorizedUser (Valida se o UID do token está na allowlis
 - `/api/generate-eval-report`
 - `/api/generate-lousa` (Upload máximo 50MB)
 
-### Entrypoint Local (`server.ts`) e Serverless (`api/index.ts`)
-Possuem a mesma configuração centralizada via `createApiRouter` e agora ambos montam uma regra de CORS rigorosa permitindo origens explícitas mapeadas em `ALLOWED_ORIGINS` além das URIs de desenvolvimento.
+### Entrypoint Local (`server.ts`), Legacy Vercel (`api/index.ts`) e Target Firebase (`functions/src/index.ts`)
+Possuem a mesma configuração centralizada via `createApiRouter` e agora ambos montam uma regra de CORS rigorosa permitindo origens explícitas mapeadas em `ALLOWED_ORIGINS` além das URIs de desenvolvimento. No Firebase Hosting, frontend e API compartilham a mesma origem (rewrites). O entrypoint `api/index.ts` (Vercel) permanece como LEGACY e `functions/src/index.ts` como TARGET para transição futura.
 O `window.fetch` voltou a ser o objeto nativo, sem sobrescritas (monkey patch), melhorando a compatibilidade de bibliotecas de terceiros, com o envio de tokens restrito especificamente ao método auxiliar `authenticatedFetch`.

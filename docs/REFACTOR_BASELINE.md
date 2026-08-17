@@ -141,4 +141,27 @@ As funcionalidades que não devem ser quebradas (e dependem fortemente de Fireba
 - Rodar o dry-run com dados reais da aplicação;
 - Executar a migração de dados de fato (quando o gate estiver seguro);
 - Atualizar a `USER_CURRENT_SCHEMA_VERSION`.
-Deployment connection verification — 2026-08-11
+
+### PROMPT 07A.3 — FIREBASE HOSTING + FUNCTIONS PREPARATION
+**Objetivo:** Preparar a aplicação para funcionar integralmente no Firebase (Hosting + Cloud Functions for Firebase), removendo a dependência estrutural da Vercel para o backend, sem realizar deploy automático.
+**Realizações:**
+- Arquivos/Estrutura Criada:
+  - `functions/package.json` configurado para Node 22 com dependências server-side.
+  - `functions/tsconfig.json`.
+  - `functions/src/index.ts` servindo como Cloud Function entrypoint que encapsula a lógica partilhada do Express sem duplicação de código.
+  - `firebase.json` unificando o frontend (`dist`) com `rewrites` para a `api` da Cloud Function, com fallback de SPA para `/index.html`.
+  - Novos documentos de controle: `docs/FIREBASE_MIGRATION_PLAN.md` e `docs/FIREBASE_DEPLOY_CHECKLIST.md`.
+- **Arquitetura & Segurança:**
+  - `src/server/api.ts` compartilhado; o bundle de functions extrai a mesma lógica da *Shared API Layer*.
+  - A inicialização do Admin SDK em `src/server/firebaseAdmin.ts` não foi alterada pois sua execução por omissão de ambiente (`getApps()`) é oficialmente compatível e segura no Cloud Functions.
+  - A chave de IA (`GEMINI_API_KEY`) e as regras de autorização (`AUTHORIZED_FIREBASE_UIDS`) foram preparadas para gerenciamento server-side nativo.
+  - As proteções desenvolvidas previamente para `/migration-admin` (Auth + Allowlist) mantêm-se firmes.
+  - O PWA original (Vite) preserva os manifestos intactos (exclusão no firebase.json `ignore`).
+- **Testes & Builds:**
+  - Build local Vite: verde (`npm run build`).
+  - Linter & Typecheck: verde (`npm run lint`, `npm run typecheck`).
+  - Build das Functions: verde (esbuild).
+- **Riscos / Billing:**
+  - É **mandatório** upgrade para o plano Blaze antes do deploy da função no Cloud Functions (para cobrir execuções e imagens do Artifact Registry). O Hosting em si suportaria o tier Spark (Free).
+- **Status do Deploy:** `NOT DEPLOYED`. Nenhuma migração ou push produtivo ocorreu. Nenhuma Vercel rule foi destruída ainda.
+
