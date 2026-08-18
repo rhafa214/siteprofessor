@@ -34,6 +34,15 @@ export interface MigrationPreview {
   recordsSkipped: number;
   studentSourceRecords: Record<string, number>;
 
+  studentFieldCoverage: Record<string, {
+    records: number;
+    usableName: number;
+    sourceLocalId: number;
+    crossSourceStableId: number;
+    number: number;
+    classReference: number;
+  }>;
+
   freshMatching: {
     recordsAnalyzed: number;
     pairComparisons: number;
@@ -48,6 +57,13 @@ export interface MigrationPreview {
     distinctRecords: number;
     reviewRequiredGroups: number;
     proposedUniqueStudents: number;
+  };
+
+  ambiguityGraph: {
+    edges: number;
+    components: number;
+    recordsInsideComponents: number;
+    largestComponentSize: number;
   };
 
   mappingConsistency: {
@@ -71,7 +87,6 @@ export interface MigrationPreview {
     };
   };
 
-  // V5 Reconciliations & Audits
   mappingReconciliation: {
     SAFE_TO_KEEP: number;
     NEEDS_REBUILD: number;
@@ -97,14 +112,16 @@ export interface MigrationPreview {
     };
   };
 
-  matificClassResolutionAudit: {
-    records: number;
-    classReferencePresent: number;
-    classReferenceMissing: number;
-    uniqueLegacyClassReferencePatterns: number;
-    normalizationResolved: number;
-    aliasResolved: number;
-    stillUnresolved: number;
+  matificClassPatternAudit: {
+    totalPatterns: number;
+    uniquelyResolvedPatterns: number;
+    ambiguousPatterns: number;
+    unresolvedPatterns: number;
+    recordsByResolution: {
+      uniquelyResolved: number;
+      ambiguous: number;
+      unresolved: number;
+    };
   };
 
   ambiguityClassCorrelation: {
@@ -123,6 +140,12 @@ export interface MigrationPreview {
     recordsWithOnlySourceIdentity: number;
     recordsWithClassResolved: number;
     recordsWithClassUnresolved: number;
+  };
+
+  strongIdCoverage: {
+    sourceLocalOnly: number;
+    crossSourceStable: number;
+    missing: number;
   };
 
   ambiguousBySourcePair: Record<string, number>;
@@ -165,7 +188,7 @@ export interface MigrationPreview {
     containersDetected: Record<string, number>;
     entitiesDetected: Record<string, number>;
     unrecognizedRecords: Record<string, number>;
-    structuralShapes?: Record<string, any>; // V5: capture shape without PII
+    structuralShapes?: Record<string, any>;
   };
 
   resultAudit: {
@@ -180,7 +203,13 @@ export interface MigrationPreview {
       RESULT_SCHEMA_RECOGNIZED: number;
       RESULT_SCHEMA_UNRECOGNIZED: number;
     };
-    structuralShapes?: Record<string, any>; // V5: capture shape without PII
+    structuralShapes?: Record<string, any>;
+    resultAdapterValidation: {
+      candidateLeaves: number;
+      recognizedLeaves: number;
+      unrecognizedLeaves: number;
+      schemaVariants: Record<string, number>;
+    };
   };
 
   MIGRATION_READY: boolean;

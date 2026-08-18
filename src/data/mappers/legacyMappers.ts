@@ -1,9 +1,12 @@
 import { ClassGroup, Student, MatchConfidence } from '../../domain';
 
 export interface LegacyStudentData {
-  id: number;
-  numero: number;
-  nome: string;
+  id?: number | string;
+  numero?: number | string;
+  nome?: string;
+  name?: string;
+  studentName?: string;
+  aluno?: string | { nome?: string; name?: string };
   turma?: string;
   [key: string]: unknown;
 }
@@ -30,14 +33,26 @@ export function mapLegacyClassToClassGroup(legacyClassName: string, academicYear
   };
 }
 
+export function extractLegacyStudentName(legacyStudent: LegacyStudentData): string {
+  let name = legacyStudent.nome || legacyStudent.name || legacyStudent.studentName || '';
+  if (!name && legacyStudent.aluno) {
+    if (typeof legacyStudent.aluno === 'string') {
+      name = legacyStudent.aluno;
+    } else if (typeof legacyStudent.aluno === 'object') {
+      name = legacyStudent.aluno.nome || legacyStudent.aluno.name || '';
+    }
+  }
+  return String(name).trim();
+}
+
 export function mapLegacyStudentToStudent(legacyStudent: LegacyStudentData, classGroupId: string): Student {
   const numericId = legacyStudent.id ?? legacyStudent.numero ?? 0;
   
   return {
     id: generateOpaqueId(),
     classGroupId,
-    name: (legacyStudent.nome || '').trim(),
-    number: legacyStudent.numero ?? numericId,
+    name: extractLegacyStudentName(legacyStudent),
+    number: Number(legacyStudent.numero ?? numericId),
     status: 'ACTIVE',
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -71,15 +86,6 @@ export function generateLegacyRecordIdentifier(
   let identifier = '';
   let isStable = true;
   
-  // We use the older format that matches PREPARED mappings to avoid mapping missing errors
-  // Previously we used: `${legacyId}_${String(legacyObj.id || legacyObj.numero || Math.random())}`
-  // Let's create a robust version that falls back to stable hash instead of random.
-  
-  // But wait! If the mappings are already in DB using Math.random(), we CANNOT match them exactly!
-  // That's why we must report legacyKeyFormatMismatch and mappingNotFound.
-  // Actually, we must use the EXACT logic the old code used to attempt a lookup if possible.
-  // We don't have the random value, so those are lost. We just use the stable fallback now.
-  
   const hasId = legacyObj.id !== undefined && legacyObj.id !== null;
   const hasNumber = legacyObj.numero !== undefined && legacyObj.numero !== null;
   
@@ -89,7 +95,8 @@ export function generateLegacyRecordIdentifier(
     identifier = `${legacyClassId}_${legacyObj.numero}`;
   } else {
     // If we have to use fallback, it's unstable.
-    const stableName = String(legacyObj.nome || '').trim().toLowerCase();
+    const name = legacyObj.nome || legacyObj.name || legacyObj.studentName || '';
+    const stableName = String(name).trim().toLowerCase();
     identifier = `${legacyClassId}_fallback_${index}_${stableName}`;
     isStable = false;
   }
@@ -97,10 +104,28 @@ export function generateLegacyRecordIdentifier(
   return { identifier, isStable };
 }
 
-export function calculateStudentMatchConfidence(s1: Student, s2: Student): { confidence: MatchConfidence; reason: string } {
-  if (s1.id && s2.id && s1.id === s2.id) return { confidence: 'EXACT', reason: 'EXACT_ID_MATCH' };
+export function calculateStudentMatchConfidence(
+  s1: Student, 
+  s2: Student,
+  source1: string,
+  source2: string,
+  sourceLocalId1: string,
+  sourceLocalId2: string
+): { confidence: MatchConfidence; reason: string } {
+  // UNRESOLVED x UNRESOLVED != SAME_CLASS
+  const isUnresolved1 = s1.classGroupId === 'UNRESOLVED';
+  const isUnresolved2 = s2.classGroupId === 'UNRESOLVED';
   
-  const sameClass = s1.classGroupId === s2.classGroupId;
+  const sameClass = (!isUnresolved1 && !isUnresolved2 && s1.classGroupId === s2.classGroupId);
+  
+  // Same source semantics
+  if (source1 === source2) {
+    if (sourceLocalId1 && sourceLocalId2 && sourceLocalId1 !== sourceLocalId2) {
+       return { confidence: 'DISTINCT', reason: 'SAME_SOURCE_DIFFERENT_LOCAL_ID' };
+    }
+  }
+
+  // Cross source semantics
   const name1 = s1.name.trim().toLowerCase();
   const name2 = s2.name.trim().toLowerCase();
   
@@ -114,8 +139,8 @@ export function calculateStudentMatchConfidence(s1: Student, s2: Student): { con
   }
   
   const sameName = name1 === name2;
-  const hasValidNum1 = s1.number !== undefined && s1.number !== null && s1.number !== 0;
-  const hasValidNum2 = s2.number !== undefined && s2.number !== null && s2.number !== 0;
+  const hasValidNum1 = s1.number !== undefined && s1.number !== null && s1.number !== 0 && !isNaN(s1.number);
+  const hasValidNum2 = s2.number !== undefined && s2.number !== null && s2.number !== 0 && !isNaN(s2.number);
   
   const sameNumber = hasValidNum1 && hasValidNum2 && s1.number === s2.number;
   const differentNumber = hasValidNum1 && hasValidNum2 && s1.number !== s2.number;

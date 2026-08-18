@@ -5,7 +5,8 @@ import {
   mapLegacyClassToClassGroup, 
   mapLegacyStudentToStudent, 
   generateOpaqueId,
-  generateLegacyRecordIdentifier
+  generateLegacyRecordIdentifier,
+  extractLegacyStudentName
 } from '../mappers/legacyMappers';
 import { MigrationPreview, Student, ClassGroup } from '../../domain';
 import { MigrationMapping } from './MigrationMappingService';
@@ -14,6 +15,7 @@ interface StudentCandidate {
   student: Student;
   legacySource: string;
   legacyRecordIdentifier: string;
+  sourceLocalId: string;
 }
 
 export interface DryRunResult {
@@ -32,7 +34,7 @@ export function generateMigrationPreview(
   const newMappings: MigrationMapping[] = [];
   
   // ---------------------------------------------------------
-  // 1. Resolve ClassGroups
+  // 1. Resolve ClassGroups & Collect Field Coverage
   // ---------------------------------------------------------
   const rawClassNames = new Set<string>();
   
@@ -63,14 +65,16 @@ export function generateMigrationPreview(
   };
   let unresolvedClassAssignments = 0;
 
-  const matificClassResolutionAudit = {
-    records: 0,
-    classReferencePresent: 0,
-    classReferenceMissing: 0,
-    uniqueLegacyClassReferencePatterns: 0,
-    normalizationResolved: 0,
-    aliasResolved: 0,
-    stillUnresolved: 0
+  const matificClassPatternAudit = {
+    totalPatterns: 0,
+    uniquelyResolvedPatterns: 0,
+    ambiguousPatterns: 0,
+    unresolvedPatterns: 0,
+    recordsByResolution: {
+      uniquelyResolved: 0,
+      ambiguous: 0,
+      unresolved: 0
+    }
   };
 
   const identifierCompleteness = {
@@ -84,6 +88,18 @@ export function generateMigrationPreview(
     recordsWithClassUnresolved: 0
   };
 
+  const strongIdCoverage = {
+    sourceLocalOnly: 0,
+    crossSourceStable: 0,
+    missing: 0
+  };
+
+  const studentFieldCoverage: Record<string, any> = {
+    taskAnalysis: { records: 0, usableName: 0, sourceLocalId: 0, crossSourceStableId: 0, number: 0, classReference: 0 },
+    matificAnalysis: { records: 0, usableName: 0, sourceLocalId: 0, crossSourceStableId: 0, number: 0, classReference: 0 },
+    pp_: { records: 0, usableName: 0, sourceLocalId: 0, crossSourceStableId: 0, number: 0, classReference: 0 }
+  };
+
   // ---------------------------------------------------------
   // 2. Collect Students
   // ---------------------------------------------------------
@@ -93,6 +109,10 @@ export function generateMigrationPreview(
   
   const processSourceForStudents = (sourceName: string, dataMap: Record<string, unknown>) => {
     let sourceCount = 0;
+    
+    // Pattern resolving map just for Matific
+    const matificPatterns = new Map<string, { candidates: ClassGroup[], records: number }>();
+    
     Object.entries(dataMap).forEach(([legacyClassId, data]) => {
       let studentList: unknown[] = [];
       if (Array.isArray(data)) studentList = data;
@@ -105,53 +125,64 @@ export function generateMigrationPreview(
       
       const studentsInThisGroup = studentList.length;
       if (studentsInThisGroup === 0) return;
+      
+      let classGroupId = 'UNRESOLVED';
+      let classResolved = false;
 
-      if (sourceName === 'matificAnalysis') {
-        matificClassResolutionAudit.uniqueLegacyClassReferencePatterns++;
-        if (!legacyClassId) {
-          matificClassResolutionAudit.classReferenceMissing += studentsInThisGroup;
+      if (!legacyClassId) {
+         unresolvedClassAssignments += studentsInThisGroup;
+         unresolvedClassReasons.EMPTY_CLASS_REFERENCE += studentsInThisGroup;
+         unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + studentsInThisGroup;
+         
+         if (sourceName === 'matificAnalysis') {
+             matificPatterns.set('_EMPTY_', { candidates: [], records: studentsInThisGroup });
+         }
+      } else {
+        // Find candidate classes
+        const matches = proposedClassGroups.filter(c => c.name === legacyClassId || c.legacySlug === legacyClassId);
+        if (sourceName === 'matificAnalysis') {
+             const existing = matificPatterns.get(legacyClassId) || { candidates: matches, records: 0 };
+             existing.records += studentsInThisGroup;
+             matificPatterns.set(legacyClassId, existing);
+        }
+        
+        if (matches.length === 1) {
+          classGroupId = matches[0].id;
+          classResolved = true;
         } else {
-          matificClassResolutionAudit.classReferencePresent += studentsInThisGroup;
+          unresolvedClassAssignments += studentsInThisGroup;
+          unresolvedClassReasons.CLASS_NAME_NOT_FOUND += studentsInThisGroup;
+          unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + studentsInThisGroup;
         }
       }
       
       studentList.forEach((item, index) => {
         if (item && typeof item === 'object') {
           sourceCount++;
-          if (sourceName === 'matificAnalysis') matificClassResolutionAudit.records++;
-          
           const legacyObj = item as Record<string, unknown>;
-          
-          let classGroupId = 'UNRESOLVED';
-          let classResolved = false;
-          if (!legacyClassId) {
-             unresolvedClassAssignments++;
-             unresolvedClassReasons.EMPTY_CLASS_REFERENCE++;
-             unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + 1;
-             if (sourceName === 'matificAnalysis') matificClassResolutionAudit.stillUnresolved++;
-          } else {
-            const matchedClass = proposedClassGroups.find(c => c.name === legacyClassId || c.legacySlug === legacyClassId);
-            if (matchedClass) {
-              classGroupId = matchedClass.id;
-              classResolved = true;
-              if (sourceName === 'matificAnalysis') matificClassResolutionAudit.normalizationResolved++;
-            } else {
-              unresolvedClassAssignments++;
-              unresolvedClassReasons.CLASS_NAME_NOT_FOUND++;
-              unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + 1;
-              if (sourceName === 'matificAnalysis') matificClassResolutionAudit.stillUnresolved++;
-            }
-          }
           
           const { identifier, isStable } = generateLegacyRecordIdentifier(legacyClassId, legacyObj, index);
           if (!isStable) unstableLegacyIdentifiers++;
           
           const st = mapLegacyStudentToStudent(legacyObj as any, classGroupId);
-          allStudentCandidates.push({ student: st, legacySource: sourceName, legacyRecordIdentifier: identifier });
+          
+          const sourceLocalId = String(legacyObj.id || legacyObj.numero || '');
+          allStudentCandidates.push({ student: st, legacySource: sourceName, legacyRecordIdentifier: identifier, sourceLocalId });
 
-          // Identifier Completeness Audit
+          // Structural field audit
           const hasId = legacyObj.id !== undefined && legacyObj.id !== null;
           const hasNum = legacyObj.numero !== undefined && legacyObj.numero !== null;
+          const extractedName = extractLegacyStudentName(legacyObj);
+          
+          if (studentFieldCoverage[sourceName]) {
+             studentFieldCoverage[sourceName].records++;
+             if (hasId) studentFieldCoverage[sourceName].sourceLocalId++;
+             if (hasNum) studentFieldCoverage[sourceName].number++;
+             if (extractedName) studentFieldCoverage[sourceName].usableName++;
+             if (legacyClassId) studentFieldCoverage[sourceName].classReference++;
+          }
+
+          // Completeness Audit
           const nameTrim = st.name.trim().toLowerCase();
           
           if (hasId) identifierCompleteness.recordsWithStrongId++;
@@ -167,9 +198,32 @@ export function generateMigrationPreview(
           
           if (classResolved) identifierCompleteness.recordsWithClassResolved++;
           else identifierCompleteness.recordsWithClassUnresolved++;
+          
+          if (hasId) {
+             strongIdCoverage.sourceLocalOnly++;
+          } else {
+             strongIdCoverage.missing++;
+          }
         }
       });
     });
+    
+    if (sourceName === 'matificAnalysis') {
+        matificClassPatternAudit.totalPatterns = matificPatterns.size;
+        matificPatterns.forEach((info, key) => {
+            if (info.candidates.length === 1) {
+                matificClassPatternAudit.uniquelyResolvedPatterns++;
+                matificClassPatternAudit.recordsByResolution.uniquelyResolved += info.records;
+            } else if (info.candidates.length > 1) {
+                matificClassPatternAudit.ambiguousPatterns++;
+                matificClassPatternAudit.recordsByResolution.ambiguous += info.records;
+            } else {
+                matificClassPatternAudit.unresolvedPatterns++;
+                matificClassPatternAudit.recordsByResolution.unresolved += info.records;
+            }
+        });
+    }
+
     studentSourceRecords[sourceName] = sourceCount;
   };
 
@@ -206,6 +260,7 @@ export function generateMigrationPreview(
   };
 
   const ambiguousGraph = new Map<number, number[]>();
+  let ambiguousEdges = 0;
 
   allStudentCandidates.forEach((candidate, i) => {
     let matchedId = '';
@@ -213,9 +268,14 @@ export function generateMigrationPreview(
     for (const [tempCanonicalId, existingGroup] of freshResolvedStudents.entries()) {
       const existing = existingGroup[0].student;
       const existingSource = existingGroup[0].legacySource;
+      const existingLocalId = existingGroup[0].sourceLocalId;
       pairComparisons++;
       
-      const { confidence, reason } = calculateStudentMatchConfidence(candidate.student, existing);
+      const { confidence, reason } = calculateStudentMatchConfidence(
+         candidate.student, existing, 
+         candidate.legacySource, existingSource,
+         candidate.sourceLocalId, existingLocalId
+      );
       
       if (confidence === 'EXACT') {
         exactMatches++;
@@ -227,6 +287,7 @@ export function generateMigrationPreview(
         break;
       } else if (confidence === 'AMBIGUOUS') {
         ambiguousPairs++;
+        ambiguousEdges++;
         if (reason in ambiguousReasons) {
            ambiguousReasons[reason as keyof typeof ambiguousReasons]++;
         } else {
@@ -299,6 +360,13 @@ export function generateMigrationPreview(
       }
     }
   });
+
+  const ambiguityGraphMetrics = {
+    edges: ambiguousEdges,
+    components: ambiguousConnectedComponents,
+    recordsInsideComponents: ambiguousRecordsSet.size,
+    largestComponentSize: largestAmbiguousGroupSize
+  };
 
   const ambiguityClassCorrelation = {
     largestGroupRecords: largestAmbiguousGroupSize,
@@ -472,7 +540,13 @@ export function generateMigrationPreview(
       RESULT_SCHEMA_RECOGNIZED: 0,
       RESULT_SCHEMA_UNRECOGNIZED: 0
     },
-    structuralShapes: {} as Record<string, any>
+    structuralShapes: {} as Record<string, any>,
+    resultAdapterValidation: {
+      candidateLeaves: 0,
+      recognizedLeaves: 0,
+      unrecognizedLeaves: 0,
+      schemaVariants: {} as Record<string, number>
+    }
   };
 
   let totalAssessments = 0;
@@ -512,8 +586,6 @@ export function generateMigrationPreview(
         
         // Specific adapter for localstorage_assessments_grades
         if (!resultKey && sourceName === 'localstorage_assessments_grades') {
-          // It might just be a flat object of student_id -> grade, or it might have a specific shape
-          // If it doesn't have metadata fields like "title" or "id", it might be purely a result map
           if (Object.keys(data).length > 0 && !data.title && !data.name) {
              resultKey = '_ROOT_AS_RESULTS_'; // Conceptual adapter
           }
@@ -523,6 +595,24 @@ export function generateMigrationPreview(
           resultAudit.schemaStatus.RESULT_SCHEMA_RECOGNIZED++;
           const resultObj = resultKey === '_ROOT_AS_RESULTS_' ? data : data[resultKey];
           const resultKeys = Object.keys(resultObj);
+          
+          resultKeys.forEach(studentId => {
+             resultAudit.resultAdapterValidation.candidateLeaves++;
+             const grade = resultObj[studentId];
+             // Validate structural signature: value should be number or object with score
+             const isNumber = typeof grade === 'number';
+             const isStringNumber = typeof grade === 'string' && !isNaN(Number(grade));
+             const isObjectWithScore = typeof grade === 'object' && grade !== null && (grade.score !== undefined || grade.nota !== undefined);
+             
+             if (isNumber || isStringNumber || isObjectWithScore) {
+                resultAudit.resultAdapterValidation.recognizedLeaves++;
+                const variantName = isNumber ? 'number' : (isStringNumber ? 'stringNumber' : 'objectWithScore');
+                resultAudit.resultAdapterValidation.schemaVariants[variantName] = (resultAudit.resultAdapterValidation.schemaVariants[variantName] || 0) + 1;
+             } else {
+                resultAudit.resultAdapterValidation.unrecognizedLeaves++;
+             }
+          });
+          
           if (resultKeys.length > 0) {
             sourceResultEntities += resultKeys.length;
           } else {
@@ -595,7 +685,7 @@ export function generateMigrationPreview(
   const ASSESSMENT_SCHEMA_VALIDATED = Object.values(assessmentAudit.unrecognizedRecords).length === 0;
   if (!ASSESSMENT_SCHEMA_VALIDATED) blockingReasons.push('ASSESSMENT_SCHEMA_INVALID');
   
-  const RESULT_SCHEMA_VALIDATED = Object.values(resultAudit.unrecognizedRecords).length === 0;
+  const RESULT_SCHEMA_VALIDATED = Object.values(resultAudit.unrecognizedRecords).length === 0 && resultAudit.resultAdapterValidation.unrecognizedLeaves === 0;
   if (!RESULT_SCHEMA_VALIDATED) blockingReasons.push('RESULT_SCHEMA_INVALID');
   
   if (ambiguousConnectedComponents > 0) {
@@ -622,6 +712,8 @@ export function generateMigrationPreview(
     recordsSkipped: 0,
     studentSourceRecords,
     
+    studentFieldCoverage,
+    
     freshMatching: {
       recordsAnalyzed,
       pairComparisons,
@@ -638,6 +730,8 @@ export function generateMigrationPreview(
       proposedUniqueStudents: freshResolvedStudents.size
     },
     
+    ambiguityGraph: ambiguityGraphMetrics,
+    
     mappingConsistency: {
       preparedMappingsLoaded,
       preparedStudentMappings,
@@ -652,9 +746,10 @@ export function generateMigrationPreview(
     },
     
     mappingReconciliation,
-    matificClassResolutionAudit,
+    matificClassPatternAudit,
     ambiguityClassCorrelation,
     identifierCompleteness,
+    strongIdCoverage,
     ambiguousBySourcePair,
     ambiguousByClassResolution,
     ambiguousReasons,

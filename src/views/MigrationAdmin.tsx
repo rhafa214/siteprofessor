@@ -102,13 +102,18 @@ export default function MigrationAdmin() {
         sources: snapshot.sources,
         studentSourceRecords: preview.studentSourceRecords,
         
+        studentFieldCoverage: preview.studentFieldCoverage,
+        
         freshMatching: preview.freshMatching,
+        ambiguityGraph: preview.ambiguityGraph,
+        
         mappingConsistency: preview.mappingConsistency,
         mappingReconciliation: preview.mappingReconciliation,
         
-        matificClassResolutionAudit: preview.matificClassResolutionAudit,
+        matificClassPatternAudit: preview.matificClassPatternAudit,
         ambiguityClassCorrelation: preview.ambiguityClassCorrelation,
         identifierCompleteness: preview.identifierCompleteness,
+        strongIdCoverage: preview.strongIdCoverage,
         ambiguousBySourcePair: preview.ambiguousBySourcePair,
         ambiguousByClassResolution: preview.ambiguousByClassResolution,
         ambiguousReasons: preview.ambiguousReasons,
@@ -132,7 +137,7 @@ export default function MigrationAdmin() {
             IDENTIFIERS_STABLE: preview.identifierSafety.unstableLegacyIdentifiers === 0,
             CLASS_ASSIGNMENTS_RESOLVED: preview.classResolution.unresolvedClassAssignments === 0,
             ASSESSMENT_SCHEMA_VALIDATED: Object.values(preview.assessmentAudit.unrecognizedRecords).length === 0,
-            RESULT_SCHEMA_VALIDATED: Object.values(preview.resultAudit.unrecognizedRecords).length === 0,
+            RESULT_SCHEMA_VALIDATED: Object.values(preview.resultAudit.unrecognizedRecords).length === 0 && preview.resultAudit.resultAdapterValidation.unrecognizedLeaves === 0,
             MIGRATION_READY: preview.MIGRATION_READY,
             BLOCKING_REASONS: preview.blockingReasons
         }
@@ -149,16 +154,16 @@ export default function MigrationAdmin() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-4">Dry-Run da Migração Canônica (V5)</h1>
+      <h1 className="text-3xl font-bold mb-4">Dry-Run da Migração Canônica (V6)</h1>
       <p className="mb-6 text-gray-700">
-        Esta tela executará a coleta do seu LocalStorage e Firestore (somente leitura), rodará o fresh matching e comparará a topologia dos grupos com os mappings previamente preparados. Nenhuma migração real será executada.
+        Esta tela executará a coleta do seu LocalStorage e Firestore (somente leitura), rodará o fresh matching corrigido (SAME-SOURCE e UNRESOLVED) e testará o mapeamento.
       </p>
       
       <button 
         onClick={handleRun} 
         className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors"
       >
-        EXECUTAR DRY-RUN V5
+        EXECUTAR DRY-RUN V6
       </button>
       
       <div className="mt-6 p-4 border rounded bg-slate-50">
@@ -169,7 +174,7 @@ export default function MigrationAdmin() {
       {sanitizedReport && (
         <div className="mt-8">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-2xl font-semibold">Relatório Sanitizado V5</h2>
+            <h2 className="text-2xl font-semibold">Relatório Sanitizado V6</h2>
             <button 
               onClick={() => navigator.clipboard.writeText(JSON.stringify(sanitizedReport, null, 2))}
               className="text-sm bg-gray-200 hover:bg-gray-300 py-1 px-3 rounded"
