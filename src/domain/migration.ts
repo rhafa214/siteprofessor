@@ -24,7 +24,6 @@ export interface MigrationMapping {
 export type MatchConfidence = 'EXACT' | 'HIGH_CONFIDENCE' | 'AMBIGUOUS' | 'DISTINCT';
 
 export interface MigrationPreview {
-  // Legacy Stats
   classGroupsDetected: number;
   studentsDetected: number;
   assessmentsDetected: number;
@@ -33,24 +32,26 @@ export interface MigrationPreview {
   warnings: string[];
   errors: string[];
   recordsSkipped: number;
-
   studentSourceRecords: Record<string, number>;
 
-  // Fresh Matching (V3)
+  // Fresh Matching (V4)
   freshMatching: {
     recordsAnalyzed: number;
     pairComparisons: number;
     exactMatches: number;
     highConfidenceMatches: number;
     ambiguousPairs: number;
+    distinctPairs: number;
     ambiguousGroups: number;
+    ambiguousConnectedComponents: number;
+    largestAmbiguousGroupSize: number;
     ambiguousRecords: number;
     distinctRecords: number;
     reviewRequiredGroups: number;
     proposedUniqueStudents: number;
   };
 
-  // Mapping Consistency (V3)
+  // Mapping Consistency (V4)
   mappingConsistency: {
     preparedMappingsLoaded: number;
     preparedStudentMappings: number;
@@ -61,21 +62,46 @@ export interface MigrationPreview {
     preparedDistinctButFreshMerge: number;
     preparedMappingMissing: number;
     stalePreparedMappings: number;
+    mappingLookup: {
+      exactKeyMatches: number;
+      sourceMismatch: number;
+      identifierMismatch: number;
+      entityTypeMismatch: number;
+      legacyKeyFormatMismatch: number;
+      mappingNotFound: number;
+      otherMismatch: number;
+    };
   };
 
-  conflictsByType: Record<string, number>;
+  ambiguousReasons: {
+    SAME_NAME_DIFFERENT_NUMBER: number;
+    SAME_NUMBER_DIFFERENT_NAME: number;
+    SAME_NORMALIZED_NAME_MISSING_NUMBER: number;
+    INSUFFICIENT_IDENTIFIERS: number;
+    OTHER: number;
+  };
 
-  // Identifier Safety (V3)
+  // Identifier Safety (V4)
   identifierSafety: {
     unstableLegacyIdentifiers: number;
   };
 
-  // Class Resolution (V3)
+  // Class Resolution (V4)
   classResolution: {
     unresolvedClassAssignments: number;
+    unresolvedClassesBySource: Record<string, number>;
+    unresolvedClassReasons: {
+      CLASS_NAME_NOT_FOUND: number;
+      CLASS_ID_NOT_FOUND: number;
+      GRADE_MISMATCH: number;
+      ACADEMIC_YEAR_MISMATCH: number;
+      EMPTY_CLASS_REFERENCE: number;
+      NORMALIZATION_MISMATCH: number;
+      OTHER: number;
+    };
   };
 
-  // Assessment Audit (V3)
+  // Assessment Audit (V4)
   assessmentAudit: {
     sourcesInspected: string[];
     containersDetected: Record<string, number>;
@@ -83,12 +109,22 @@ export interface MigrationPreview {
     unrecognizedRecords: Record<string, number>;
   };
 
-  // Result Audit (V3)
+  // Result Audit (V4)
   resultAudit: {
     sourcesInspected: string[];
     sourcesWithRecords: string[];
     containersDetected: Record<string, number>;
     entitiesDetected: Record<string, number>;
     unrecognizedRecords: Record<string, number>;
+    schemaStatus: {
+      RESULT_NOT_EXPECTED: number;
+      RESULT_CONTAINER_EMPTY: number;
+      RESULT_SCHEMA_RECOGNIZED: number;
+      RESULT_SCHEMA_UNRECOGNIZED: number;
+    };
   };
+
+  // V4 Migration Gate
+  MIGRATION_READY: boolean;
+  blockingReasons: string[];
 }

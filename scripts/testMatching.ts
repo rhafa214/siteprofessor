@@ -22,40 +22,33 @@ const baseStudent: Student = {
   migrationMetadata: {}
 };
 
-// A) mesmo aluno em duas fontes com identificador forte igual (id canonical ja mapeado)
 assert(
-  calculateStudentMatchConfidence({...baseStudent, id: '123'}, {...baseStudent, id: '123'}) === 'EXACT',
+  calculateStudentMatchConfidence({...baseStudent, id: '123'}, {...baseStudent, id: '123'}).confidence === 'EXACT',
   'A) EXACT when ids match'
 );
 
-// B) nomes iguais de pessoas diferentes (classes diferentes)
 assert(
-  calculateStudentMatchConfidence({...baseStudent, classGroupId: 'class_1'}, {...baseStudent, classGroupId: 'class_2'}) === 'DISTINCT',
+  calculateStudentMatchConfidence({...baseStudent, classGroupId: 'class_1'}, {...baseStudent, classGroupId: 'class_2'}).confidence === 'DISTINCT',
   'B) DISTINCT when same name but different classes'
 );
 
-// C) nomes parecidos -> DISTINCT ou HIGH_CONFIDENCE dependendo?
-// Only exact name matches are AMBIGUOUS/HIGH_CONFIDENCE. If names differ, it depends on number.
 assert(
-  calculateStudentMatchConfidence({...baseStudent, name: 'Joao Silva'}, {...baseStudent, name: 'Joaozinho'}) === 'AMBIGUOUS',
+  calculateStudentMatchConfidence({...baseStudent, name: 'Joao Silva'}, {...baseStudent, name: 'Joaozinho'}).confidence === 'AMBIGUOUS',
   'C) AMBIGUOUS when different names but same explicit number in same class'
 );
 
-// D) number ausente em ambas as fontes
 assert(
-  calculateStudentMatchConfidence({...baseStudent, number: 0}, {...baseStudent, number: undefined}) === 'HIGH_CONFIDENCE',
-  'D) HIGH_CONFIDENCE when numbers are missing but same name and class'
+  calculateStudentMatchConfidence({...baseStudent, number: 0}, {...baseStudent, number: undefined as any}).confidence === 'AMBIGUOUS',
+  'D) AMBIGUOUS when numbers are missing but same name and class (updated rule)'
 );
 
-// E) number presente em uma e ausente em outra
 assert(
-  calculateStudentMatchConfidence({...baseStudent, number: 1}, {...baseStudent, number: 0}) === 'HIGH_CONFIDENCE',
+  calculateStudentMatchConfidence({...baseStudent, number: 1}, {...baseStudent, number: 0}).confidence === 'HIGH_CONFIDENCE',
   'E) HIGH_CONFIDENCE when number missing in one but same name and class'
 );
 
-// F) mesmo nome + numbers realmente diferentes (SAME_NAME_DIFFERENT_NUMBER)
 assert(
-  calculateStudentMatchConfidence({...baseStudent, number: 1}, {...baseStudent, number: 2}) === 'AMBIGUOUS',
+  calculateStudentMatchConfidence({...baseStudent, number: 1}, {...baseStudent, number: 2}).confidence === 'AMBIGUOUS',
   'F) AMBIGUOUS when same name but explicitly different numbers'
 );
 

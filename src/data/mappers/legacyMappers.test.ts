@@ -39,7 +39,7 @@ export function runMapperTests() {
   const s2 = { ...student, id: 'id2', name: "Maria", number: 10 };
   const s3 = { ...student, id: 'id3', name: "Maria", number: 11 };
   
-  if (calculateStudentMatchConfidence(s1, s2) !== 'HIGH_CONFIDENCE') throw new Error("Confidence test 1 failed");
-  if (calculateStudentMatchConfidence(s1, s3) !== 'AMBIGUOUS') throw new Error("Confidence test 2 failed");
+  if (calculateStudentMatchConfidence(s1, s2).confidence !== 'HIGH_CONFIDENCE') throw new Error("Confidence test 1 failed");
+  if (calculateStudentMatchConfidence(s1, s3).confidence !== 'AMBIGUOUS') throw new Error("Confidence test 2 failed");
   console.log("Student matching confidence passed.");
 }
