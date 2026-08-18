@@ -98,12 +98,20 @@ export default function MigrationAdmin() {
         backupId: backupId.replace(/_.+?_/, '_***_'),
         migrationRunId: runId,
         sources: snapshot.sources,
-        classGroupsDetected: preview.classGroupsDetected,
-        studentsDetected: preview.studentsDetected,
-        assessmentsDetected: preview.assessmentsDetected,
-        resultsDetected: preview.resultsDetected,
-        planningsDetected: preview.planningsDetected,
-        ambiguousMatchesCount: preview.ambiguousMatches.length,
+        studentSourceRecords: preview.studentSourceRecords,
+        matching: preview.matching,
+        conflictsByType: preview.conflictsByType,
+        assessmentSourcesPresent: preview.assessmentSourcesPresent,
+        assessmentSourceRecordCounts: preview.assessmentSourceRecordCounts,
+        resultSourcesPresent: preview.resultSourcesPresent,
+        resultSourceRecordCounts: preview.resultSourceRecordCounts,
+        legacyStats: {
+          classGroupsDetected: preview.classGroupsDetected,
+          studentsDetected: preview.studentsDetected,
+          assessmentsDetected: preview.assessmentsDetected,
+          resultsDetected: preview.resultsDetected,
+          planningsDetected: preview.planningsDetected,
+        },
         warningsCount: preview.warnings.length,
         errorsCount: preview.errors.length,
         safetyGates: {
@@ -112,10 +120,9 @@ export default function MigrationAdmin() {
             COLLECTION_COMPLETE: true,
             DRY_RUN_COMPLETE: true,
             BLOCKING_ERRORS: preview.errors.length,
-            AMBIGUOUS_CONFLICTS: preview.ambiguousMatches.length,
+            AMBIGUOUS_CONFLICTS: preview.matching.ambiguousGroups,
             ORPHAN_RESULTS: 0
-        },
-        conflictTypes: preview.ambiguousMatches.length > 0 ? ['SAME_NAME_DIFFERENT_NUMBER'] : []
+        }
       };
       setSanitizedReport(sanitized);
       

@@ -24,13 +24,32 @@ export interface MigrationMapping {
 export type MatchConfidence = 'EXACT' | 'HIGH_CONFIDENCE' | 'AMBIGUOUS' | 'DISTINCT';
 
 export interface MigrationPreview {
+  // Original fields
   classGroupsDetected: number;
   studentsDetected: number;
   assessmentsDetected: number;
   resultsDetected: number;
   planningsDetected: number;
-  ambiguousMatches: any[];
   warnings: string[];
   errors: string[];
   recordsSkipped: number;
+
+  // New V2 Sanitized Metrics
+  studentSourceRecords: Record<string, number>;
+  matching: {
+    pairComparisons: number;
+    exactMatches: number;
+    highConfidenceMatches: number;
+    ambiguousPairs: number;
+    ambiguousGroups: number;
+    ambiguousRecords: number;
+    distinctRecords: number;
+    reviewRequiredGroups: number;
+  };
+  conflictsByType: Record<string, number>;
+  
+  assessmentSourcesPresent: string[];
+  assessmentSourceRecordCounts: Record<string, number>;
+  resultSourcesPresent: string[];
+  resultSourceRecordCounts: Record<string, number>;
 }

@@ -19,6 +19,7 @@ export interface LegacyAcademicSnapshot {
     taskAnalysis: Record<string, unknown>;
     matificAnalysis: Record<string, unknown>;
     pp_: Record<string, unknown>;
+    apostilas: Record<string, unknown>;
     assessments_grades: Record<string, unknown>;
     classLogs: Record<string, unknown>;
   };
@@ -64,13 +65,14 @@ export async function collectFirestoreData(uid: string): Promise<LegacyAcademicS
     taskAnalysis: {},
     matificAnalysis: {},
     pp_: {},
+    apostilas: {},
     assessments_grades: {},
     classLogs: {}
   };
 
   if (!uid || typeof window === 'undefined') return firestoreData; // Skip if server or no auth
 
-  const collectionsToFetch = ['taskAnalysis', 'matificAnalysis', 'pp_', 'assessments_grades', 'classLogs'];
+  const collectionsToFetch = ['taskAnalysis', 'matificAnalysis', 'pp_', 'apostilas', 'assessments_grades', 'classLogs'];
   
   for (const col of collectionsToFetch) {
     try {
