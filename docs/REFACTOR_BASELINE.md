@@ -165,3 +165,8 @@ As funcionalidades que não devem ser quebradas (e dependem fortemente de Fireba
   - É **mandatório** upgrade para o plano Blaze antes do deploy da função no Cloud Functions (para cobrir execuções e imagens do Artifact Registry). O Hosting em si suportaria o tier Spark (Free).
 - **Status do Deploy:** `NOT DEPLOYED`. Nenhuma migração ou push produtivo ocorreu. Nenhuma Vercel rule foi destruída ainda.
 
+
+### TEMPORARY COMPATIBILITY PIN: FIREBASE ADMIN
+- **firebase-admin**: Pinned exactly to `13.10.0`
+- **Motivo**: upstream `ERR_REQUIRE_ESM` incompatibility involving `firebase-admin 14.x` / `jwks-rsa 4.x` / `jose 6.x` in CommonJS serverless runtimes (like Vercel).
+- **Ação futura**: This pin should be reviewed and upgraded when the upstream issue is resolved.
