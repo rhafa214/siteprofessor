@@ -99,19 +99,12 @@ export default function MigrationAdmin() {
         migrationRunId: runId,
         sources: snapshot.sources,
         studentSourceRecords: preview.studentSourceRecords,
-        matching: preview.matching,
-        conflictsByType: preview.conflictsByType,
-        assessmentSourcesPresent: preview.assessmentSourcesPresent,
-        assessmentSourceRecordCounts: preview.assessmentSourceRecordCounts,
-        resultSourcesPresent: preview.resultSourcesPresent,
-        resultSourceRecordCounts: preview.resultSourceRecordCounts,
-        legacyStats: {
-          classGroupsDetected: preview.classGroupsDetected,
-          studentsDetected: preview.studentsDetected,
-          assessmentsDetected: preview.assessmentsDetected,
-          resultsDetected: preview.resultsDetected,
-          planningsDetected: preview.planningsDetected,
-        },
+        freshMatching: preview.freshMatching,
+        mappingConsistency: preview.mappingConsistency,
+        identifierSafety: preview.identifierSafety,
+        classResolution: preview.classResolution,
+        assessmentAudit: preview.assessmentAudit,
+        resultAudit: preview.resultAudit,
         warningsCount: preview.warnings.length,
         errorsCount: preview.errors.length,
         safetyGates: {
@@ -120,8 +113,17 @@ export default function MigrationAdmin() {
             COLLECTION_COMPLETE: true,
             DRY_RUN_COMPLETE: true,
             BLOCKING_ERRORS: preview.errors.length,
-            AMBIGUOUS_CONFLICTS: preview.matching.ambiguousGroups,
-            ORPHAN_RESULTS: 0
+            AMBIGUOUS_CONFLICTS: preview.freshMatching.ambiguousGroups,
+            ORPHAN_RESULTS: 0,
+            MAPPING_CONSISTENCY_OK: 
+                preview.mappingConsistency.mismatchRecords === 0 && 
+                preview.mappingConsistency.mismatchGroups === 0 &&
+                preview.mappingConsistency.preparedMergeButFreshDistinct === 0 &&
+                preview.mappingConsistency.preparedDistinctButFreshMerge === 0,
+            IDENTIFIERS_STABLE: preview.identifierSafety.unstableLegacyIdentifiers === 0,
+            CLASS_ASSIGNMENTS_RESOLVED: preview.classResolution.unresolvedClassAssignments === 0,
+            ASSESSMENT_SCHEMA_VALIDATED: Object.values(preview.assessmentAudit.unrecognizedRecords).length === 0,
+            RESULT_SCHEMA_VALIDATED: Object.values(preview.resultAudit.unrecognizedRecords).length === 0
         }
       };
       setSanitizedReport(sanitized);
@@ -135,7 +137,7 @@ export default function MigrationAdmin() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-4">Dry-Run da Migração Canônica (Prompt 07A.1 & 07A.2)</h1>
+      <h1 className="text-3xl font-bold mb-4">Dry-Run da Migração Canônica (V3)</h1>
       <p className="mb-6 text-gray-700">
         Esta tela executará a coleta do seu LocalStorage e Firestore (somente leitura), criará o backup e rodará a simulação.
       </p>

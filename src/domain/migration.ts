@@ -24,7 +24,7 @@ export interface MigrationMapping {
 export type MatchConfidence = 'EXACT' | 'HIGH_CONFIDENCE' | 'AMBIGUOUS' | 'DISTINCT';
 
 export interface MigrationPreview {
-  // Original fields
+  // Legacy Stats
   classGroupsDetected: number;
   studentsDetected: number;
   assessmentsDetected: number;
@@ -34,9 +34,11 @@ export interface MigrationPreview {
   errors: string[];
   recordsSkipped: number;
 
-  // New V2 Sanitized Metrics
   studentSourceRecords: Record<string, number>;
-  matching: {
+
+  // Fresh Matching (V3)
+  freshMatching: {
+    recordsAnalyzed: number;
     pairComparisons: number;
     exactMatches: number;
     highConfidenceMatches: number;
@@ -45,11 +47,48 @@ export interface MigrationPreview {
     ambiguousRecords: number;
     distinctRecords: number;
     reviewRequiredGroups: number;
+    proposedUniqueStudents: number;
   };
+
+  // Mapping Consistency (V3)
+  mappingConsistency: {
+    preparedMappingsLoaded: number;
+    preparedStudentMappings: number;
+    consistentRecords: number;
+    mismatchRecords: number;
+    mismatchGroups: number;
+    preparedMergeButFreshDistinct: number;
+    preparedDistinctButFreshMerge: number;
+    preparedMappingMissing: number;
+    stalePreparedMappings: number;
+  };
+
   conflictsByType: Record<string, number>;
-  
-  assessmentSourcesPresent: string[];
-  assessmentSourceRecordCounts: Record<string, number>;
-  resultSourcesPresent: string[];
-  resultSourceRecordCounts: Record<string, number>;
+
+  // Identifier Safety (V3)
+  identifierSafety: {
+    unstableLegacyIdentifiers: number;
+  };
+
+  // Class Resolution (V3)
+  classResolution: {
+    unresolvedClassAssignments: number;
+  };
+
+  // Assessment Audit (V3)
+  assessmentAudit: {
+    sourcesInspected: string[];
+    containersDetected: Record<string, number>;
+    entitiesDetected: Record<string, number>;
+    unrecognizedRecords: Record<string, number>;
+  };
+
+  // Result Audit (V3)
+  resultAudit: {
+    sourcesInspected: string[];
+    sourcesWithRecords: string[];
+    containersDetected: Record<string, number>;
+    entitiesDetected: Record<string, number>;
+    unrecognizedRecords: Record<string, number>;
+  };
 }
