@@ -12,6 +12,7 @@ export default function MigrationAdmin() {
   const [status, setStatus] = useState('Aguardando início...');
   const [report, setReport] = useState<any>(null);
   
+  const [reviewLoaded, setReviewLoaded] = useState(false);
   const [sanitizedReport, setSanitizedReport] = useState<any>(null);
   const [reviewPatterns, setReviewPatterns] = useState<any[]>([]);
   const [canonicalGroups, setCanonicalGroups] = useState<any[]>([]);
@@ -95,6 +96,7 @@ export default function MigrationAdmin() {
       setReviewPatterns(patterns);
       
       setStatus('Revisão carregada com sucesso.');
+      setReviewLoaded(true);
     } catch (e: any) {
       console.error(e);
       setStatus(`Erro: ${e.message}`);
@@ -240,12 +242,21 @@ export default function MigrationAdmin() {
         Esta tela executará a coleta, verificará decisões manuais de turmas, identificará ambiguidades residuais, e profilará profundamente o schema dos resultados de avaliações.
       </p>
       
-      <button 
-        onClick={handleRun} 
-        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors"
-      >
-        EXECUTAR DRY-RUN V7
-      </button>
+      <div className="mb-6 space-x-4">
+        <button 
+          onClick={handleLoadReview}
+          className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-6 rounded shadow transition-colors"
+        >
+          CARREGAR REVISÃO DE TURMAS
+        </button>
+        <button 
+          onClick={handleRun} 
+          disabled={!reviewLoaded}
+          className={`${reviewLoaded ? 'bg-indigo-600 hover:bg-indigo-700 cursor-pointer' : 'bg-slate-300 text-slate-500 cursor-not-allowed'} text-white font-bold py-2 px-6 rounded-lg shadow-md transition-colors`}
+        >
+          EXECUTAR DRY-RUN V7
+        </button>
+      </div>
       
       <div className="mt-6 p-4 border rounded bg-slate-50">
         <span className="font-semibold text-slate-800">Status: </span>
