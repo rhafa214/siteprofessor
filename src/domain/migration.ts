@@ -17,8 +17,19 @@ export interface MigrationMapping {
   legacySource: string;
   legacyRecordIdentifier: string;
   canonicalEntityType: string;
-  canonicalId: string;
+  proposedCanonicalId: string;
   migrationRunId: string;
+  status?: string;
+}
+
+export interface ClassAliasDecision {
+  fingerprint: string;
+  source: string;
+  canonicalClassGroupId?: string | null;
+  status: 'PENDING' | 'CONFIRMED' | 'CLEARED';
+  createdAt: number;
+  updatedAt: number;
+  migrationReviewVersion: number;
 }
 
 export type MatchConfidence = 'EXACT' | 'HIGH_CONFIDENCE' | 'AMBIGUOUS' | 'DISTINCT';
@@ -111,6 +122,26 @@ export interface MigrationPreview {
       freshSingletonGroups: number;
     };
   };
+
+  classReview: {
+    patternsDetected: number;
+    automaticPatternsResolved: number;
+    manualDecisionsLoaded: number;
+    manualDecisionsApplied: number;
+    pendingPatterns: number;
+    unresolvedPatterns: number;
+    recordsResolvedAutomatically: number;
+    recordsResolvedManually: number;
+    recordsStillUnresolved: number;
+  };
+  
+  _unresolvedClassPatterns: Array<{
+    fingerprint: string;
+    legacyReference: string;
+    source: string;
+    recordsAffected: number;
+  }>;
+  _canonicalClassGroups: any[];
 
   matificClassPatternAudit: {
     totalPatterns: number;
@@ -210,6 +241,17 @@ export interface MigrationPreview {
       unrecognizedLeaves: number;
       schemaVariants: Record<string, number>;
     };
+    resultLeafProfiler: {
+      totalLeaves: number;
+      leafTypes: Record<string, number>;
+      objectShapeSignatures: Record<string, {
+        hash: string;
+        count: number;
+        depth: number;
+        fields: Record<string, string>;
+      }>;
+    };
+    resultFieldPaths: Record<string, Record<string, number>>;
   };
 
   MIGRATION_READY: boolean;

@@ -6,9 +6,10 @@ import {
   mapLegacyStudentToStudent, 
   generateOpaqueId,
   generateLegacyRecordIdentifier,
-  extractLegacyStudentName
+  extractLegacyStudentName,
+  generateDeterministicFingerprint
 } from '../mappers/legacyMappers';
-import { MigrationPreview, Student, ClassGroup } from '../../domain';
+import { MigrationPreview, Student, ClassGroup, ClassAliasDecision } from '../../domain';
 import { MigrationMapping } from './MigrationMappingService';
 
 interface StudentCandidate {
@@ -23,11 +24,43 @@ export interface DryRunResult {
   newMappings: MigrationMapping[];
 }
 
-export function generateMigrationPreview(
+function isDynamicKey(key: string): boolean {
+  if (/^\d+$/.test(key)) return true;
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key)) return true;
+  if (key.length > 15 && !key.includes(' ') && !key.includes('_')) return true;
+  const k = key.toLowerCase();
+  if (['id', 'uuid', 'uid', 'userid', 'studentid', 'alunoid'].includes(k)) return true;
+  return false;
+}
+
+function getShapeSignature(leaf: any, depth = 0): { type: string, fields?: Record<string, string>, depth: number } {
+  if (depth > 5) return { type: 'max_depth', depth };
+  if (leaf === null) return { type: 'null', depth };
+  if (Array.isArray(leaf)) return { type: 'array', depth };
+  if (typeof leaf !== 'object') return { type: typeof leaf, depth };
+  
+  const fields: Record<string, string> = {};
+  let maxDepth = depth;
+  for (const k of Object.keys(leaf)) {
+    const safeKey = isDynamicKey(k) ? '<DYNAMIC_KEY>' : k;
+    const childSig = getShapeSignature(leaf[k], depth + 1);
+    fields[safeKey] = childSig.type === 'object' ? 'object' : childSig.type;
+    if (childSig.depth > maxDepth) maxDepth = childSig.depth;
+  }
+  return { type: 'object', fields, depth: maxDepth };
+}
+
+function hashSignature(fields: Record<string, string>): string {
+  const keys = Object.keys(fields).sort();
+  return btoa(keys.map(k => `${k}:${fields[k]}`).join('|')).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+export async function generateMigrationPreview(
   snapshot: LegacyAcademicSnapshot, 
   existingMappings: Record<string, MigrationMapping>,
+  classAliases: Record<string, ClassAliasDecision>,
   runId: string
-): DryRunResult {
+): Promise<DryRunResult> {
   const warnings: string[] = [...snapshot.warnings];
   const errors: string[] = [...snapshot.errors];
   
@@ -77,6 +110,20 @@ export function generateMigrationPreview(
     }
   };
 
+  const classReview = {
+    patternsDetected: 0,
+    automaticPatternsResolved: 0,
+    manualDecisionsLoaded: Object.values(classAliases).length,
+    manualDecisionsApplied: 0,
+    pendingPatterns: 0,
+    unresolvedPatterns: 0,
+    recordsResolvedAutomatically: 0,
+    recordsResolvedManually: 0,
+    recordsStillUnresolved: 0
+  };
+
+  const _unresolvedClassPatterns: Array<{ fingerprint: string; legacyReference: string; source: string; recordsAffected: number }> = [];
+
   const identifierCompleteness = {
     recordsWithStrongId: 0,
     recordsWithNumber: 0,
@@ -107,13 +154,13 @@ export function generateMigrationPreview(
   const studentSourceRecords: Record<string, number> = { taskAnalysis: 0, matificAnalysis: 0, pp_: 0 };
   let unstableLegacyIdentifiers = 0;
   
-  const processSourceForStudents = (sourceName: string, dataMap: Record<string, unknown>) => {
+  const processSourceForStudents = async (sourceName: string, dataMap: Record<string, unknown>) => {
     let sourceCount = 0;
     
     // Pattern resolving map just for Matific
     const matificPatterns = new Map<string, { candidates: ClassGroup[], records: number }>();
     
-    Object.entries(dataMap).forEach(([legacyClassId, data]) => {
+    for (const [legacyClassId, data] of Object.entries(dataMap)) {
       let studentList: unknown[] = [];
       if (Array.isArray(data)) studentList = data;
       else if (data && typeof data === 'object') {
@@ -133,26 +180,60 @@ export function generateMigrationPreview(
          unresolvedClassAssignments += studentsInThisGroup;
          unresolvedClassReasons.EMPTY_CLASS_REFERENCE += studentsInThisGroup;
          unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + studentsInThisGroup;
+         classReview.recordsStillUnresolved += studentsInThisGroup;
          
          if (sourceName === 'matificAnalysis') {
              matificPatterns.set('_EMPTY_', { candidates: [], records: studentsInThisGroup });
          }
       } else {
-        // Find candidate classes
+        const fingerprint = await generateDeterministicFingerprint(legacyClassId);
+        classReview.patternsDetected++;
+        
         const matches = proposedClassGroups.filter(c => c.name === legacyClassId || c.legacySlug === legacyClassId);
-        if (sourceName === 'matificAnalysis') {
-             const existing = matificPatterns.get(legacyClassId) || { candidates: matches, records: 0 };
-             existing.records += studentsInThisGroup;
-             matificPatterns.set(legacyClassId, existing);
-        }
         
         if (matches.length === 1) {
           classGroupId = matches[0].id;
           classResolved = true;
+          classReview.automaticPatternsResolved++;
+          classReview.recordsResolvedAutomatically += studentsInThisGroup;
         } else {
-          unresolvedClassAssignments += studentsInThisGroup;
-          unresolvedClassReasons.CLASS_NAME_NOT_FOUND += studentsInThisGroup;
-          unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + studentsInThisGroup;
+          // Manual fallback
+          const decision = classAliases[fingerprint];
+          if (decision && decision.status === 'CONFIRMED') {
+            classGroupId = decision.canonicalClassGroupId;
+            classResolved = true;
+            classReview.manualDecisionsApplied++;
+            classReview.recordsResolvedManually += studentsInThisGroup;
+          } else {
+            if (decision && decision.status === 'PENDING') {
+               classReview.pendingPatterns++;
+            } else {
+               classReview.unresolvedPatterns++;
+            }
+            classReview.recordsStillUnresolved += studentsInThisGroup;
+            unresolvedClassAssignments += studentsInThisGroup;
+            unresolvedClassReasons.CLASS_NAME_NOT_FOUND += studentsInThisGroup;
+            unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + studentsInThisGroup;
+            
+            // Only add unique unresolved patterns to the UI list
+            if (!_unresolvedClassPatterns.find(p => p.fingerprint === fingerprint)) {
+                _unresolvedClassPatterns.push({
+                    fingerprint,
+                    legacyReference: legacyClassId,
+                    source: sourceName,
+                    recordsAffected: studentsInThisGroup
+                });
+            } else {
+                const pat = _unresolvedClassPatterns.find(p => p.fingerprint === fingerprint);
+                if (pat) pat.recordsAffected += studentsInThisGroup;
+            }
+          }
+        }
+        
+        if (sourceName === 'matificAnalysis') {
+             const existing = matificPatterns.get(legacyClassId) || { candidates: matches, records: 0 };
+             existing.records += studentsInThisGroup;
+             matificPatterns.set(legacyClassId, existing);
         }
       }
       
@@ -206,7 +287,7 @@ export function generateMigrationPreview(
           }
         }
       });
-    });
+    }
     
     if (sourceName === 'matificAnalysis') {
         matificClassPatternAudit.totalPatterns = matificPatterns.size;
@@ -227,9 +308,9 @@ export function generateMigrationPreview(
     studentSourceRecords[sourceName] = sourceCount;
   };
 
-  processSourceForStudents('taskAnalysis', snapshot.firestoreData.taskAnalysis || {});
-  processSourceForStudents('matificAnalysis', snapshot.firestoreData.matificAnalysis || {});
-  processSourceForStudents('pp_', snapshot.firestoreData.pp_ || {});
+  await processSourceForStudents('taskAnalysis', snapshot.firestoreData.taskAnalysis || {});
+  await processSourceForStudents('matificAnalysis', snapshot.firestoreData.matificAnalysis || {});
+  await processSourceForStudents('pp_', snapshot.firestoreData.pp_ || {});
 
   // ---------------------------------------------------------
   // 3. Fresh Matching Pass
@@ -528,6 +609,55 @@ export function generateMigrationPreview(
     structuralShapes: {} as Record<string, any>
   };
   
+  const resultLeafProfiler = {
+    totalLeaves: 0,
+    leafTypes: { number: 0, string: 0, object: 0, array: 0, null: 0, other: 0 } as Record<string, number>,
+    objectShapeSignatures: {} as Record<string, any>
+  };
+  const resultFieldPaths: Record<string, Record<string, number>> = {};
+
+  const profileLeaf = (leaf: any, path: string, depth: number) => {
+    if (depth > 5) return;
+    resultLeafProfiler.totalLeaves++;
+    
+    let type: string = typeof leaf;
+    if (leaf === null) type = 'null';
+    else if (Array.isArray(leaf)) type = 'array';
+    
+    if (resultLeafProfiler.leafTypes[type] !== undefined) {
+       resultLeafProfiler.leafTypes[type]++;
+    } else {
+       resultLeafProfiler.leafTypes.other = (resultLeafProfiler.leafTypes.other || 0) + 1;
+    }
+    
+    if (type === 'object' && leaf !== null && !Array.isArray(leaf)) {
+       const sig = getShapeSignature(leaf, 0);
+       if (sig.fields) {
+         const hash = hashSignature(sig.fields);
+         if (!resultLeafProfiler.objectShapeSignatures[hash]) {
+           resultLeafProfiler.objectShapeSignatures[hash] = {
+             hash, count: 0, depth: sig.depth, fields: sig.fields
+           };
+         }
+         resultLeafProfiler.objectShapeSignatures[hash].count++;
+       }
+       
+       for (const k of Object.keys(leaf)) {
+          const safeKey = isDynamicKey(k) ? '<DYNAMIC_KEY>' : k;
+          const newPath = path ? `${path}.${safeKey}` : safeKey;
+          const valType = leaf[k] === null ? 'null' : Array.isArray(leaf[k]) ? 'array' : typeof leaf[k];
+          
+          if (!resultFieldPaths[newPath]) resultFieldPaths[newPath] = {};
+          resultFieldPaths[newPath][valType] = (resultFieldPaths[newPath][valType] || 0) + 1;
+          
+          profileLeaf(leaf[k], newPath, depth + 1);
+       }
+    } else if (path) {
+       if (!resultFieldPaths[path]) resultFieldPaths[path] = {};
+       resultFieldPaths[path][type] = (resultFieldPaths[path][type] || 0) + 1;
+    }
+  };
+
   const resultAudit = {
     sourcesInspected: ['firestore_apostilas', 'firestore_assessments_grades', 'localstorage_assessments_grades'],
     sourcesWithRecords: [] as string[],
@@ -546,7 +676,9 @@ export function generateMigrationPreview(
       recognizedLeaves: 0,
       unrecognizedLeaves: 0,
       schemaVariants: {} as Record<string, number>
-    }
+    },
+    resultLeafProfiler,
+    resultFieldPaths
   };
 
   let totalAssessments = 0;
@@ -584,34 +716,49 @@ export function generateMigrationPreview(
 
         let resultKey = data.results ? 'results' : (data.notas ? 'notas' : null);
         
-        // Specific adapter for localstorage_assessments_grades
         if (!resultKey && sourceName === 'localstorage_assessments_grades') {
           if (Object.keys(data).length > 0 && !data.title && !data.name) {
-             resultKey = '_ROOT_AS_RESULTS_'; // Conceptual adapter
+             resultKey = '_ROOT_AS_RESULTS_'; 
           }
         }
 
         if (resultKey) {
-          resultAudit.schemaStatus.RESULT_SCHEMA_RECOGNIZED++;
           const resultObj = resultKey === '_ROOT_AS_RESULTS_' ? data : data[resultKey];
           const resultKeys = Object.keys(resultObj);
           
+          let leavesValid = 0;
+          let leavesInvalid = 0;
+
           resultKeys.forEach(studentId => {
              resultAudit.resultAdapterValidation.candidateLeaves++;
              const grade = resultObj[studentId];
-             // Validate structural signature: value should be number or object with score
+             
+             // Profiler deep structural analysis without values
+             profileLeaf(grade, '', 0);
+             
              const isNumber = typeof grade === 'number';
              const isStringNumber = typeof grade === 'string' && !isNaN(Number(grade));
              const isObjectWithScore = typeof grade === 'object' && grade !== null && (grade.score !== undefined || grade.nota !== undefined);
              
              if (isNumber || isStringNumber || isObjectWithScore) {
                 resultAudit.resultAdapterValidation.recognizedLeaves++;
+                leavesValid++;
                 const variantName = isNumber ? 'number' : (isStringNumber ? 'stringNumber' : 'objectWithScore');
                 resultAudit.resultAdapterValidation.schemaVariants[variantName] = (resultAudit.resultAdapterValidation.schemaVariants[variantName] || 0) + 1;
              } else {
                 resultAudit.resultAdapterValidation.unrecognizedLeaves++;
+                leavesInvalid++;
              }
           });
+          
+          // DO NOT BLINDLY SET RESULT_SCHEMA_RECOGNIZED if leaves are not fully valid
+          const containerFullyRecognized = leavesValid > 0 && leavesInvalid === 0;
+          
+          if (containerFullyRecognized) {
+             resultAudit.schemaStatus.RESULT_SCHEMA_RECOGNIZED++;
+          } else {
+             resultAudit.schemaStatus.RESULT_SCHEMA_UNRECOGNIZED++;
+          }
           
           if (resultKeys.length > 0) {
             sourceResultEntities += resultKeys.length;
@@ -685,7 +832,7 @@ export function generateMigrationPreview(
   const ASSESSMENT_SCHEMA_VALIDATED = Object.values(assessmentAudit.unrecognizedRecords).length === 0;
   if (!ASSESSMENT_SCHEMA_VALIDATED) blockingReasons.push('ASSESSMENT_SCHEMA_INVALID');
   
-  const RESULT_SCHEMA_VALIDATED = Object.values(resultAudit.unrecognizedRecords).length === 0 && resultAudit.resultAdapterValidation.unrecognizedLeaves === 0;
+  const RESULT_SCHEMA_VALIDATED = Object.values(resultAudit.unrecognizedRecords).length === 0 && resultAudit.resultAdapterValidation.unrecognizedLeaves === 0 && resultAudit.resultAdapterValidation.recognizedLeaves > 0;
   if (!RESULT_SCHEMA_VALIDATED) blockingReasons.push('RESULT_SCHEMA_INVALID');
   
   if (ambiguousConnectedComponents > 0) {
@@ -746,6 +893,9 @@ export function generateMigrationPreview(
     },
     
     mappingReconciliation,
+    classReview,
+    _unresolvedClassPatterns,
+    _canonicalClassGroups: proposedClassGroups,
     matificClassPatternAudit,
     ambiguityClassCorrelation,
     identifierCompleteness,

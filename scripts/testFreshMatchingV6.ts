@@ -46,7 +46,7 @@ function runTests() {
     errors: []
   };
 
-  const { preview } = generateMigrationPreview(snapshot, {}, 'run_test');
+  const { preview } = generateMigrationPreview(snapshot, {}, {}, 'run_test');
   
   // Test E
   console.log('Test E (81 UNRESOLVED ambiguities count):', preview.freshMatching.ambiguousPairs === 0 ? 'PASS' : `FAIL (${preview.freshMatching.ambiguousPairs})`);

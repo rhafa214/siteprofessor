@@ -11,6 +11,23 @@ export interface LegacyStudentData {
   [key: string]: unknown;
 }
 
+export async function generateDeterministicFingerprint(text: string): Promise<string> {
+  if (!text) return 'empty';
+  const normalized = text.trim().toLowerCase();
+  
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const msgUint8 = new TextEncoder().encode(normalized);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } else if (typeof require !== 'undefined') {
+    // Fallback for Node.js tests
+    const cryptoNode = require('crypto');
+    return cryptoNode.createHash('sha256').update(normalized).digest('hex');
+  }
+  throw new Error("Crypto API not available");
+}
+
 export function generateOpaqueId(): string {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -77,7 +94,6 @@ export function resolveClassCandidates(legacyNames: string[]): { name: string, s
   return Array.from(map.entries()).map(([slug, name]) => ({ slug, name }));
 }
 
-// Single robust method to identify legacy records
 export function generateLegacyRecordIdentifier(
   legacyClassId: string, 
   legacyObj: Record<string, unknown>, 
@@ -94,7 +110,6 @@ export function generateLegacyRecordIdentifier(
   } else if (hasNumber) {
     identifier = `${legacyClassId}_${legacyObj.numero}`;
   } else {
-    // If we have to use fallback, it's unstable.
     const name = legacyObj.nome || legacyObj.name || legacyObj.studentName || '';
     const stableName = String(name).trim().toLowerCase();
     identifier = `${legacyClassId}_fallback_${index}_${stableName}`;
@@ -112,20 +127,17 @@ export function calculateStudentMatchConfidence(
   sourceLocalId1: string,
   sourceLocalId2: string
 ): { confidence: MatchConfidence; reason: string } {
-  // UNRESOLVED x UNRESOLVED != SAME_CLASS
   const isUnresolved1 = s1.classGroupId === 'UNRESOLVED';
   const isUnresolved2 = s2.classGroupId === 'UNRESOLVED';
   
   const sameClass = (!isUnresolved1 && !isUnresolved2 && s1.classGroupId === s2.classGroupId);
   
-  // Same source semantics
   if (source1 === source2) {
     if (sourceLocalId1 && sourceLocalId2 && sourceLocalId1 !== sourceLocalId2) {
        return { confidence: 'DISTINCT', reason: 'SAME_SOURCE_DIFFERENT_LOCAL_ID' };
     }
   }
 
-  // Cross source semantics
   const name1 = s1.name.trim().toLowerCase();
   const name2 = s2.name.trim().toLowerCase();
   
@@ -133,7 +145,6 @@ export function calculateStudentMatchConfidence(
     return { confidence: 'DISTINCT', reason: 'DIFFERENT_CLASS' };
   }
   
-  // Empty names cannot be matched automatically
   if (!name1 || !name2) {
     return { confidence: 'AMBIGUOUS', reason: 'INSUFFICIENT_IDENTIFIERS' };
   }
@@ -149,7 +160,6 @@ export function calculateStudentMatchConfidence(
     if (differentNumber) {
       return { confidence: 'AMBIGUOUS', reason: 'SAME_NAME_DIFFERENT_NUMBER' };
     }
-    // High confidence requires BOTH to have valid identifiers OR one to be perfectly subsumed
     if (!hasValidNum1 && !hasValidNum2) {
       return { confidence: 'AMBIGUOUS', reason: 'SAME_NORMALIZED_NAME_MISSING_NUMBER' };
     }
