@@ -923,3 +923,85 @@ export async function generateMigrationPreview(
   
   return { preview, newMappings };
 }
+
+export interface UnresolvedClassPattern {
+    fingerprint: string;
+    legacyReference: string;
+    source: string;
+    recordsAffected: number;
+}
+
+export async function extractClassReviewPatterns(
+    snapshot: LegacyAcademicSnapshot,
+    proposedClassGroups: ClassGroup[],
+    classAliases: Record<string, ClassAliasDecision>
+): Promise<UnresolvedClassPattern[]> {
+    const _unresolvedClassPatterns: UnresolvedClassPattern[] = [];
+
+    const processSource = async (sourceName: string, dataMap: Record<string, unknown>) => {
+        for (const [legacyClassId, data] of Object.entries(dataMap)) {
+            let studentList: unknown[] = [];
+            if (Array.isArray(data)) studentList = data;
+            else if (data && typeof data === 'object') {
+              const obj = data as Record<string, unknown>;
+              if (Array.isArray(obj.alunos)) studentList = obj.alunos;
+              else if (Array.isArray(obj.students)) studentList = obj.students;
+              else if (Array.isArray(obj.items)) studentList = obj.items;
+            }
+            
+            const studentsInThisGroup = studentList.length;
+            if (studentsInThisGroup === 0 || !legacyClassId) continue;
+            
+            const fingerprint = await generateDeterministicFingerprint(legacyClassId);
+            const matches = proposedClassGroups.filter(c => c.name === legacyClassId || c.legacySlug === legacyClassId);
+            
+            if (matches.length === 1) {
+                continue; // Automatically resolved
+            }
+            
+            // For UI, we still want to show CONFIRMED aliases so the user can clear them.
+            // Wait, the user said: "Ao abrir /migration-admin, deve ser possível chegar à seção: REVISÃO DE TURMAS MATIFIC ANTES de qualquer Dry-Run V7. Ela deve mostrar somente padrões unresolved/review necessários."
+            // AND "Depois que o usuário confirmar os aliases, a UI deve mostrar: CONFIRMED e permitir alterar/limpar."
+            // So we MUST return patterns even if they are CONFIRMED in the dictionary, so the UI can render them and show the "CONFIRMED" badge, allowing the user to clear it.
+            // If they are mapped automatically (length === 1), they shouldn't show up. But if they needed manual mapping, they should.
+            
+            if (!_unresolvedClassPatterns.find(p => p.fingerprint === fingerprint)) {
+                _unresolvedClassPatterns.push({
+                    fingerprint,
+                    legacyReference: legacyClassId,
+                    source: sourceName,
+                    recordsAffected: studentsInThisGroup
+                });
+            } else {
+                const pat = _unresolvedClassPatterns.find(p => p.fingerprint === fingerprint);
+                if (pat) pat.recordsAffected += studentsInThisGroup;
+            }
+        }
+    };
+    
+    await processSource('taskAnalysis', snapshot.firestoreData.taskAnalysis || {});
+    await processSource('matificAnalysis', snapshot.firestoreData.matificAnalysis || {});
+    await processSource('pp_', snapshot.firestoreData.pp_ || {});
+    
+    return _unresolvedClassPatterns;
+}
+
+export function getProposedClassGroups(existingMappings: Record<string, import('../../domain/migration').MigrationMapping>): ClassGroup[] {
+  const rawClassNames = new Set<string>();
+  const proposedClassGroups: ClassGroup[] = [];
+  Object.values(existingMappings).forEach(mapping => {
+     if ((mapping as any).canonicalClassGroupId && (mapping as any).legacyClassGroupSlug) {
+        if (!rawClassNames.has((mapping as any).canonicalClassGroupId)) {
+            rawClassNames.add((mapping as any).canonicalClassGroupId);
+            proposedClassGroups.push({
+                id: (mapping as any).canonicalClassGroupId,
+                name: (mapping as any).canonicalClassGroupId, // Assuming name is ID for canonical
+                legacySlug: (mapping as any).legacyClassGroupSlug,
+                createdAt: 0,
+                updatedAt: 0
+            });
+        }
+     }
+  });
+  return proposedClassGroups;
+}

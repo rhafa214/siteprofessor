@@ -11,7 +11,11 @@ export default function MigrationAdmin() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [status, setStatus] = useState('Aguardando início...');
   const [report, setReport] = useState<any>(null);
+  
   const [sanitizedReport, setSanitizedReport] = useState<any>(null);
+  const [reviewPatterns, setReviewPatterns] = useState<any[]>([]);
+  const [canonicalGroups, setCanonicalGroups] = useState<any[]>([]);
+
   const [classAliases, setClassAliases] = useState<Record<string, ClassAliasDecision>>({});
 
   useEffect(() => {
@@ -69,6 +73,33 @@ export default function MigrationAdmin() {
        </div>
      );
   }
+
+  
+  const handleLoadReview = async () => {
+    setStatus('Carregando dados para revisão de turmas...');
+    try {
+      const { createLegacySnapshot } = await import('../data/migration/LegacyDataCollector');
+      const { extractClassReviewPatterns, getProposedClassGroups } = await import('../data/migration/MigrationDryRun');
+      const { loadPreparedMappings } = await import('../data/migration/MigrationMappingService');
+      const { loadClassAliases } = await import('../data/migration/ClassAliasService');
+      
+      const snapshot = await createLegacySnapshot(user.uid);
+      const existingMappings = await loadPreparedMappings(user.uid);
+      const aliases = await loadClassAliases(user.uid);
+      
+      const groups = getProposedClassGroups(existingMappings);
+      const patterns = await extractClassReviewPatterns(snapshot, groups, aliases);
+      
+      setCanonicalGroups(groups);
+      setClassAliases(aliases);
+      setReviewPatterns(patterns);
+      
+      setStatus('Revisão carregada com sucesso.');
+    } catch (e: any) {
+      console.error(e);
+      setStatus(`Erro: ${e.message}`);
+    }
+  };
 
   const handleRun = async () => {
     setStatus('Iniciando...');
@@ -221,14 +252,14 @@ export default function MigrationAdmin() {
         <span className="text-slate-600">{status}</span>
       </div>
 
-      {report?.preview?._unresolvedClassPatterns?.length > 0 && (
+      {reviewPatterns.length > 0 && (
         <div className="mt-8 p-6 bg-amber-50 border border-amber-200 rounded-lg">
           <h2 className="text-xl font-bold text-amber-900 mb-4">REVISÃO DE TURMAS (Somente Local)</h2>
           <p className="text-amber-800 mb-4 text-sm">
             Estes padrões não foram mapeados automaticamente. O nome real e a decisão NÃO serão exportados no JSON sanitizado por razões de privacidade.
           </p>
           <div className="space-y-4">
-            {report.preview._unresolvedClassPatterns.map((pat: any) => {
+            {reviewPatterns.map((pat: any) => {
                const decision = classAliases[pat.fingerprint];
                const statusColor = decision?.status === 'CONFIRMED' ? 'bg-green-100 border-green-300' : 'bg-white border-amber-300';
                return (
@@ -252,7 +283,7 @@ export default function MigrationAdmin() {
                          defaultValue={decision?.canonicalClassGroupId || ""}
                        >
                          <option value="">-- Selecione a Turma Correta --</option>
-                         {report.preview._canonicalClassGroups.map((cg: ClassGroup) => (
+                         {canonicalGroups.map((cg: ClassGroup) => (
                            <option key={cg.id} value={cg.id}>{cg.name}</option>
                          ))}
                        </select>
