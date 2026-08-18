@@ -34,7 +34,6 @@ export interface MigrationPreview {
   recordsSkipped: number;
   studentSourceRecords: Record<string, number>;
 
-  // Fresh Matching (V4)
   freshMatching: {
     recordsAnalyzed: number;
     pairComparisons: number;
@@ -51,7 +50,6 @@ export interface MigrationPreview {
     proposedUniqueStudents: number;
   };
 
-  // Mapping Consistency (V4)
   mappingConsistency: {
     preparedMappingsLoaded: number;
     preparedStudentMappings: number;
@@ -73,6 +71,69 @@ export interface MigrationPreview {
     };
   };
 
+  // V5 Reconciliations & Audits
+  mappingReconciliation: {
+    SAFE_TO_KEEP: number;
+    NEEDS_REBUILD: number;
+    NEEDS_MANUAL_REVIEW: number;
+    preparedTopology: {
+      canonicalGroupsRepresented: number;
+      singletonPreparedGroups: number;
+      multiRecordPreparedGroups: number;
+      largestPreparedGroupSize: number;
+      recordsInsideMultiRecordPreparedGroups: number;
+    };
+    mappingMismatchReasons: {
+      LEGACY_ALGORITHM_MERGE: number;
+      SAME_PREPARED_CANONICAL_ID: number;
+      FRESH_RULE_CHANGED: number;
+      SOURCE_COLLISION: number;
+      OTHER: number;
+    };
+    freshTopology: {
+      proposedUniqueStudents: number;
+      freshMergedGroups: number;
+      freshSingletonGroups: number;
+    };
+  };
+
+  matificClassResolutionAudit: {
+    records: number;
+    classReferencePresent: number;
+    classReferenceMissing: number;
+    uniqueLegacyClassReferencePatterns: number;
+    normalizationResolved: number;
+    aliasResolved: number;
+    stillUnresolved: number;
+  };
+
+  ambiguityClassCorrelation: {
+    largestGroupRecords: number;
+    largestGroupAlsoUnresolvedClass: number;
+    unresolvedRecordsInsideAnyAmbiguousGroup: number;
+    resolvedRecordsInsideLargestAmbiguousGroup: number;
+  };
+
+  identifierCompleteness: {
+    recordsWithStrongId: number;
+    recordsWithNumber: number;
+    recordsWithUsableName: number;
+    recordsWithMissingName: number;
+    recordsWithPlaceholderName: number;
+    recordsWithOnlySourceIdentity: number;
+    recordsWithClassResolved: number;
+    recordsWithClassUnresolved: number;
+  };
+
+  ambiguousBySourcePair: Record<string, number>;
+  
+  ambiguousByClassResolution: {
+    bothResolvedSameClass: number;
+    bothResolvedDifferentClass: number;
+    oneUnresolved: number;
+    bothUnresolved: number;
+  };
+
   ambiguousReasons: {
     SAME_NAME_DIFFERENT_NUMBER: number;
     SAME_NUMBER_DIFFERENT_NAME: number;
@@ -81,12 +142,10 @@ export interface MigrationPreview {
     OTHER: number;
   };
 
-  // Identifier Safety (V4)
   identifierSafety: {
     unstableLegacyIdentifiers: number;
   };
 
-  // Class Resolution (V4)
   classResolution: {
     unresolvedClassAssignments: number;
     unresolvedClassesBySource: Record<string, number>;
@@ -101,15 +160,14 @@ export interface MigrationPreview {
     };
   };
 
-  // Assessment Audit (V4)
   assessmentAudit: {
     sourcesInspected: string[];
     containersDetected: Record<string, number>;
     entitiesDetected: Record<string, number>;
     unrecognizedRecords: Record<string, number>;
+    structuralShapes?: Record<string, any>; // V5: capture shape without PII
   };
 
-  // Result Audit (V4)
   resultAudit: {
     sourcesInspected: string[];
     sourcesWithRecords: string[];
@@ -122,9 +180,9 @@ export interface MigrationPreview {
       RESULT_SCHEMA_RECOGNIZED: number;
       RESULT_SCHEMA_UNRECOGNIZED: number;
     };
+    structuralShapes?: Record<string, any>; // V5: capture shape without PII
   };
 
-  // V4 Migration Gate
   MIGRATION_READY: boolean;
   blockingReasons: string[];
 }

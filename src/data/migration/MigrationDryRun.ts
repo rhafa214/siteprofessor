@@ -8,7 +8,7 @@ import {
   generateLegacyRecordIdentifier
 } from '../mappers/legacyMappers';
 import { MigrationPreview, Student, ClassGroup } from '../../domain';
-import { MigrationMapping, generateMappingKey } from './MigrationMappingService';
+import { MigrationMapping } from './MigrationMappingService';
 
 interface StudentCandidate {
   student: Student;
@@ -63,6 +63,27 @@ export function generateMigrationPreview(
   };
   let unresolvedClassAssignments = 0;
 
+  const matificClassResolutionAudit = {
+    records: 0,
+    classReferencePresent: 0,
+    classReferenceMissing: 0,
+    uniqueLegacyClassReferencePatterns: 0,
+    normalizationResolved: 0,
+    aliasResolved: 0,
+    stillUnresolved: 0
+  };
+
+  const identifierCompleteness = {
+    recordsWithStrongId: 0,
+    recordsWithNumber: 0,
+    recordsWithUsableName: 0,
+    recordsWithMissingName: 0,
+    recordsWithPlaceholderName: 0,
+    recordsWithOnlySourceIdentity: 0,
+    recordsWithClassResolved: 0,
+    recordsWithClassUnresolved: 0
+  };
+
   // ---------------------------------------------------------
   // 2. Collect Students
   // ---------------------------------------------------------
@@ -82,24 +103,43 @@ export function generateMigrationPreview(
         else if (Array.isArray(obj.items)) studentList = obj.items;
       }
       
+      const studentsInThisGroup = studentList.length;
+      if (studentsInThisGroup === 0) return;
+
+      if (sourceName === 'matificAnalysis') {
+        matificClassResolutionAudit.uniqueLegacyClassReferencePatterns++;
+        if (!legacyClassId) {
+          matificClassResolutionAudit.classReferenceMissing += studentsInThisGroup;
+        } else {
+          matificClassResolutionAudit.classReferencePresent += studentsInThisGroup;
+        }
+      }
+      
       studentList.forEach((item, index) => {
         if (item && typeof item === 'object') {
           sourceCount++;
+          if (sourceName === 'matificAnalysis') matificClassResolutionAudit.records++;
+          
           const legacyObj = item as Record<string, unknown>;
           
           let classGroupId = 'UNRESOLVED';
+          let classResolved = false;
           if (!legacyClassId) {
              unresolvedClassAssignments++;
              unresolvedClassReasons.EMPTY_CLASS_REFERENCE++;
              unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + 1;
+             if (sourceName === 'matificAnalysis') matificClassResolutionAudit.stillUnresolved++;
           } else {
             const matchedClass = proposedClassGroups.find(c => c.name === legacyClassId || c.legacySlug === legacyClassId);
             if (matchedClass) {
               classGroupId = matchedClass.id;
+              classResolved = true;
+              if (sourceName === 'matificAnalysis') matificClassResolutionAudit.normalizationResolved++;
             } else {
               unresolvedClassAssignments++;
               unresolvedClassReasons.CLASS_NAME_NOT_FOUND++;
               unresolvedClassesBySource[sourceName] = (unresolvedClassesBySource[sourceName] || 0) + 1;
+              if (sourceName === 'matificAnalysis') matificClassResolutionAudit.stillUnresolved++;
             }
           }
           
@@ -108,15 +148,34 @@ export function generateMigrationPreview(
           
           const st = mapLegacyStudentToStudent(legacyObj as any, classGroupId);
           allStudentCandidates.push({ student: st, legacySource: sourceName, legacyRecordIdentifier: identifier });
+
+          // Identifier Completeness Audit
+          const hasId = legacyObj.id !== undefined && legacyObj.id !== null;
+          const hasNum = legacyObj.numero !== undefined && legacyObj.numero !== null;
+          const nameTrim = st.name.trim().toLowerCase();
+          
+          if (hasId) identifierCompleteness.recordsWithStrongId++;
+          if (hasNum) identifierCompleteness.recordsWithNumber++;
+          
+          if (!nameTrim) identifierCompleteness.recordsWithMissingName++;
+          else if (nameTrim === 'aluno sem nome') identifierCompleteness.recordsWithPlaceholderName++;
+          else identifierCompleteness.recordsWithUsableName++;
+          
+          if (!hasId && !hasNum && (!nameTrim || nameTrim === 'aluno sem nome')) {
+            identifierCompleteness.recordsWithOnlySourceIdentity++;
+          }
+          
+          if (classResolved) identifierCompleteness.recordsWithClassResolved++;
+          else identifierCompleteness.recordsWithClassUnresolved++;
         }
       });
     });
     studentSourceRecords[sourceName] = sourceCount;
   };
 
-  processSourceForStudents('taskAnalysis', snapshot.firestoreData.taskAnalysis);
-  processSourceForStudents('matificAnalysis', snapshot.firestoreData.matificAnalysis);
-  processSourceForStudents('pp_', snapshot.firestoreData.pp_);
+  processSourceForStudents('taskAnalysis', snapshot.firestoreData.taskAnalysis || {});
+  processSourceForStudents('matificAnalysis', snapshot.firestoreData.matificAnalysis || {});
+  processSourceForStudents('pp_', snapshot.firestoreData.pp_ || {});
 
   // ---------------------------------------------------------
   // 3. Fresh Matching Pass
@@ -138,18 +197,22 @@ export function generateMigrationPreview(
     OTHER: 0
   };
 
-  // Connected components for ambiguous relationships
-  // We map index of candidate to a list of ambiguous candidate indices
+  const ambiguousBySourcePair: Record<string, number> = {};
+  const ambiguousByClassResolution = {
+    bothResolvedSameClass: 0,
+    bothResolvedDifferentClass: 0,
+    oneUnresolved: 0,
+    bothUnresolved: 0
+  };
+
   const ambiguousGraph = new Map<number, number[]>();
 
   allStudentCandidates.forEach((candidate, i) => {
     let matchedId = '';
     
-    // Instead of comparing against all candidates, we compare against ONE representative of each established group.
-    // However, to correctly map all pairs for ambiguous clusters, let's track the groups it was compared to.
-    
     for (const [tempCanonicalId, existingGroup] of freshResolvedStudents.entries()) {
       const existing = existingGroup[0].student;
+      const existingSource = existingGroup[0].legacySource;
       pairComparisons++;
       
       const { confidence, reason } = calculateStudentMatchConfidence(candidate.student, existing);
@@ -170,9 +233,16 @@ export function generateMigrationPreview(
            ambiguousReasons.OTHER++;
         }
         
-        // Add to graph
-        // To build connected components correctly, we link all items in the existing group to candidate
-        // But for simplicity in counting connected components, we can just link the representative's index to candidate's index.
+        const srcPair = [candidate.legacySource, existingSource].sort().join('-');
+        ambiguousBySourcePair[srcPair] = (ambiguousBySourcePair[srcPair] || 0) + 1;
+
+        const candUnres = candidate.student.classGroupId === 'UNRESOLVED';
+        const existUnres = existing.classGroupId === 'UNRESOLVED';
+        if (candUnres && existUnres) ambiguousByClassResolution.bothUnresolved++;
+        else if (candUnres || existUnres) ambiguousByClassResolution.oneUnresolved++;
+        else if (candidate.student.classGroupId === existing.classGroupId) ambiguousByClassResolution.bothResolvedSameClass++;
+        else ambiguousByClassResolution.bothResolvedDifferentClass++;
+
         const repIndex = allStudentCandidates.findIndex(c => c.legacyRecordIdentifier === existingGroup[0].legacyRecordIdentifier);
         if (!ambiguousGraph.has(i)) ambiguousGraph.set(i, []);
         if (!ambiguousGraph.has(repIndex)) ambiguousGraph.set(repIndex, []);
@@ -195,22 +265,23 @@ export function generateMigrationPreview(
     freshResolvedStudents.get(matchedId)!.push(candidate);
   });
 
-  // Calculate connected components for ambiguous groups
   const visited = new Set<number>();
   let ambiguousConnectedComponents = 0;
   let largestAmbiguousGroupSize = 0;
   const ambiguousRecordsSet = new Set<string>();
+  
+  let recordsInLargestGroup: number[] = [];
 
   ambiguousGraph.forEach((neighbors, node) => {
     if (!visited.has(node)) {
       ambiguousConnectedComponents++;
-      let currentSize = 0;
+      const currentGroupIndices: number[] = [];
       const queue = [node];
       visited.add(node);
       
       while (queue.length > 0) {
         const curr = queue.shift()!;
-        currentSize++;
+        currentGroupIndices.push(curr);
         ambiguousRecordsSet.add(allStudentCandidates[curr].legacyRecordIdentifier);
         
         const nbs = ambiguousGraph.get(curr) || [];
@@ -222,14 +293,39 @@ export function generateMigrationPreview(
         }
       }
       
-      if (currentSize > largestAmbiguousGroupSize) {
-        largestAmbiguousGroupSize = currentSize;
+      if (currentGroupIndices.length > largestAmbiguousGroupSize) {
+        largestAmbiguousGroupSize = currentGroupIndices.length;
+        recordsInLargestGroup = currentGroupIndices;
       }
     }
   });
 
+  const ambiguityClassCorrelation = {
+    largestGroupRecords: largestAmbiguousGroupSize,
+    largestGroupAlsoUnresolvedClass: 0,
+    unresolvedRecordsInsideAnyAmbiguousGroup: 0,
+    resolvedRecordsInsideLargestAmbiguousGroup: 0
+  };
+
+  recordsInLargestGroup.forEach(idx => {
+    const cand = allStudentCandidates[idx];
+    if (cand.student.classGroupId === 'UNRESOLVED') {
+      ambiguityClassCorrelation.largestGroupAlsoUnresolvedClass++;
+    } else {
+      ambiguityClassCorrelation.resolvedRecordsInsideLargestAmbiguousGroup++;
+    }
+  });
+
+  ambiguousRecordsSet.forEach(identifier => {
+    const cand = allStudentCandidates.find(c => c.legacyRecordIdentifier === identifier);
+    if (cand && cand.student.classGroupId === 'UNRESOLVED') {
+      ambiguityClassCorrelation.unresolvedRecordsInsideAnyAmbiguousGroup++;
+    }
+  });
+
+
   // ---------------------------------------------------------
-  // 4. Mapping Consistency Check
+  // 4. Mapping Consistency Check & Reconciliation
   // ---------------------------------------------------------
   const mappingLookup = {
     exactKeyMatches: 0,
@@ -267,7 +363,46 @@ export function generateMigrationPreview(
     existingGroupsByCanonicalId.get(canonicalId)!.add(legacyKey);
   });
 
+  const mappingReconciliation = {
+    SAFE_TO_KEEP: 0,
+    NEEDS_REBUILD: 0,
+    NEEDS_MANUAL_REVIEW: 0,
+    preparedTopology: {
+      canonicalGroupsRepresented: existingGroupsByCanonicalId.size,
+      singletonPreparedGroups: 0,
+      multiRecordPreparedGroups: 0,
+      largestPreparedGroupSize: 0,
+      recordsInsideMultiRecordPreparedGroups: 0
+    },
+    mappingMismatchReasons: {
+      LEGACY_ALGORITHM_MERGE: 0,
+      SAME_PREPARED_CANONICAL_ID: 0,
+      FRESH_RULE_CHANGED: 0,
+      SOURCE_COLLISION: 0,
+      OTHER: 0
+    },
+    freshTopology: {
+      proposedUniqueStudents: freshResolvedStudents.size,
+      freshMergedGroups: 0,
+      freshSingletonGroups: 0
+    }
+  };
+
+  existingGroupsByCanonicalId.forEach(group => {
+    if (group.size === 1) mappingReconciliation.preparedTopology.singletonPreparedGroups++;
+    else {
+      mappingReconciliation.preparedTopology.multiRecordPreparedGroups++;
+      mappingReconciliation.preparedTopology.recordsInsideMultiRecordPreparedGroups += group.size;
+    }
+    if (group.size > mappingReconciliation.preparedTopology.largestPreparedGroupSize) {
+      mappingReconciliation.preparedTopology.largestPreparedGroupSize = group.size;
+    }
+  });
+
   freshResolvedStudents.forEach((candidates, tempCanonicalId) => {
+    if (candidates.length === 1) mappingReconciliation.freshTopology.freshSingletonGroups++;
+    else mappingReconciliation.freshTopology.freshMergedGroups++;
+
     const freshGroupIds = new Set(candidates.map(c => `${c.legacySource}_${c.legacyRecordIdentifier}`));
     let mappedCanonicalIds = new Set<string>();
     let missingInGroup = 0;
@@ -282,9 +417,6 @@ export function generateMigrationPreview(
       } else {
         missingInGroup++;
         mappingLookup.mappingNotFound++;
-        // Maybe format mismatch? Check if any mapping has parts of it
-        const hasFormatMismatch = Object.values(existingMappings).some(m => m.legacyRecordIdentifier.includes(c.legacyRecordIdentifier) || c.legacyRecordIdentifier.includes(m.legacyRecordIdentifier));
-        if (hasFormatMismatch) mappingLookup.legacyKeyFormatMismatch++;
       }
     });
 
@@ -296,17 +428,24 @@ export function generateMigrationPreview(
       preparedDistinctButFreshMerge += freshGroupIds.size;
       mismatchGroups++;
       mismatchRecords += freshGroupIds.size;
+      mappingReconciliation.NEEDS_REBUILD += freshGroupIds.size;
+      mappingReconciliation.mappingMismatchReasons.FRESH_RULE_CHANGED += freshGroupIds.size;
     } else if (mappedCanonicalIds.size === 1) {
       const canonicalId = Array.from(mappedCanonicalIds)[0];
       const existingGroupIds = existingGroupsByCanonicalId.get(canonicalId)!;
       
       if (existingGroupIds.size > freshGroupIds.size) {
-        preparedMergeButFreshDistinct += existingGroupIds.size - freshGroupIds.size;
+        preparedMergeButFreshDistinct += (existingGroupIds.size - freshGroupIds.size);
         mismatchGroups++;
         mismatchRecords += freshGroupIds.size;
+        mappingReconciliation.NEEDS_REBUILD += freshGroupIds.size;
+        mappingReconciliation.mappingMismatchReasons.LEGACY_ALGORITHM_MERGE += freshGroupIds.size;
       } else {
         consistentRecords += freshGroupIds.size;
+        mappingReconciliation.SAFE_TO_KEEP += freshGroupIds.size;
       }
+    } else if (missingInGroup > 0) {
+      mappingReconciliation.NEEDS_REBUILD += freshGroupIds.size;
     }
   });
 
@@ -317,7 +456,8 @@ export function generateMigrationPreview(
     sourcesInspected: ['firestore_apostilas', 'firestore_assessments_grades', 'localstorage_assessments_grades'],
     containersDetected: {} as Record<string, number>,
     entitiesDetected: {} as Record<string, number>,
-    unrecognizedRecords: {} as Record<string, number>
+    unrecognizedRecords: {} as Record<string, number>,
+    structuralShapes: {} as Record<string, any>
   };
   
   const resultAudit = {
@@ -331,13 +471,14 @@ export function generateMigrationPreview(
       RESULT_CONTAINER_EMPTY: 0,
       RESULT_SCHEMA_RECOGNIZED: 0,
       RESULT_SCHEMA_UNRECOGNIZED: 0
-    }
+    },
+    structuralShapes: {} as Record<string, any>
   };
 
   let totalAssessments = 0;
   let totalResults = 0;
 
-  const processEvaluations = (sourceName: string, dataMap: Record<string, unknown> | undefined, expectedShape: 'results' | 'notas' = 'results') => {
+  const processEvaluations = (sourceName: string, dataMap: Record<string, unknown> | undefined) => {
     if (!dataMap) return;
     const keys = Object.keys(dataMap);
     if (keys.length === 0) return;
@@ -351,28 +492,56 @@ export function generateMigrationPreview(
     let resultNotExpected = 0;
     let resultEmpty = 0;
     
+    let capturedShape = false;
+
     keys.forEach(k => {
       const data = dataMap[k] as any;
       if (data && typeof data === 'object') {
         validEntities++;
         
-        // specific source adapter logic: some sources might legitimately not have results, 
-        // or have them named differently. For the sake of the audit, we check both 'results' and 'notas'.
-        const resultKey = data.results ? 'results' : (data.notas ? 'notas' : null);
+        if (!capturedShape) {
+           const shape: any = {};
+           Object.keys(data).forEach(field => {
+               shape[field] = Array.isArray(data[field]) ? 'array' : typeof data[field];
+           });
+           assessmentAudit.structuralShapes[sourceName] = shape;
+           capturedShape = true;
+        }
+
+        let resultKey = data.results ? 'results' : (data.notas ? 'notas' : null);
         
+        // Specific adapter for localstorage_assessments_grades
+        if (!resultKey && sourceName === 'localstorage_assessments_grades') {
+          // It might just be a flat object of student_id -> grade, or it might have a specific shape
+          // If it doesn't have metadata fields like "title" or "id", it might be purely a result map
+          if (Object.keys(data).length > 0 && !data.title && !data.name) {
+             resultKey = '_ROOT_AS_RESULTS_'; // Conceptual adapter
+          }
+        }
+
         if (resultKey) {
           resultAudit.schemaStatus.RESULT_SCHEMA_RECOGNIZED++;
-          const resultKeys = Object.keys(data[resultKey]);
+          const resultObj = resultKey === '_ROOT_AS_RESULTS_' ? data : data[resultKey];
+          const resultKeys = Object.keys(resultObj);
           if (resultKeys.length > 0) {
             sourceResultEntities += resultKeys.length;
           } else {
             resultAudit.schemaStatus.RESULT_CONTAINER_EMPTY++;
             resultEmpty++;
           }
+          
+          if (!resultAudit.structuralShapes[sourceName]) {
+             resultAudit.structuralShapes[sourceName] = { 
+               adapterUsed: resultKey,
+               sampleKeysCount: resultKeys.length,
+               sampleValueType: resultKeys.length > 0 ? typeof resultObj[resultKeys[0]] : 'unknown'
+             };
+          }
+
         } else {
-           // We'll mark as unrecognized for now, but in reality some assessments might just not have results yet.
            if (sourceName === 'firestore_apostilas') {
               resultAudit.schemaStatus.RESULT_NOT_EXPECTED++;
+              resultNotExpected++;
            } else {
               resultAudit.schemaStatus.RESULT_SCHEMA_UNRECOGNIZED++;
               sourceResultUnrecognized++;
@@ -482,6 +651,12 @@ export function generateMigrationPreview(
       mappingLookup
     },
     
+    mappingReconciliation,
+    matificClassResolutionAudit,
+    ambiguityClassCorrelation,
+    identifierCompleteness,
+    ambiguousBySourcePair,
+    ambiguousByClassResolution,
     ambiguousReasons,
     
     identifierSafety: {

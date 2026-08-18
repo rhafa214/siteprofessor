@@ -101,13 +101,23 @@ export default function MigrationAdmin() {
         migrationRunId: runId,
         sources: snapshot.sources,
         studentSourceRecords: preview.studentSourceRecords,
+        
         freshMatching: preview.freshMatching,
         mappingConsistency: preview.mappingConsistency,
+        mappingReconciliation: preview.mappingReconciliation,
+        
+        matificClassResolutionAudit: preview.matificClassResolutionAudit,
+        ambiguityClassCorrelation: preview.ambiguityClassCorrelation,
+        identifierCompleteness: preview.identifierCompleteness,
+        ambiguousBySourcePair: preview.ambiguousBySourcePair,
+        ambiguousByClassResolution: preview.ambiguousByClassResolution,
         ambiguousReasons: preview.ambiguousReasons,
+        
         identifierSafety: preview.identifierSafety,
         classResolution: preview.classResolution,
         assessmentAudit: preview.assessmentAudit,
         resultAudit: preview.resultAudit,
+        
         warningsCount: preview.warnings.length,
         errorsCount: preview.errors.length,
         safetyGates: {
@@ -139,7 +149,7 @@ export default function MigrationAdmin() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white min-h-screen">
-      <h1 className="text-3xl font-bold mb-4">Dry-Run da Migração Canônica (V4)</h1>
+      <h1 className="text-3xl font-bold mb-4">Dry-Run da Migração Canônica (V5)</h1>
       <p className="mb-6 text-gray-700">
         Esta tela executará a coleta do seu LocalStorage e Firestore (somente leitura), rodará o fresh matching e comparará a topologia dos grupos com os mappings previamente preparados. Nenhuma migração real será executada.
       </p>
@@ -148,7 +158,7 @@ export default function MigrationAdmin() {
         onClick={handleRun} 
         className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-md transition-colors"
       >
-        EXECUTAR DRY-RUN V4
+        EXECUTAR DRY-RUN V5
       </button>
       
       <div className="mt-6 p-4 border rounded bg-slate-50">
@@ -159,7 +169,7 @@ export default function MigrationAdmin() {
       {sanitizedReport && (
         <div className="mt-8">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-2xl font-semibold">Relatório Sanitizado V4</h2>
+            <h2 className="text-2xl font-semibold">Relatório Sanitizado V5</h2>
             <button 
               onClick={() => navigator.clipboard.writeText(JSON.stringify(sanitizedReport, null, 2))}
               className="text-sm bg-gray-200 hover:bg-gray-300 py-1 px-3 rounded"
