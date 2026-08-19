@@ -52,12 +52,12 @@ export interface ParseResult {
   sheetsFound?: SheetOption[];
   stats: {
     rowsRead: number;
-    validRows: number;
     ignoredBlankRows: number;
     reviewRequiredRows: number;
-    total: number;
-    active: number;
-    inactive: number;
+    historicalDuplicateRows: number;
+    uniqueStudents: number;
+    activeStudents: number;
+    nonActiveStudents: number;
     newStudents: number;
     existingStudents: number;
     updatedEnrollments: number;

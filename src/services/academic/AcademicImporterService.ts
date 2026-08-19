@@ -42,7 +42,7 @@ export class AcademicImporterService {
       const { candidates, stats } = await this.buildCandidates(uid, extracted.parsedRows, academicYear, classGroup);
 
       stats.ignoredBlankRows = extracted.ignoredBlankRows;
-      stats.rowsRead = stats.validRows + stats.ignoredBlankRows + stats.reviewRequiredRows;
+      stats.rowsRead = extracted.parsedRows.length + extracted.ignoredBlankRows;
 
       return { 
         result: {
@@ -63,12 +63,12 @@ export class AcademicImporterService {
   private emptyStats() {
     return {
       rowsRead: 0,
-      validRows: 0,
       ignoredBlankRows: 0,
+      historicalDuplicateRows: 0,
       reviewRequiredRows: 0,
-      total: 0,
-      active: 0,
-      inactive: 0,
+      uniqueStudents: 0,
+      activeStudents: 0,
+      nonActiveStudents: 0,
       newStudents: 0,
       existingStudents: 0,
       updatedEnrollments: 0,
@@ -119,41 +119,38 @@ export class AcademicImporterService {
     stats.notPresentInNewFile = countActiveMissing;
 
     for (const groupRows of groupedRows) {
-      const row = groupRows[0];
+      // The last row is the canonical current state
+      const resolvedRow = groupRows[groupRows.length - 1];
       
-      if (!row.ra) {
-         candidates.push({ rawRow: null, parsed: row, action: 'REVIEW_REQUIRED', conflictReason: 'MISSING_STRONG_IDENTIFIER' });
+      if (!resolvedRow.ra) {
+         candidates.push({ rawRow: null, parsed: resolvedRow, action: 'REVIEW_REQUIRED', conflictReason: 'MISSING_STRONG_IDENTIFIER' });
          stats.conflicts++;
          stats.reviewRequiredRows++;
+         stats.uniqueStudents++;
          continue;
       }
 
       if (groupRows.length > 1) {
-         const activeCount = groupRows.filter(r => r.normalizedStatus === 'ACTIVE').length;
+         stats.historicalDuplicateRows += (groupRows.length - 1);
          
-         if (activeCount > 1) {
-             candidates.push({ rawRow: null, parsed: row, action: 'REVIEW_REQUIRED', conflictReason: 'DUPLICATE_ACTIVE_CONFLICT' });
-             stats.conflicts++;
-             stats.reviewRequiredRows++;
-             continue;
+         let hasInternalConflict = false;
+         for (let i = 0; i < groupRows.length - 1; i++) {
+             const r = groupRows[i];
+             if (r.raDigit && resolvedRow.raDigit && r.raDigit !== resolvedRow.raDigit) hasInternalConflict = true;
+             if (r.normalizedName && resolvedRow.normalizedName && r.normalizedName !== resolvedRow.normalizedName) hasInternalConflict = true;
          }
          
-         if (activeCount === 1) {
-            const activeRow = groupRows.find(r => r.normalizedStatus === 'ACTIVE')!;
-            groupRows[0] = activeRow; 
-         } else {
-            const statuses = new Set(groupRows.map(r => r.normalizedStatus));
-            if (statuses.size > 1) {
-               candidates.push({ rawRow: null, parsed: groupRows[0], action: 'REVIEW_REQUIRED', conflictReason: 'STATUS_HISTORY_CONFLICT' });
-               stats.conflicts++;
-               stats.reviewRequiredRows++;
-               continue;
-            }
+         if (hasInternalConflict) {
+             candidates.push({ rawRow: null, parsed: resolvedRow, action: 'REVIEW_REQUIRED', conflictReason: 'IDENTITY_NAME_CONFLICT' });
+             stats.conflicts++;
+             stats.reviewRequiredRows++;
+             stats.uniqueStudents++;
+             continue;
          }
       }
 
-      const resolvedRow = groupRows[0];
-      
+      stats.uniqueStudents++;
+
       if (resolvedRow.normalizedStatus === 'UNKNOWN') {
         candidates.push({ rawRow: null, parsed: resolvedRow, action: 'REVIEW_REQUIRED', conflictReason: 'UNKNOWN_STATUS' });
         stats.conflicts++;
@@ -161,14 +158,14 @@ export class AcademicImporterService {
         continue;
       }
 
+      if (resolvedRow.normalizedStatus === 'ACTIVE') stats.activeStudents++;
+      else stats.nonActiveStudents++;
+
       const existingStudent = await this.studentRepo.findByExternalId(uid, 'ra', resolvedRow.ra);
       
       if (!existingStudent) {
         candidates.push({ rawRow: null, parsed: resolvedRow, action: 'CREATE_STUDENT' });
         stats.newStudents++;
-        stats.validRows++;
-        stats.total++;
-        if (resolvedRow.normalizedStatus === 'ACTIVE') stats.active++; else stats.inactive++;
       } else {
         
         // RA Digit check
@@ -194,9 +191,6 @@ export class AcademicImporterService {
         }
 
         stats.existingStudents++;
-        stats.validRows++;
-        stats.total++;
-        if (resolvedRow.normalizedStatus === 'ACTIVE') stats.active++; else stats.inactive++;
 
         const existingEnrollmentInCG = await this.enrollmentRepo.findByStudentAndClassGroup(uid, existingStudent.id, classGroup.id);
         

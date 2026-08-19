@@ -171,22 +171,30 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4 border text-center">
                   <div className="text-2xl font-bold text-gray-900">{parseResult.stats.rowsRead}</div>
                   <div className="text-xs text-gray-500 uppercase font-medium mt-1">Linhas Lidas</div>
                 </div>
-                <div className="bg-green-50 rounded-lg p-4 border border-green-100 text-center">
-                  <div className="text-2xl font-bold text-green-700">{parseResult.stats.validRows}</div>
-                  <div className="text-xs text-green-600 uppercase font-medium mt-1">Válidas</div>
-                </div>
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 text-center">
-                  <div className="text-2xl font-bold text-blue-700">{parseResult.stats.reviewRequiredRows}</div>
-                  <div className="text-xs text-blue-600 uppercase font-medium mt-1">Para Revisão</div>
+                  <div className="text-2xl font-bold text-blue-700">{parseResult.stats.uniqueStudents}</div>
+                  <div className="text-xs text-blue-600 uppercase font-medium mt-1">Alunos Únicos</div>
+                </div>
+                <div className="bg-green-50 rounded-lg p-4 border border-green-100 text-center">
+                  <div className="text-2xl font-bold text-green-700">{parseResult.stats.activeStudents}</div>
+                  <div className="text-xs text-green-600 uppercase font-medium mt-1">Ativos</div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 border text-center">
-                  <div className="text-2xl font-bold text-gray-600">{parseResult.stats.ignoredBlankRows}</div>
-                  <div className="text-xs text-gray-500 uppercase font-medium mt-1">Em Branco</div>
+                  <div className="text-2xl font-bold text-gray-600">{parseResult.stats.nonActiveStudents}</div>
+                  <div className="text-xs text-gray-500 uppercase font-medium mt-1">Não Ativos</div>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-4 border border-amber-100 text-center">
+                  <div className="text-2xl font-bold text-amber-700">{parseResult.stats.historicalDuplicateRows}</div>
+                  <div className="text-xs text-amber-600 uppercase font-medium mt-1">Histórico Consolidado</div>
+                </div>
+                <div className="bg-red-50 rounded-lg p-4 border border-red-100 text-center">
+                  <div className="text-2xl font-bold text-red-700">{parseResult.stats.reviewRequiredRows}</div>
+                  <div className="text-xs text-red-600 uppercase font-medium mt-1">Para Revisão</div>
                 </div>
               </div>
 
