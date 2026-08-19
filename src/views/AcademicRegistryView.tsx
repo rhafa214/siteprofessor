@@ -71,7 +71,12 @@ export default function AcademicRegistryView() {
           };
         })
       );
-      enriched.sort((a, b) => a.callNumber - b.callNumber);
+      enriched.sort((a, b) => {
+        if (a.callNumber === null && b.callNumber === null) return a.studentName.localeCompare(b.studentName);
+        if (a.callNumber === null) return 1;
+        if (b.callNumber === null) return -1;
+        return a.callNumber - b.callNumber;
+      });
       setEnrollments(enriched);
     } catch (e) {
       console.error(e);
@@ -176,7 +181,7 @@ export default function AcademicRegistryView() {
                 {enrollments.map(enr => (
                   <tr key={enr.id} className="hover:bg-gray-50 transition">
                     <td className="px-6 py-4 text-sm font-semibold text-gray-600">
-                      {enr.callNumber.toString().padStart(2, '0')}
+                      {enr.callNumber !== null && enr.callNumber !== undefined ? enr.callNumber.toString().padStart(2, '0') : '—'}
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-gray-900">
                       {enr.studentName}

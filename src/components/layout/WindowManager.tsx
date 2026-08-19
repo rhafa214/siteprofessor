@@ -36,6 +36,7 @@ const GuiaPedagogicoView = lazy(() => import("../../views/GuiaPedagogicoView"));
 const ProfileView = lazy(() => import("../../views/ProfileView"));
 const ScheduleView = lazy(() => import("../../views/ScheduleView"));
 const LousaView = lazy(() => import("../../views/LousaView"));
+const AcademicRegistryView = lazy(() => import("../../views/AcademicRegistryView"));
 
 const LoadingFallback = () => (
   <div className="flex h-full w-full bg-slate-50 items-center justify-center">
@@ -173,6 +174,7 @@ export function WindowManager() {
                   {win.view === "guia-pedagogico" && <GuiaPedagogicoView />}
                   {win.view === "apostilas" && <Apostilas />}
                   {win.view === "lousa-magica" && <LousaView />}
+                  {win.view === "cadastro-academico" && <AcademicRegistryView />}
                 </Suspense>
               </div>
             </div>

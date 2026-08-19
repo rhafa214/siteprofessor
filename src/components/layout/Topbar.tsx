@@ -31,6 +31,7 @@ export default function Topbar({ windowId }: { windowId?: string }) {
     plano: "Plano de Aula",
     "controle-tarefas": "Controle de Tarefas",
     alunos: "Banco de Alunos",
+    "cadastro-academico": "Cadastro Acadêmico",
     conhecimento: "Base do Jarvis",
     apostilas: "Minhas Apostilas",
     avaliacoes: "Central de Avaliações",
