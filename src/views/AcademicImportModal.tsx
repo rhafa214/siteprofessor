@@ -174,7 +174,7 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4 border text-center">
                   <div className="text-2xl font-bold text-gray-900">{parseResult.stats.rowsRead}</div>
-                  <div className="text-xs text-gray-500 uppercase font-medium mt-1">Linhas Lidas</div>
+                  <div className="text-xs text-gray-500 uppercase font-medium mt-1">Registros Lidos</div>
                 </div>
                 <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 text-center">
                   <div className="text-2xl font-bold text-blue-700">{parseResult.stats.uniqueStudents}</div>
@@ -204,23 +204,23 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
                 </div>
                 <div className="divide-y text-sm">
                    <div className="flex justify-between px-4 py-3">
-                     <span className="text-gray-600">Alunos Novos Criados</span>
+                     <span className="text-gray-600">Novos alunos a criar</span>
                      <span className="font-medium text-gray-900">{parseResult.stats.newStudents}</span>
                    </div>
                    <div className="flex justify-between px-4 py-3">
-                     <span className="text-gray-600">Alunos Existentes Encontrados</span>
+                     <span className="text-gray-600">Alunos existentes encontrados</span>
                      <span className="font-medium text-gray-900">{parseResult.stats.existingStudents}</span>
                    </div>
                    <div className="flex justify-between px-4 py-3">
-                     <span className="text-gray-600">Atualizações de Matrícula (Status/Número)</span>
+                     <span className="text-gray-600">Matrículas a atualizar</span>
                      <span className="font-medium text-gray-900">{parseResult.stats.updatedEnrollments}</span>
                    </div>
                    <div className="flex justify-between px-4 py-3">
-                     <span className="text-gray-600">Alterações de Turma (Remanejados)</span>
+                     <span className="text-gray-600">Alterações de turma</span>
                      <span className="font-medium text-gray-900">{parseResult.stats.classChanges}</span>
                    </div>
                    <div className="flex justify-between px-4 py-3">
-                     <span className="text-gray-600">Já atualizados (Sem modificação)</span>
+                     <span className="text-gray-600">Sem modificações</span>
                      <span className="font-medium text-gray-900">{parseResult.stats.ignoredDuplicates}</span>
                    </div>
                    {parseResult.stats.notPresentInNewFile > 0 && (

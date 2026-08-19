@@ -110,7 +110,7 @@ async function runTests() {
 
   const extrEFG = extractFromAoA(dataEFG);
   const { stats: statsEFG } = await (service as any).buildCandidates('uid', extrEFG.parsedRows, ay, cg);
-  statsEFG.rowsRead = extrEFG.parsedRows.length + extrEFG.ignoredBlankRows; // Simulate analyzeFile injecting these
+  statsEFG.rowsRead = extrEFG.parsedRows.length; // Simulate analyzeFile injecting these
   
   if (statsEFG.rowsRead !== 44) throw new Error("Test EFG rowsRead failed: " + statsEFG.rowsRead);
   if (statsEFG.uniqueStudents !== 43) throw new Error("Test EFG uniqueStudents failed");

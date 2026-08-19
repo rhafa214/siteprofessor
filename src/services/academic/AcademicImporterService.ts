@@ -42,7 +42,7 @@ export class AcademicImporterService {
       const { candidates, stats } = await this.buildCandidates(uid, extracted.parsedRows, academicYear, classGroup);
 
       stats.ignoredBlankRows = extracted.ignoredBlankRows;
-      stats.rowsRead = extracted.parsedRows.length + extracted.ignoredBlankRows;
+      stats.rowsRead = extracted.parsedRows.length;
 
       return { 
         result: {
