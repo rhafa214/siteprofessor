@@ -52,7 +52,7 @@ export async function backupLegacySnapshot(snapshot: LegacyAcademicSnapshot): Pr
 
 export async function runMigrationDryRun(snapshot: LegacyAcademicSnapshot, runId: string): Promise<MigrationPreview> {
   const existingMappings = await loadPreparedMappings(snapshot.userId);
-  const { preview, newMappings } = generateMigrationPreview(snapshot, existingMappings, {}, runId);
+  const { preview, newMappings } = await generateMigrationPreview(snapshot, existingMappings, {}, runId);
   await savePreparedMappings(snapshot.userId, newMappings);
   return preview;
 }

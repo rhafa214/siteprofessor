@@ -12,7 +12,8 @@ export type ViewType =
   | "guia-pedagogico"
   | "perfil"
   | "grade"
-  | "lousa-magica";
+  | "lousa-magica"
+  | "cadastro-academico";
 
 export const DATAS_OFICIAIS = {
   provas: [

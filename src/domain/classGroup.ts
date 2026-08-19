@@ -1,17 +1,14 @@
 export interface ClassGroup {
   id: string;
   academicYearId?: string;
-  grade?: string;
   name: string;
+  grade?: string;
+  section?: string;
   subject?: string;
   school?: string;
-  createdAt?: number;
-  updatedAt?: number;
-  status?: 'ACTIVE' | 'ARCHIVED';
-  
+  status: 'ACTIVE' | 'ARCHIVED';
+  createdAt: number;
+  updatedAt: number;
   legacySlug?: string;
-  migrationMetadata?: {
-    migrationRunId?: string;
-    legacySourceKeys?: string[];
-  };
+  migrationMetadata?: any;
 }

@@ -7,3 +7,4 @@ export * from './planning';
 export * from './migration';
 
 export const SUPPORTED_SCHEMA_VERSION = 1;
+export * from './enrollment';

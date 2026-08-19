@@ -1,6 +1,5 @@
 import { useState } from "react";
-import {
-  GraduationCap,
+import { GraduationCap,
   LayoutDashboard,
   Book,
   CalendarDays,
@@ -10,8 +9,7 @@ import {
   LogOut,
   Library,
   Map,
-  Layers,
-} from "lucide-react";
+  Layers, BookOpen } from "lucide-react";
 import type { ViewType } from "../../lib/constants";
 import { cn } from "../../lib/utils";
 import { useAuth } from "../../contexts/AuthContext";
@@ -79,6 +77,15 @@ export default function Sidebar() {
       icon: Map,
       color:
         "bg-gradient-to-b from-[#34C759] to-[#2E8B57] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.2)]",
+      iconColor: "text-white drop-shadow-sm",
+    },
+
+    {
+      id: "cadastro-academico",
+      label: "Acadêmico",
+      icon: BookOpen,
+      color:
+        "bg-gradient-to-b from-[#FFA726] to-[#EF6C00] shadow-[inset_0_1px_1px_rgba(255,255,255,0.4),0_2px_4px_rgba(0,0,0,0.2)]",
       iconColor: "text-white drop-shadow-sm",
     },
     {

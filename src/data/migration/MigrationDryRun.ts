@@ -997,6 +997,7 @@ export function getProposedClassGroups(existingMappings: Record<string, import('
                 id: (mapping as any).canonicalClassGroupId,
                 name: (mapping as any).canonicalClassGroupId, // Assuming name is ID for canonical
                 legacySlug: (mapping as any).legacyClassGroupSlug,
+                status: 'ACTIVE',
                 createdAt: 0,
                 updatedAt: 0
             });
