@@ -25,9 +25,7 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
   const [isCommitting, setIsCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!isOpen) return null;
-
-  const resetImportSession = () => {
+  const resetImportSession = React.useCallback(() => {
     setFile(null);
     setIsAnalyzing(false);
     setSheets(null);
@@ -37,13 +35,13 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  };
+  }, []);
 
   React.useEffect(() => {
     if (isOpen) {
       resetImportSession();
     }
-  }, [isOpen]);
+  }, [isOpen, resetImportSession]);
 
   const handleClose = () => {
     resetImportSession();
@@ -110,6 +108,8 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
       setIsCommitting(false);
     }
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -281,7 +281,7 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
                          <ul className="text-xs list-disc pl-4 space-y-1 text-red-700">
                            {parseResult.candidates.filter(c => c.action === 'REVIEW_REQUIRED').slice(0, 5).map((c, idx) => (
                               <li key={idx}>
-                                {c.parsed.name || 'Sem nome'} ({c.parsed.ra || 'Sem RA'}) - 
+                                {c.parsed.name || 'Sem nome'} - 
                                 {c.conflictReason === 'MISSING_STRONG_IDENTIFIER' && ' RA Ausente'}
                                 {c.conflictReason === 'DUPLICATE_ACTIVE_CONFLICT' && ' Múltiplos ativos na mesma tabela'}
                                 {c.conflictReason === 'IDENTITY_NAME_CONFLICT' && ' Nome muito diferente do RA existente'}

@@ -4,7 +4,7 @@ import { ParsedRow, SheetOption } from './AcademicImporterTypes';
 
 export function normalizeString(str: string): string {
   if (!str) return '';
-  return str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "");
+  return str.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ');
 }
 
 export function parseStatus(status: string): ParsedRow['normalizedStatus'] {
@@ -12,7 +12,7 @@ export function parseStatus(status: string): ParsedRow['normalizedStatus'] {
   if (s.includes('ativo') && !s.includes('inativo')) return 'ACTIVE';
   if (s.includes('transferido') || s.includes('transferencia')) return 'TRANSFERRED';
   if (s.includes('remanejamento') || s.includes('remanejado')) return 'REASSIGNED';
-  if (s.includes('inativo')) return 'INACTIVE';
+  if (s.includes('inativo') || s.includes('nao comparecido')) return 'INACTIVE';
   return 'UNKNOWN';
 }
 
