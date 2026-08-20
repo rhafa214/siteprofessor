@@ -163,6 +163,7 @@ export function WindowManager() {
               <div className="w-full h-full print:w-full print:h-auto">
                 <Suspense fallback={<LoadingFallback />}>
                   {win.view === "perfil" && <ProfileView />}
+                  {win.view === "controle-tarefas" && <TaskAnalysis />}
                   {win.view === "grade" && <ScheduleView />}
                   {win.view === "diario" && <ClassJournal />}
                   {win.view === "agenda" && <Agenda />}

@@ -3,10 +3,12 @@ import CanonicalTaskAnalysisView from "./CanonicalTaskAnalysisView";
 import LegacyTaskAnalysisView from "./LegacyTaskAnalysisView";
 import { History } from "lucide-react";
 
+import { getCurrentBimestre } from "../lib/constants";
+
 export default function TaskAnalysis({
-  selectedBimestre,
+  selectedBimestre = `${getCurrentBimestre()}º Bimestre`,
 }: {
-  selectedBimestre: string;
+  selectedBimestre?: string;
 }) {
   const [isLegacyMode, setIsLegacyMode] = useState(false);
 

@@ -29,7 +29,7 @@ export default function Topbar({ windowId }: { windowId?: string }) {
     grade: "Grade de Horários",
     agenda: "Agenda Estratégica",
     plano: "Plano de Aula",
-    "controle-tarefas": "Controle de Tarefas",
+    "controle-tarefas": "Task Analysis",
     alunos: "Banco de Alunos",
     "cadastro-academico": "Cadastro Acadêmico",
     conhecimento: "Base do Jarvis",

@@ -25,6 +25,7 @@ import {
   Users,
   Pen,
   ClipboardCheck,
+  Activity,
 } from "lucide-react";
 import { getSmartPhrase, DATAS_OFICIAIS } from "../lib/constants";
 import { useLocalStorage } from "../hooks/useLocalStorage";
@@ -1545,6 +1546,17 @@ Bimestres escolares:
                 </div>
                 <span className="font-medium text-[11px] text-slate-100 mt-1.5">
                   Perfil
+                </span>
+              </button>
+              <button
+                onClick={() => setCurrentView("controle-tarefas")}
+                className="group flex flex-col items-center w-full"
+              >
+                <div className="w-14 h-14 rounded-[16px] bg-indigo-500 shadow-sm flex items-center justify-center transition-transform active:scale-90">
+                  <Activity size={24} className="text-white" />
+                </div>
+                <span className="font-medium text-[11px] text-slate-100 mt-1.5 whitespace-nowrap">
+                  Task Analysis
                 </span>
               </button>
               <button
