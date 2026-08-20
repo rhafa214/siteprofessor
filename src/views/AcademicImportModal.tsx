@@ -27,6 +27,29 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
 
   if (!isOpen) return null;
 
+  const resetImportSession = () => {
+    setFile(null);
+    setIsAnalyzing(false);
+    setSheets(null);
+    setParseResult(null);
+    setIsCommitting(false);
+    setError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  React.useEffect(() => {
+    if (isOpen) {
+      resetImportSession();
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    resetImportSession();
+    onClose();
+  };
+
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = e.target.files?.[0];
     if (!selected) return;
@@ -96,12 +119,28 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
             <h2 className="text-lg font-semibold text-gray-900">Importar Alunos</h2>
             <p className="text-sm text-gray-500">Turma {classGroup.name} • {academicYear.year}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600">
+          <button onClick={handleClose} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
+          {file && (
+            <div className="mb-6 flex items-center justify-between bg-gray-50 p-3 rounded-lg border">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-900 truncate">{file.name}</span>
+              </div>
+              <button 
+                onClick={resetImportSession}
+                disabled={isCommitting}
+                className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap"
+              >
+                Trocar Arquivo
+              </button>
+            </div>
+          )}
+
           {!file && (
             <div 
               className="border-2 border-dashed border-gray-200 rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50/50 transition-colors"
@@ -265,7 +304,7 @@ export default function AcademicImportModal({ isOpen, onClose, academicYear, cla
 
         <div className="px-6 py-4 border-t bg-gray-50 flex justify-end gap-3">
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isCommitting}
             className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
           >
