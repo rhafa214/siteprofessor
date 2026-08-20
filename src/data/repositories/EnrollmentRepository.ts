@@ -19,11 +19,31 @@ export class EnrollmentRepository {
   
   async findByStudentAndAcademicYear(uid: string, studentId: string, academicYearId: string): Promise<Enrollment[]> {
     const q = query(collection(this.db, `users/${uid}/enrollments`), 
-      where('studentId', '==', studentId), 
-      where('academicYearId', '==', academicYearId)
+       where('studentId', '==', studentId), 
+       where('academicYearId', '==', academicYearId)
     );
     const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() } as Enrollment));
+  }
+
+  async findByStudentAndClassGroup(uid: string, studentId: string, classGroupId: string): Promise<Enrollment | null> {
+    const q = query(
+      collection(this.db, `users/${uid}/enrollments`),
+      where('studentId', '==', studentId),
+      where('classGroupId', '==', classGroupId)
+    );
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return { id: snap.docs[0].id, ...snap.docs[0].data() } as Enrollment;
+  }
+
+  async getActiveByStudentAndYear(uid: string, studentId: string, academicYearId: string): Promise<Enrollment | null> {
+    const all = await this.findByStudentAndAcademicYear(uid, studentId, academicYearId);
+    const active = all.filter(e => e.status === 'ACTIVE');
+    if (active.length > 1) {
+      throw new Error('MULTIPLE_ACTIVE_ENROLLMENTS');
+    }
+    return active.length === 1 ? active[0] : null;
   }
 
   async create(uid: string, enrollment: Omit<Enrollment, 'createdAt' | 'updatedAt'>): Promise<Enrollment> {

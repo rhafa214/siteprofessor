@@ -44,6 +44,17 @@ export interface ImportCandidate {
   classGroupChange?: { fromClassGroupId: string }; 
 }
 
+export interface IStudentRepository {
+  getById(uid: string, id: string): Promise<Student | null>;
+  findByExternalId(uid: string, key: string, value: string): Promise<Student | null>;
+}
+
+export interface IEnrollmentRepository {
+  getActiveByClassGroup(uid: string, classGroupId: string): Promise<Enrollment[]>;
+  findByStudentAndClassGroup(uid: string, studentId: string, classGroupId: string): Promise<Enrollment | null>;
+  getActiveByStudentAndYear(uid: string, studentId: string, academicYearId: string): Promise<Enrollment | null>;
+}
+
 export interface ParseResult {
   yearFound?: number;
   candidates: ImportCandidate[];

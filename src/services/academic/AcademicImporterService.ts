@@ -1,13 +1,13 @@
 import { getFirestore, writeBatch, doc, collection } from 'firebase/firestore';
 import { app } from '../../lib/firebase';
-import { ParsedRow, ImportCandidate, ParseResult, ImportAction, SheetOption } from './AcademicImporterTypes';
+import { ParsedRow, ImportCandidate, ParseResult, ImportAction, SheetOption, IStudentRepository, IEnrollmentRepository } from './AcademicImporterTypes';
 import { parseFileToSheets, filterCompatibleSheets, extractFromAoA } from './AcademicImporterParser';
 import { AcademicYear, ClassGroup, Student, Enrollment } from '../../domain';
 
 export class AcademicImporterService {
   constructor(
-    private studentRepo: any,
-    private enrollmentRepo: any
+    private studentRepo: IStudentRepository,
+    private enrollmentRepo: IEnrollmentRepository
   ) {}
 
   public async analyzeFile(uid: string, file: File, academicYear: AcademicYear, classGroup: ClassGroup, selectedSheetName?: string): Promise<{ result?: ParseResult, sheets?: SheetOption[], errors: string[] }> {
