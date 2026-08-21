@@ -138,33 +138,8 @@ export default function LegacyTaskAnalysisView({
 
   // Save changes
   const saveClassData = async (newData: ClassData) => {
-    setClassData(newData);
-    const bKey = selectedBimestre.replace("º Bimestre", "");
-    try {
-      if (user) {
-        // Save to firebase
-        setIsSaving(true);
-        await setDoc(
-          doc(
-            db,
-            "users",
-            user.uid,
-            "taskAnalysis",
-            `${bKey}_${selectedTurma}`,
-          ),
-          newData,
-        );
-        setIsSaving(false);
-      }
-      // Always save to local storage as backup
-      localStorage.setItem(
-        `taskAnalysis_${bKey}_${selectedTurma}`,
-        JSON.stringify(newData),
-      );
-    } catch (e) {
-      console.error("Error saving task data", e);
-      setIsSaving(false);
-    }
+    console.warn("Legacy mode is read-only. Bypassing saveClassData.");
+    showAlert("O modo legado é somente leitura. Edições foram desabilitadas.", "Aviso", "info");
   };
 
   // ----------------------------------------
@@ -392,16 +367,18 @@ export default function LegacyTaskAnalysisView({
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl shadow-sm">
+            <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl shadow-sm">
               <ClipboardCheck size={28} />
             </div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-4">
               Controle de Tarefas
+              <span className="bg-amber-100 text-amber-800 text-xs px-2 py-1 rounded-md border border-amber-200">
+                Registro legado — somente leitura
+              </span>
             </h1>
           </div>
           <p className="text-slate-500 font-medium">
-            Acompanhe a entrega de trabalhos e componha a média final de cada
-            aluno.
+            Visualização do histórico antigo. As edições estão desabilitadas.
           </p>
         </div>
       </div>
@@ -483,11 +460,13 @@ export default function LegacyTaskAnalysisView({
                   }
                   let studentsCount = 0;
                   let tasksCount = 0;
+                  let hasLocalData = false;
                   if (localData) {
                     try {
                       const parsed = JSON.parse(localData);
                       studentsCount = parsed.students?.length || 0;
                       tasksCount = parsed.tasks?.length || 0;
+                      hasLocalData = true;
                     } catch (e) {}
                   }
 
@@ -501,13 +480,6 @@ export default function LegacyTaskAnalysisView({
                       }}
                       className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:shadow-md hover:border-emerald-200 transition-all group flex flex-col justify-between min-h-[160px] relative"
                     >
-                      <button
-                        onClick={(e) => handleDeleteTurma(e, turma)}
-                        className="absolute top-4 right-4 p-2 text-slate-300 hover:bg-red-50 hover:text-red-500 rounded-xl transition-colors opacity-0 group-hover:opacity-100"
-                        title="Excluir Turma"
-                      >
-                        <Trash2 size={18} />
-                      </button>
                       <div>
                         <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                           <Users size={20} />
@@ -516,12 +488,20 @@ export default function LegacyTaskAnalysisView({
                           {turma}
                         </h3>
                         <div className="flex gap-4 text-xs font-bold text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <Users size={14} /> {studentsCount} Alunos
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <ClipboardCheck size={14} /> {tasksCount} Tarefas
-                          </span>
+                          {hasLocalData ? (
+                            <>
+                              <span className="flex items-center gap-1">
+                                <Users size={14} /> {studentsCount} Alunos
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <ClipboardCheck size={14} /> {tasksCount} Tarefas
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400">
+                              Clique para consultar o histórico
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center text-sm font-bold text-emerald-600 mt-4 gap-1">
@@ -598,104 +578,13 @@ export default function LegacyTaskAnalysisView({
                   {/* Header Controls */}
                   <div className="p-4 md:p-6 border-b border-slate-100 flex flex-wrap gap-4 items-center justify-between bg-slate-50/50">
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className={`flex items-center gap-2 px-4 py-2 bg-white border rounded-xl font-bold text-sm shadow-sm transition-colors border-slate-200 text-slate-700 hover:bg-slate-50`}
-                      >
-                        <Users size={16} /> Alunos da Turma
-                      </button>
-                      <button
-                        onClick={() => setIsAddingTask(!isAddingTask)}
-                        className={`flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white border border-indigo-700 rounded-xl font-bold text-sm shadow-sm transition-colors hover:bg-indigo-700`}
-                      >
-                        <Plus size={16} /> Nova Tarefa/Av.
-                      </button>
+                      {/* Ocultado no Legado */}
                     </div>
 
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
-                      {isSaving && (
-                        <>
-                          <Loader2 size={12} className="animate-spin" />{" "}
-                          Salvando...
-                        </>
-                      )}
-                      {!isSaving && (
-                        <>
-                          <CheckCircle2 size={12} /> Salvo
-                        </>
-                      )}
+                      <CheckCircle2 size={12} /> Somente leitura
                     </div>
                   </div>
-
-                  {/* Adding Panels */}
-                  <AnimatePresence>
-                    {isAddingTask && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="border-b border-indigo-100 bg-indigo-50/30 overflow-hidden"
-                      >
-                        <form onSubmit={handleAddTask} className="p-6">
-                          <h3 className="font-bold text-indigo-900 mb-4">
-                            Adicionar Nova Tarefa ou Avaliação
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                            <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-indigo-800 uppercase tracking-wide mb-1">
-                                Título/Descrição
-                              </label>
-                              <input
-                                type="text"
-                                required
-                                value={newTask.title}
-                                onChange={(e) =>
-                                  setNewTask({
-                                    ...newTask,
-                                    title: e.target.value,
-                                  })
-                                }
-                                className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
-                                placeholder="Ex: Trabalho de Pesquisa"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-bold text-indigo-800 uppercase tracking-wide mb-1">
-                                Data
-                              </label>
-                              <input
-                                type="date"
-                                required
-                                value={newTask.date}
-                                onChange={(e) =>
-                                  setNewTask({
-                                    ...newTask,
-                                    date: e.target.value,
-                                  })
-                                }
-                                className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-medium"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setIsAddingTask(false)}
-                              className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-indigo-100 rounded-xl"
-                            >
-                              Cancelar
-                            </button>
-                            <button
-                              type="submit"
-                              className="px-4 py-2 text-sm font-bold bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl flex items-center gap-2"
-                            >
-                              <Plus size={16} /> Adicionar
-                            </button>
-                          </div>
-                        </form>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
 
                   {/* Main Grid */}
                   <div className="overflow-auto flex-1 h-0">
@@ -703,11 +592,10 @@ export default function LegacyTaskAnalysisView({
                       <div className="p-16 text-center">
                         <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                         <h3 className="text-xl font-bold text-slate-700 mb-2">
-                          Nenhum aluno cadastrado nesta turma
+                          Histórico Vazio
                         </h3>
                         <p className="text-slate-500">
-                          Clique em "Adicionar Alunos" para colar a lista da sua
-                          turma.
+                          Não foram encontrados registros legados de alunos e tarefas para esta turma neste período.
                         </p>
                       </div>
                     ) : (
@@ -740,13 +628,9 @@ export default function LegacyTaskAnalysisView({
                                       ).toLocaleDateString("pt-BR")}
                                     </span>
                                   </div>
-                                  <button
-                                    onClick={() => removeTask(task.id)}
-                                    className="text-slate-400 hover:text-red-600 transition-colors p-1.5 bg-white rounded-md shadow-sm border border-slate-200"
-                                    title="Remover Tarefa"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
+                                  <div className="text-slate-400 opacity-50 p-1.5">
+                                    {/* Ocultado no Legado */}
+                                  </div>
                                 </div>
                               </th>
                             ))}
@@ -758,7 +642,7 @@ export default function LegacyTaskAnalysisView({
                               </span>
                             </th>
                             <th className="p-4 w-12 text-center text-slate-400">
-                              <Trash2 size={16} className="mx-auto" />
+                              {/* Trash header omitted */}
                             </th>
                           </tr>
                         </thead>
@@ -791,23 +675,13 @@ export default function LegacyTaskAnalysisView({
                                     >
                                       <input
                                         type="number"
-                                        min="0"
-                                        max="60"
-                                        step="0.1"
+                                        readOnly
                                         value={
                                           val === null || val === undefined
                                             ? ""
                                             : val
                                         }
-                                        onChange={(e) =>
-                                          handleGradeChange(
-                                            student.id,
-                                            task.id,
-                                            e.target.value,
-                                          )
-                                        }
-                                        onBlur={handleGradeBlur}
-                                        className={`w-full bg-transparent border-b-2 px-2 py-1 text-center font-bold text-sm focus:outline-none focus:bg-white focus:rounded focus:shadow-sm transition-all ${
+                                        className={`w-full bg-transparent border-b-2 px-2 py-1 text-center font-bold text-sm focus:outline-none transition-all cursor-default opacity-90 ${
                                           val === undefined ||
                                           val === null ||
                                           String(val) === ""
@@ -859,14 +733,8 @@ export default function LegacyTaskAnalysisView({
                                     </span>
                                   )}
                                 </td>
-                                <td className="p-4 text-center">
-                                  <button
-                                    onClick={() => removeStudent(student.id)}
-                                    className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
-                                    title="Remover Aluno"
-                                  >
-                                    <X size={16} />
-                                  </button>
+                                <td className="p-4 text-center text-slate-400 opacity-50">
+                                  {/* Ocultado no Legado */}
                                 </td>
                               </tr>
                             );
