@@ -1,5 +1,5 @@
 import { AcademicRosterService, CanonicalStudentRoster } from './src/services/academic/AcademicRosterService';
-import { TaskAnalysisMatchingService } from './src/services/academic/TaskAnalysisMatchingService';
+import { AcademicMatchingService } from './src/services/academic/AcademicMatchingService';
 
 // Mock dependencies
 class MockStudentRepo {
@@ -31,7 +31,7 @@ async function runAudit() {
   const studentRepo = new MockStudentRepo() as any;
   const enrollmentRepo = new MockEnrollmentRepo() as any;
   const rosterService = new AcademicRosterService(studentRepo, enrollmentRepo);
-  const matchService = new TaskAnalysisMatchingService();
+  const matchService = new AcademicMatchingService();
   
   const uid = "mock_user";
   const yearId = "year2026";

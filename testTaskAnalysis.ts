@@ -1,10 +1,10 @@
-import { TaskAnalysisMatchingService } from './src/services/academic/TaskAnalysisMatchingService.ts';
+import { AcademicMatchingService } from './src/services/academic/AcademicMatchingService.ts';
 import { AcademicRosterService, CanonicalStudentRoster } from './src/services/academic/AcademicRosterService.ts';
 
 async function runTests() {
   console.log("Running Task Analysis Tests...");
 
-  const matcher = new TaskAnalysisMatchingService();
+  const matcher = new AcademicMatchingService();
 
   const roster: CanonicalStudentRoster[] = [
     { studentId: 's1', name: 'João da Silva', normalizedName: 'joao da silva', callNumber: 1 },

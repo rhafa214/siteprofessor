@@ -10,7 +10,7 @@ export interface MatchResult {
   missingStudents: CanonicalStudentRoster[];
 }
 
-export class TaskAnalysisMatchingService {
+export class AcademicMatchingService {
   matchImportedRecords(
     extractedNames: string[],
     roster: CanonicalStudentRoster[]

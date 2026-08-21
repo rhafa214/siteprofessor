@@ -3,7 +3,7 @@ import { AcademicYear, ClassGroup } from "../domain";
 import { AcademicYearRepository, ClassGroupRepository, StudentRepository, EnrollmentRepository } from "../data/repositories";
 import { AcademicRosterService, CanonicalStudentRoster } from "../services/academic/AcademicRosterService";
 import { TaskAnalysisService, CanonicalTaskAssessment, CanonicalTaskResult } from "../services/academic/TaskAnalysisService";
-import { TaskAnalysisMatchingService, MatchResult } from "../services/academic/TaskAnalysisMatchingService";
+import { AcademicMatchingService, MatchResult } from "../services/academic/AcademicMatchingService";
 import { useAuth } from "../contexts/AuthContext";
 import { useAlert } from "../contexts/AlertContext";
 import { useConfirm } from "../contexts/ConfirmContext";
@@ -26,7 +26,7 @@ export default function CanonicalTaskAnalysisView({
   const classRepo = useRef(new ClassGroupRepository());
   const rosterService = useRef(new AcademicRosterService(new StudentRepository(), new EnrollmentRepository()));
   const taskService = useRef(new TaskAnalysisService());
-  const matchService = useRef(new TaskAnalysisMatchingService());
+  const matchService = useRef(new AcademicMatchingService());
 
   // State
   const [years, setYears] = useState<AcademicYear[]>([]);
