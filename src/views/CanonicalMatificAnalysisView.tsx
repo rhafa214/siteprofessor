@@ -5,7 +5,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { useConfirm } from "../contexts/ConfirmContext";
 import { useAlert } from "../contexts/AlertContext";
 import { AcademicRosterService, CanonicalStudentRoster } from "../services/academic/AcademicRosterService";
-import { StudentRepository, EnrollmentRepository } from "../data/repositories";
+import { StudentRepository, EnrollmentRepository, AcademicYearRepository, ClassGroupRepository } from "../data/repositories";
+import { AcademicYear, ClassGroup } from "../domain";
 import { MatificService, CanonicalMatificImport } from "../services/academic/MatificService";
 import { AcademicMatchingService, MatchResult } from "../services/academic/AcademicMatchingService";
 import { parseMatificFile, MatificParsedRow } from "../services/academic/MatificFileParser";
@@ -17,7 +18,10 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
   const { showAlert } = useAlert();
 
   const [selectedTurma, setSelectedTurma] = useState<string>("");
-  const [academicYearId, setAcademicYearId] = useState<string>("2026"); // Mocked for now, canonical flow usually requires selection
+  const [academicYearId, setAcademicYearId] = useState<string>("");
+  
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [classGroups, setClassGroups] = useState<ClassGroup[]>([]);
 
   const [roster, setRoster] = useState<CanonicalStudentRoster[]>([]);
   const [imports, setImports] = useState<CanonicalMatificImport[]>([]);
@@ -25,12 +29,12 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [isAddingWeek, setIsAddingWeek] = useState(false);
-  const [newWeek, setNewWeek] = useState({ title: "", date: "" });
   
   const rosterService = useRef(new AcademicRosterService(new StudentRepository(), new EnrollmentRepository()));
   const matificService = useRef(new MatificService());
   const matchService = useRef(new AcademicMatchingService());
+  const yearRepo = useRef(new AcademicYearRepository());
+  const classGroupRepo = useRef(new ClassGroupRepository());
 
   // Import flow states
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,17 +44,28 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
   const [importTitle, setImportTitle] = useState("");
   const [importDate, setImportDate] = useState("");
 
-  const turmasList = [
-    "6°A - Orientação de estudos",
-    "6°B - Matemática",
-    "6°C - Matemática",
-    "7°C - Matemática",
-    "8°A - Matemática",
-    "Itinerário 1° e 2°",
-  ];
+  const classGroupId = selectedTurma;
+  
+  useEffect(() => {
+    if (user) {
+      yearRepo.current.getAll(user.uid).then(years => {
+        setAcademicYears(years);
+        if (years.length > 0) {
+          setAcademicYearId(years[0].id);
+        }
+      });
+    }
+  }, [user]);
 
-  // We should actually get academicYear and classGroup from somewhere, but to preserve UI, we'll map selectedTurma to classGroupId
-  const classGroupId = selectedTurma; 
+  useEffect(() => {
+    if (user && academicYearId) {
+      classGroupRepo.current.getByAcademicYear(user.uid, academicYearId).then(groups => {
+        setClassGroups(groups);
+      });
+    } else {
+      setClassGroups([]);
+    }
+  }, [user, academicYearId]);
 
   useEffect(() => {
     if (!selectedTurma || !user) return;
@@ -90,22 +105,6 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
     }
   };
 
-  const handleAddWeek = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || !classGroupId || !newWeek.title || !newWeek.date) return;
-    try {
-      setIsSaving(true);
-      await matificService.current.createManualImport(user.uid, academicYearId, classGroupId, newWeek.title, newWeek.date);
-      setNewWeek({ title: "", date: "" });
-      setIsAddingWeek(false);
-      await loadCanonicalData();
-    } catch (e: any) {
-      console.error(e);
-      showAlert("Erro ao adicionar semana", "Erro", "error");
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const removeWeek = async (id: string) => {
     if (!user) return;
@@ -222,22 +221,48 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
   if (!selectedTurma) {
     return (
       <div className="max-w-7xl mx-auto p-4 md:p-8 pt-24 space-y-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-3 bg-blue-100 text-blue-700 rounded-2xl shadow-sm">
-            <Gamepad2 size={28} />
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-3 bg-blue-100 text-blue-700 rounded-2xl shadow-sm">
+                <Gamepad2 size={28} />
+              </div>
+              <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+                Matific Canônico
+              </h1>
+            </div>
+            <p className="text-slate-500 font-medium">Selecione uma turma do seu Cadastro Acadêmico.</p>
           </div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-            Controle Matific
-          </h1>
+          <div className="w-full md:w-64">
+            <label className="block text-xs font-bold text-slate-500 mb-2 uppercase">Ano Letivo</label>
+            <select
+              value={academicYearId}
+              onChange={(e) => setAcademicYearId(e.target.value)}
+              className="w-full bg-white border border-slate-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none"
+            >
+              {academicYears.map(y => (
+                <option key={y.id} value={y.id}>{y.year}</option>
+              ))}
+              {academicYears.length === 0 && <option value="">Sem anos letivos</option>}
+            </select>
+          </div>
         </div>
-        <p className="text-slate-500 font-medium">Selecione uma turma para carregar o roster canônico.</p>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {turmasList.map(turma => (
-            <div key={turma} onClick={() => setSelectedTurma(turma)} className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:shadow-md transition-all">
-              <h3 className="font-bold text-slate-800 mb-4">{turma}</h3>
-              <p className="text-sm text-slate-500">Abrir turma</p>
+          {classGroups.map(group => (
+            <div key={group.id} onClick={() => setSelectedTurma(group.id)} className="bg-white border border-slate-200 p-6 rounded-3xl shadow-sm cursor-pointer hover:shadow-md hover:border-blue-200 transition-all group/card">
+              <h3 className="font-bold text-slate-800 mb-2 text-xl group-hover/card:text-blue-600 transition-colors">{group.name}</h3>
+              <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
+                {group.grade && <span>Ano: {group.grade}</span>}
+                {group.section && <span>Turma: {group.section}</span>}
+              </div>
             </div>
           ))}
+          {classGroups.length === 0 && (
+            <div className="col-span-full p-8 text-center bg-slate-50 rounded-3xl border border-slate-200 border-dashed">
+              <p className="text-slate-500 font-medium">Nenhuma turma encontrada para este ano letivo no Cadastro Acadêmico.</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -255,7 +280,7 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
               <Gamepad2 size={28} />
             </div>
             <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-              Matific — {selectedTurma}
+              Matific — {classGroups.find(c => c.id === selectedTurma)?.name || selectedTurma}
             </h1>
           </div>
           <p className="text-slate-500 font-medium">
@@ -271,9 +296,6 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
             <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-sm shadow-sm transition-colors">
               <Upload size={16} /> Importar Resultados
             </button>
-            <button onClick={() => setIsAddingWeek(!isAddingWeek)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white border border-blue-700 rounded-xl font-bold text-sm shadow-sm transition-colors hover:bg-blue-700">
-              <Plus size={16} /> Nova Semana
-            </button>
           </div>
           <div className="flex items-center gap-2 text-xs font-bold text-slate-400">
             {isSaving ? <><Loader2 size={12} className="animate-spin" /> Salvando...</> : <><CheckCircle2 size={12} /> Salvo</>}
@@ -281,27 +303,6 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: { sel
         </div>
 
         <AnimatePresence>
-          {isAddingWeek && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-b border-blue-100 bg-blue-50/30 overflow-hidden shrink-0">
-              <form onSubmit={handleAddWeek} className="p-6">
-                <h3 className="font-bold text-blue-900 mb-4">Adicionar Nova Semana Matific</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Título/Período</label>
-                    <input type="text" required value={newWeek.title} onChange={e => setNewWeek({ ...newWeek, title: e.target.value })} className="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium" placeholder="Ex: 11 a 15 de maio" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Data Referência</label>
-                    <input type="date" required value={newWeek.date} onChange={e => setNewWeek({ ...newWeek, date: e.target.value })} className="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium" />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setIsAddingWeek(false)} className="px-4 py-2 text-sm font-bold text-slate-600 hover:bg-blue-100 rounded-xl">Cancelar</button>
-                  <button type="submit" className="px-4 py-2 text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 rounded-xl flex items-center gap-2"><Plus size={16} /> Adicionar</button>
-                </div>
-              </form>
-            </motion.div>
-          )}
         </AnimatePresence>
 
         <div className="overflow-auto flex-1 h-0">
