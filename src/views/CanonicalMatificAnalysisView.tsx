@@ -319,7 +319,7 @@ export default function CanonicalMatificAnalysisView({ selectedBimestre }: Props
     });
   }
 
-  const mediaMinutos = alunosLancados > 0 ? Math.round(totalMinutos / alunosLancados) : 0;
+  const mediaMinutos = alunosLancados > 0 ? String(Math.round(totalMinutos / alunosLancados)) : "—";
 
   const formatDate = (ds: string) => {
     const [y, m, d] = ds.split("-");
