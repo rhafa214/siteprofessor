@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import fs from "fs";
+
+const content = `import React, { useState, useEffect } from "react";
 import { Calculator, ChevronRight, Download, Users, AlertCircle } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { BimestralGradeService, StudentGradeMeta } from "../services/academic/BimestralGradeService";
 import { AcademicRosterService } from "../services/academic/AcademicRosterService";
-import { StudentRepository } from "../data/repositories/StudentRepository";
-import { EnrollmentRepository } from "../data/repositories/EnrollmentRepository";
 import { CanonicalAssessmentService } from "../services/academic/CanonicalAssessmentService";
 import { GradePlanService } from "../services/academic/GradePlanService";
 import { CanonicalGradeComponent } from "../domain/assessment/GradePlanTypes";
@@ -50,14 +50,14 @@ export default function CalculadoraMediaView({ selectedBimestre }: { selectedBim
       setLoading(true);
       try {
         const bgService = new BimestralGradeService(
-          new AcademicRosterService(new StudentRepository(), new EnrollmentRepository()),
+          new AcademicRosterService(),
           new CanonicalAssessmentService(),
           new GradePlanService()
         );
         
         // Find bkey
         const bKey = selectedBimestre.replace("º Bimestre", "").trim();
-        const tId = `term_${bKey}`; // very simplified termId resolution for now
+        const tId = \`term_\${bKey}\`; // very simplified termId resolution for now
 
         const turmaName = turmasList.find(t => t.id === selectedTurma)?.name || selectedTurma;
         
@@ -131,17 +131,17 @@ export default function CalculadoraMediaView({ selectedBimestre }: { selectedBim
         <div className="flex bg-slate-100 p-1 rounded-xl">
           <button
             onClick={() => setSubTab("tabela")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+            className={\`px-4 py-2 rounded-lg text-sm font-bold transition-colors \${
               subTab === "tabela" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
+            }\`}
           >
             Tabela de Notas
           </button>
           <button
             onClick={() => setSubTab("relatorio")}
-            className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${
+            className={\`px-4 py-2 rounded-lg text-sm font-bold transition-colors \${
               subTab === "relatorio" ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
-            }`}
+            }\`}
           >
             Relatório p/ Pais
           </button>
@@ -187,7 +187,7 @@ export default function CalculadoraMediaView({ selectedBimestre }: { selectedBim
                              </td>
                            );
                         })}
-                        <td className={`px-4 py-2 text-center border-l-2 border-teal-100 font-bold ${s.mediaFinal < 5 ? "text-rose-600 bg-rose-50/50" : "text-teal-700 bg-teal-50/50"}`}>
+                        <td className={\`px-4 py-2 text-center border-l-2 border-teal-100 font-bold \${s.mediaFinal < 5 ? "text-rose-600 bg-rose-50/50" : "text-teal-700 bg-teal-50/50"}\`}>
                           {s.mediaFinal.toFixed(1)}
                         </td>
                      </tr>
@@ -202,10 +202,12 @@ export default function CalculadoraMediaView({ selectedBimestre }: { selectedBim
       {subTab === "relatorio" && (
         <BimestralReportView
           selectedBimestre={selectedBimestre}
-          gradesData={{}}
-          selectedTurma={selectedTurma}
+          turmaName={turmasList.find(t => t.id === selectedTurma)?.name || selectedTurma}
+          studentsMeta={studentsMeta}
         />
       )}
     </div>
   );
 }
+`;
+fs.writeFileSync("src/views/CalculadoraMediaView.tsx", content);

@@ -1,7 +1,9 @@
-import { AcademicRosterService } from "./AcademicRosterService";
+import fs from "fs";
+
+const content = `import { AcademicRosterService } from "./AcademicRosterService";
 import { CanonicalAssessmentService } from "./CanonicalAssessmentService";
 import { GradePlanService } from "./GradePlanService";
-import { CanonicalGradeComponent, getSourceResolverStatus } from "../../domain/assessment/GradePlanTypes";
+import { CanonicalGradeComponent } from "../../domain/assessment/GradePlanTypes";
 
 export interface StudentGradeMeta {
   studentId: string;
@@ -37,7 +39,7 @@ export class BimestralGradeService {
   ) {}
 
   private normalizeName(name: string): string {
-    return name.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return name.trim().toLowerCase().normalize("NFD").replace(/[\\u0300-\\u036f]/g, "");
   }
 
   async calculateForClass(
@@ -69,9 +71,9 @@ export class BimestralGradeService {
     };
 
     for (const cat of catLabels) {
-      const sheet = await this.canonicalService.getSheet(uid, academicYearId, termId, classGroupId, cat);
-      if (sheet) {
-        
+      const sheets = await this.canonicalService.getSheetsByCategory(uid, academicYearId, termId, classGroupId, cat);
+      if (sheets.length > 0) {
+        const sheet = sheets[0];
         sheetsMap.set(cat, sheet);
         const results = await this.canonicalService.getResults(uid, sheet.id);
         const rmap = new Map<string, number>();
@@ -101,7 +103,7 @@ export class BimestralGradeService {
     const taskMap = new Map<string, number>();
 
     roster.forEach(enroll => {
-      const stNameNorm = this.normalizeName(enroll.name);
+      const stNameNorm = this.normalizeName(enroll.student.name);
 
       const ppRec = legacyPaulistaGrades.find((p: any) => this.normalizeName(p.studentName || "") === stNameNorm);
       if (ppRec && typeof ppRec.grade === "number") paulistaMap.set(enroll.studentId, ppRec.grade);
@@ -154,22 +156,11 @@ export class BimestralGradeService {
       const compGrades: Record<string, any> = {};
 
       components.forEach(comp => {
-        if (getSourceResolverStatus(comp.sourceType) === 'PENDING_INTEGRATION') {
-          throw new Error(`Component ${comp.label} (sourceType: ${comp.sourceType}) is not implemented yet. Calculation aborted.`);
-        }
         let val: number | null | undefined = null;
         switch(comp.key) {
-          case 'BIMESTRAL': 
-          case 'SIMULADO': 
-          case 'PARTICIPACAO': 
-             if (comp.sourceType === 'MANUAL' && comp.sourceKey) {
-                val = canonicalMaps[comp.sourceKey]?.get(stId);
-             } else {
-                val = canonicalMaps[comp.key]?.get(stId); // Fallback for old comps
-             }
-             break;
-          
-          
+          case 'BIMESTRAL': val = canonicalMaps['BIMESTRAL'].get(stId); break;
+          case 'SIMULADO': val = canonicalMaps['SIMULADO'].get(stId); break;
+          case 'PARTICIPACAO': val = canonicalMaps['PARTICIPACAO'].get(stId); break;
           case 'PAULISTA': val = paulistaMap.get(stId); break;
           case 'MATIFIC': val = matificMap.get(stId); break;
           case 'TAREFA': val = taskMap.get(stId) ?? (hasTasks ? undefined : 10); break;
@@ -192,7 +183,7 @@ export class BimestralGradeService {
 
       return {
         studentId: stId,
-        name: enroll.name,
+        name: enroll.student.name,
         mediaFinal,
         components: compGrades,
 
@@ -218,3 +209,6 @@ export class BimestralGradeService {
     };
   }
 }
+`;
+
+fs.writeFileSync("src/services/academic/BimestralGradeService.ts", content);
